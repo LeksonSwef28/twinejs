@@ -28,4 +28,31 @@ describe('narrative project history', () => {
 		expect(state.present.editor.selectedDay).toBe(25);
 		expect(state.past).toHaveLength(0);
 	});
+
+	test('selects an exact moment and keeps the coarse period synchronized', () => {
+		const project = createNarrativeProject('story-1', 'Test', ninetyThreeDaysTemplate);
+		const state = narrativeProjectHistoryReducer(
+			{past: [], present: project, future: []},
+			{
+				type: 'execute',
+				command: {type: 'editor/selectMoment', day: 4, minuteOfDay: 19 * 60 + 35}
+			}
+		);
+
+		expect(state.present.editor.selectedDay).toBe(4);
+		expect(state.present.editor.selectedMinuteOfDay).toBe(19 * 60 + 35);
+		expect(state.present.editor.selectedPeriodId).toBe('evening');
+		expect(state.past).toHaveLength(0);
+	});
+
+	test('switches editor workspace without adding undo history', () => {
+		const project = createNarrativeProject('story-1', 'Test', ninetyThreeDaysTemplate);
+		const state = narrativeProjectHistoryReducer(
+			{past: [], present: project, future: []},
+			{type: 'execute', command: {type: 'editor/selectWorkspace', workspace: 'world-time'}}
+		);
+
+		expect(state.present.editor.workspaceMode).toBe('world-time');
+		expect(state.past).toHaveLength(0);
+	});
 });
