@@ -48,7 +48,17 @@ export function createNarrativeProject(
 			selectedDay: 1,
 			selectedPeriodId: firstPeriod.id,
 			selectedMinuteOfDay: firstPeriod.startMinute,
-			workspaceMode: 'story'
+			workspaceMode: 'story',
+			storyCanvas: {
+				activeCanvasId: 'story-root',
+				viewport: {x: 0, y: 0, zoom: 1},
+				nodes: []
+			},
+			worldTimeViewport: {
+				centerAbsoluteMinute: firstPeriod.startMinute,
+				pixelsPerHour: 120,
+				scrollY: 0
+			}
 		},
 		simulation: {
 			day: 1,
