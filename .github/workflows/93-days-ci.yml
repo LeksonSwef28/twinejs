@@ -20,6 +20,8 @@ jobs:
         run: npm run lint
       - name: Build web application
         run: npm run build:web
+      - name: Build Electron main process
+        run: npm run build:electron-main
       - name: Run test suite
         run: npm run test:coverage -- --maxWorkers=2
       - name: Smoke-start Vite
@@ -36,4 +38,19 @@ jobs:
             sleep 1
           done
           cat /tmp/93-days-vite.log
+          exit 1
+      - name: Smoke-start Electron
+        shell: bash
+        run: |
+          xvfb-run -a npm run start:electron:boot > /tmp/93-days-electron.log 2>&1 &
+          ELECTRON_PID=$!
+          sleep 12
+          if kill -0 "$ELECTRON_PID" 2>/dev/null; then
+            echo "Electron stayed alive for the smoke window."
+            kill "$ELECTRON_PID" || true
+            wait "$ELECTRON_PID" || true
+            exit 0
+          fi
+          echo "Electron exited before the smoke window finished."
+          cat /tmp/93-days-electron.log
           exit 1
