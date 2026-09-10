@@ -42,7 +42,7 @@ jobs:
       - name: Smoke-start Electron
         shell: bash
         run: |
-          xvfb-run -a npm run start:electron:boot > /tmp/93-days-electron.log 2>&1 &
+          xvfb-run -a npm run start:electron:boot -- --no-sandbox > /tmp/93-days-electron.log 2>&1 &
           ELECTRON_PID=$!
           sleep 12
           if kill -0 "$ELECTRON_PID" 2>/dev/null; then
