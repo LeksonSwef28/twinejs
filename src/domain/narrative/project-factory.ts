@@ -46,7 +46,9 @@ export function createNarrativeProject(
 		mindStates: [],
 		editor: {
 			selectedDay: 1,
-			selectedPeriodId: firstPeriod.id
+			selectedPeriodId: firstPeriod.id,
+			selectedMinuteOfDay: firstPeriod.startMinute,
+			workspaceMode: 'story'
 		},
 		simulation: {
 			day: 1,
