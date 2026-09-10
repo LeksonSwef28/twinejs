@@ -17,10 +17,7 @@ const weekdayLabels = {
 
 const minuteStep = 5;
 
-type SelectedEntity =
-	| {type: 'character'; id: string}
-	| {type: 'location'; id: string}
-	| undefined;
+type SelectedStoryEntity = {type: 'character'; id: string} | undefined;
 
 export const NarrativeWorkspace: React.FC = () => {
 	const {project, execute, undo, redo, canUndo, canRedo, saveStatus, createId} =
@@ -28,7 +25,7 @@ export const NarrativeWorkspace: React.FC = () => {
 	const [locationName, setLocationName] = React.useState('');
 	const [characterName, setCharacterName] = React.useState('');
 	const [cognitionTier, setCognitionTier] = React.useState<CognitionTier>('full');
-	const [selectedEntity, setSelectedEntity] = React.useState<SelectedEntity>();
+	const [selectedStoryEntity, setSelectedStoryEntity] = React.useState<SelectedStoryEntity>();
 	const selectedPeriod =
 		project.template.periods.find(period => period.id === project.editor.selectedPeriodId) ??
 		project.template.periods[0];
@@ -40,13 +37,12 @@ export const NarrativeWorkspace: React.FC = () => {
 		(project.editor.selectedDay - 1) * minutesPerDay + selectedMinuteOfDay;
 	const maximumAbsoluteMinute = project.template.dayCount * minutesPerDay - 1;
 	const inspectedCharacter =
-		selectedEntity?.type === 'character'
-			? project.characters.find(character => character.id === selectedEntity.id)
+		selectedStoryEntity?.type === 'character'
+			? project.characters.find(character => character.id === selectedStoryEntity.id)
 			: undefined;
-	const inspectedLocation =
-		selectedEntity?.type === 'location'
-			? project.locations.find(location => location.id === selectedEntity.id)
-			: undefined;
+	const viewMatchesSimulationPlayhead =
+		project.simulation.day === project.editor.selectedDay &&
+		project.simulation.minuteOfDay === selectedMinuteOfDay;
 
 	function addLocation(event: React.FormEvent) {
 		event.preventDefault();
@@ -88,25 +84,22 @@ export const NarrativeWorkspace: React.FC = () => {
 		execute({type: 'editor/selectMoment', day, minuteOfDay});
 	}
 
-	function moveDay(deltaDays: number) {
-		execute({
-			type: 'editor/selectMoment',
-			day: project.editor.selectedDay + deltaDays,
-			minuteOfDay: selectedMinuteOfDay
-		});
-	}
-
 	function actualOccupants(locationId: string) {
-		if (
-			project.simulation.day !== project.editor.selectedDay ||
-			project.simulation.minuteOfDay !== selectedMinuteOfDay
-		) {
+		if (!viewMatchesSimulationPlayhead) {
 			return [];
 		}
 
 		return project.characters.filter(
 			character => project.simulation.actualLocationByCharacter[character.id] === locationId
 		);
+	}
+
+	function jumpToSimulationPlayhead() {
+		execute({
+			type: 'editor/selectMoment',
+			day: project.simulation.day,
+			minuteOfDay: project.simulation.minuteOfDay
+		});
 	}
 
 	return (
@@ -116,7 +109,7 @@ export const NarrativeWorkspace: React.FC = () => {
 					<p className="narrative-workspace__eyebrow">93 Days · Narrative Editor</p>
 					<h1>{project.name}</h1>
 					<p className="narrative-workspace__meta">
-						{project.template.dayCount} дней · шаг времени {minuteStep} мин · переходное окно{' '}
+						{project.template.dayCount} дней · точность времени {minuteStep} мин · переходное окно{' '}
 						{project.template.presenceTransition.defaultTransitionWindowMinutes} мин
 					</p>
 				</div>
@@ -159,37 +152,17 @@ export const NarrativeWorkspace: React.FC = () => {
 			</div>
 
 			<div className="narrative-workspace__timebar">
-				<div className="narrative-workspace__day-controls">
-					<button
-						type="button"
-						aria-label="Предыдущий день"
-						disabled={project.editor.selectedDay <= 1}
-						onClick={() => moveDay(-1)}
-					>
-						←
-					</button>
+				<div className="narrative-workspace__view-moment">
+					<span>Просмотр</span>
 					<strong>
 						День {project.editor.selectedDay} · {weekdayLabels[weekday]}
 					</strong>
-					<button
-						type="button"
-						aria-label="Следующий день"
-						disabled={project.editor.selectedDay >= project.template.dayCount}
-						onClick={() => moveDay(1)}
-					>
-						→
-					</button>
+					<time>{formatMinuteOfDay(selectedMinuteOfDay)}</time>
 				</div>
-
-				<div className="narrative-workspace__clock" aria-label="Текущее время редактора">
-					<button
-						type="button"
-						disabled={absoluteMinute <= 0}
-						onClick={() => moveMoment(-minuteStep)}
-					>
+				<div className="narrative-workspace__clock-actions" aria-label="Временный точный навигатор">
+					<button type="button" disabled={absoluteMinute <= 0} onClick={() => moveMoment(-minuteStep)}>
 						−5 мин
 					</button>
-					<time>{formatMinuteOfDay(selectedMinuteOfDay)}</time>
 					<button
 						type="button"
 						disabled={absoluteMinute >= maximumAbsoluteMinute}
@@ -198,8 +171,7 @@ export const NarrativeWorkspace: React.FC = () => {
 						+5 мин
 					</button>
 				</div>
-
-				<div className="narrative-workspace__periods">
+				<div className="narrative-workspace__periods" aria-label="Быстрый переход к периоду">
 					{project.template.periods.map(period => (
 						<button
 							key={period.id}
@@ -211,14 +183,20 @@ export const NarrativeWorkspace: React.FC = () => {
 						</button>
 					))}
 				</div>
+				<div className="narrative-workspace__playhead" data-active={viewMatchesSimulationPlayhead}>
+					<span>Симуляция</span>
+					<strong>
+						День {project.simulation.day} · {formatMinuteOfDay(project.simulation.minuteOfDay)}
+					</strong>
+				</div>
 			</div>
 
 			{workspaceMode === 'story' ? (
 				<div className="narrative-workspace__studio">
 					<aside className="narrative-workspace__library">
 						<div className="narrative-workspace__panel-heading">
-							<span>WORLD</span>
-							<small>объекты проекта</small>
+							<span>STORY</span>
+							<small>сюжетные сущности</small>
 						</div>
 
 						<details open>
@@ -243,35 +221,22 @@ export const NarrativeWorkspace: React.FC = () => {
 							</form>
 						</details>
 
-						<details open>
-							<summary>Локации <span>{project.locations.length}</span></summary>
-							<form onSubmit={addLocation} className="narrative-workspace__compact-form">
-								<input
-									aria-label="Название новой локации"
-									value={locationName}
-									placeholder="Например: Бар"
-									onChange={event => setLocationName(event.target.value)}
-								/>
-								<button type="submit">+ Локация</button>
-							</form>
-						</details>
-
-						<div className="narrative-workspace__library-row"><span>Предметы</span><small>следующий слой</small></div>
-						<div className="narrative-workspace__library-row"><span>События</span><small>следующий слой</small></div>
-						<div className="narrative-workspace__library-row"><span>Факты / память</span><small>следующий слой</small></div>
-						<div className="narrative-workspace__library-row"><span>Квесты</span><small>следующий слой</small></div>
+						<div className="narrative-workspace__library-row"><span>События</span><small>story nodes</small></div>
+						<div className="narrative-workspace__library-row"><span>Диалоги</span><small>nested graph</small></div>
+						<div className="narrative-workspace__library-row"><span>Условия / проверки</span><small>true / false</small></div>
+						<div className="narrative-workspace__library-row"><span>Факты</span><small>истина мира</small></div>
+						<div className="narrative-workspace__library-row"><span>Заметки / группы</span><small>canvas only</small></div>
 					</aside>
 
 					<main className="narrative-workspace__canvas-shell">
 						<div className="narrative-workspace__breadcrumbs">
-							World <span>›</span> День {project.editor.selectedDay} <span>›</span>{' '}
-							{formatMinuteOfDay(selectedMinuteOfDay)}
+							История <span>›</span> Главная доска
 						</div>
 						<div className="narrative-workspace__canvas">
-							{project.characters.length === 0 && project.locations.length === 0 ? (
+							{project.characters.length === 0 ? (
 								<div className="narrative-workspace__canvas-empty">
-									<strong>Living Canvas</strong>
-									<p>Создай персонажа или локацию слева — объект появится здесь как нода.</p>
+									<strong>Story Canvas</strong>
+									<p>Здесь будет строиться история: события, выборы, проверки, последствия и заметки. Локации живут в «Время и мир».</p>
 								</div>
 							) : (
 								<div className="narrative-workspace__nodes">
@@ -279,40 +244,26 @@ export const NarrativeWorkspace: React.FC = () => {
 										<button
 											key={character.id}
 											type="button"
-											className={`narrative-workspace__node narrative-workspace__node--character${selectedEntity?.type === 'character' && selectedEntity.id === character.id ? ' is-selected' : ''}`}
-											onClick={() => setSelectedEntity({type: 'character', id: character.id})}
+											className={`narrative-workspace__node narrative-workspace__node--character${selectedStoryEntity?.type === 'character' && selectedStoryEntity.id === character.id ? ' is-selected' : ''}`}
+											onClick={() => setSelectedStoryEntity({type: 'character', id: character.id})}
 										>
-											<span className="narrative-workspace__node-kind">CHARACTER</span>
+											<span className="narrative-workspace__node-kind">CHARACTER REFERENCE</span>
 											<strong>{character.name}</strong>
 											<small>{character.cognitionTier} mind</small>
 											<i className="narrative-workspace__port narrative-workspace__port--left" />
 											<i className="narrative-workspace__port narrative-workspace__port--right" />
 										</button>
 									))}
-									{project.locations.map(location => (
-										<button
-											key={location.id}
-											type="button"
-											className={`narrative-workspace__node narrative-workspace__node--location${selectedEntity?.type === 'location' && selectedEntity.id === location.id ? ' is-selected' : ''}`}
-											onClick={() => setSelectedEntity({type: 'location', id: location.id})}
-										>
-											<span className="narrative-workspace__node-kind">LOCATION</span>
-											<strong>{location.name}</strong>
-											<small>место мира</small>
-											<i className="narrative-workspace__port narrative-workspace__port--left" />
-											<i className="narrative-workspace__port narrative-workspace__port--right" />
-										</button>
-									))}
 								</div>
 							)}
-							<div className="narrative-workspace__canvas-hint">Перетаскивание и связи нод — следующий patch</div>
+							<div className="narrative-workspace__canvas-hint">Domain entity ≠ canvas node · свободное размещение и связи — следующий patch</div>
 						</div>
 					</main>
 
 					<aside className="narrative-workspace__inspector">
 						<div className="narrative-workspace__panel-heading">
 							<span>INSPECTOR</span>
-							<small>{formatMinuteOfDay(selectedMinuteOfDay)}</small>
+							<small>story</small>
 						</div>
 						{inspectedCharacter ? (
 							<div className="narrative-workspace__inspection">
@@ -323,22 +274,16 @@ export const NarrativeWorkspace: React.FC = () => {
 									<dt>Behavior profile</dt><dd>{inspectedCharacter.defaultBehaviorProfileId}</dd>
 								</dl>
 							</div>
-						) : inspectedLocation ? (
-							<div className="narrative-workspace__inspection">
-								<span className="narrative-workspace__node-kind">LOCATION</span>
-								<h2>{inspectedLocation.name}</h2>
-								<p>Локация готова стать точкой расписания, присутствия и сцен.</p>
-							</div>
 						) : (
 							<div className="narrative-workspace__inspection narrative-workspace__inspection--empty">
-								<strong>Выбери ноду</strong>
-								<p>Здесь будут свойства, связи, условия и диагностика выбранного объекта.</p>
+								<strong>Выбери сюжетную ноду</strong>
+								<p>Здесь будут свойства события, условия, связи, последствия и диагностика.</p>
 							</div>
 						)}
 						<div className="narrative-workspace__stats">
 							<div><span>Персонажи</span><strong>{project.characters.length}</strong></div>
-							<div><span>Локации</span><strong>{project.locations.length}</strong></div>
 							<div><span>Сцены</span><strong>{project.scenes.length}</strong></div>
+							<div><span>Memory traces</span><strong>{project.memories.length}</strong></div>
 						</div>
 					</aside>
 				</div>
@@ -347,55 +292,89 @@ export const NarrativeWorkspace: React.FC = () => {
 					<header className="narrative-workspace__world-time-header">
 						<div>
 							<p className="narrative-workspace__eyebrow">World / Time</p>
-							<h2>День {project.editor.selectedDay}: расположение и расписание</h2>
+							<h2>Временная карта мира</h2>
+							<p>Локации, расписания, присутствие и перемещения живут здесь. Просмотр времени не перематывает симуляцию.</p>
 						</div>
-						<strong>{formatMinuteOfDay(selectedMinuteOfDay)}</strong>
 					</header>
 
-					<div className="narrative-workspace__schedule-wrap">
-						<table className="narrative-workspace__schedule">
-							<thead>
-								<tr>
-									<th>Локация</th>
-									{project.template.periods.map(period => (
-										<th key={period.id} className={period.id === project.editor.selectedPeriodId ? 'is-active' : undefined}>
-											{period.label}
-										</th>
-									))}
-								</tr>
-							</thead>
-							<tbody>
-								{project.locations.map(location => (
-									<tr key={location.id}>
-										<th>{location.name}</th>
-										{project.template.periods.map(period => {
-											const occupants = period.id === project.editor.selectedPeriodId ? actualOccupants(location.id) : [];
-											return (
-												<td key={period.id} className={period.id === project.editor.selectedPeriodId ? 'is-active' : undefined}>
-													{occupants.length > 0 ? occupants.map(character => (
-														<span key={character.id} className="narrative-workspace__occupant">{character.name}</span>
-													)) : <span className="narrative-workspace__dash">—</span>}
-												</td>
-											);
-										})}
-									</tr>
-								))}
-								{project.locations.length === 0 && (
-									<tr>
-										<td colSpan={project.template.periods.length + 1} className="narrative-workspace__schedule-empty">
-											Добавь локации в режиме «История», чтобы построить пространственную сетку дня.
-										</td>
-									</tr>
-								)}
-							</tbody>
-						</table>
-					</div>
+					<div className="narrative-workspace__world-time-layout">
+						<aside className="narrative-workspace__world-library">
+							<div className="narrative-workspace__panel-heading">
+								<span>МИР</span>
+								<small>{project.locations.length} локаций</small>
+							</div>
+							<form onSubmit={addLocation} className="narrative-workspace__compact-form">
+								<input
+									aria-label="Название новой локации"
+									value={locationName}
+									placeholder="Например: Бар"
+									onChange={event => setLocationName(event.target.value)}
+								/>
+								<button type="submit">+ Локация</button>
+							</form>
+							<div className="narrative-workspace__location-list">
+								{project.locations.map(location => <div key={location.id}>{location.name}</div>)}
+								{project.locations.length === 0 && <p>Пока нет локаций.</p>}
+							</div>
+						</aside>
 
-					<div className="narrative-workspace__world-time-note">
-						<strong>Каркас временного экрана готов.</strong>
-						<span>
-							Точное присутствие появится здесь после подключения Schedule Resolver и Presence Transition Planner. Сейчас мы не подменяем отсутствующую симуляцию фиктивными данными.
-						</span>
+						<main className="narrative-workspace__world-time-main">
+							<div className="narrative-workspace__viewport-banner">
+								<div>
+									<strong>Viewport: День {project.editor.selectedDay} · {formatMinuteOfDay(selectedMinuteOfDay)}</strong>
+									<span>Следующий UI-патч заменит периодную таблицу на pan/zoom timeline: 93 дня → дни → часы → 5 минут.</span>
+								</div>
+								{!viewMatchesSimulationPlayhead && (
+									<button type="button" onClick={jumpToSimulationPlayhead}>К playhead симуляции</button>
+								)}
+							</div>
+
+							<div className="narrative-workspace__schedule-wrap">
+								<table className="narrative-workspace__schedule">
+									<thead>
+										<tr>
+											<th>Локация</th>
+											{project.template.periods.map(period => (
+												<th key={period.id} className={period.id === project.editor.selectedPeriodId ? 'is-active' : undefined}>
+													{period.label}
+												</th>
+											))}
+										</tr>
+									</thead>
+									<tbody>
+										{project.locations.map(location => (
+											<tr key={location.id}>
+												<th>{location.name}</th>
+												{project.template.periods.map(period => {
+													const occupants = period.id === project.editor.selectedPeriodId ? actualOccupants(location.id) : [];
+													return (
+														<td key={period.id} className={period.id === project.editor.selectedPeriodId ? 'is-active' : undefined}>
+															{occupants.length > 0 ? occupants.map(character => (
+																<span key={character.id} className="narrative-workspace__occupant">{character.name}</span>
+															)) : <span className="narrative-workspace__dash">—</span>}
+														</td>
+													);
+												})}
+											</tr>
+										))}
+										{project.locations.length === 0 && (
+											<tr>
+												<td colSpan={project.template.periods.length + 1} className="narrative-workspace__schedule-empty">
+													Создай локацию слева, чтобы она появилась на временной карте мира.
+												</td>
+											</tr>
+										)}
+									</tbody>
+								</table>
+							</div>
+
+							<div className="narrative-workspace__world-time-note">
+								<strong>{viewMatchesSimulationPlayhead ? 'Просмотр совпадает с playhead симуляции.' : 'Сейчас открыт другой момент времени.'}</strong>
+								<span>
+									Фактическое присутствие показывается только для состояния симуляции. Навигация по истории времени сама по себе не меняет мир и не создаёт событий.
+								</span>
+							</div>
+						</main>
 					</div>
 				</section>
 			)}
