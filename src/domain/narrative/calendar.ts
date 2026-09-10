@@ -1,5 +1,7 @@
 import {Weekday} from './schedule';
 
+export const minutesPerDay = 24 * 60;
+
 const weekdays: Weekday[] = [
 	'monday',
 	'tuesday',
@@ -21,4 +23,15 @@ export function weekdayForDay(dayNumber: number, day1Weekday: Weekday): Weekday 
 
 export function clampDay(dayNumber: number, dayCount: number) {
 	return Math.max(1, Math.min(dayCount, Math.round(dayNumber)));
+}
+
+export function clampMinuteOfDay(minuteOfDay: number) {
+	return Math.max(0, Math.min(minutesPerDay - 1, Math.round(minuteOfDay)));
+}
+
+export function formatMinuteOfDay(minuteOfDay: number) {
+	const minute = clampMinuteOfDay(minuteOfDay);
+	const hours = Math.floor(minute / 60);
+	const minutes = minute % 60;
+	return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
