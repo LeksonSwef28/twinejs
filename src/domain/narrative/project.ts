@@ -5,9 +5,15 @@ import {NarrativeProjectTemplate} from './template';
 
 export const narrativeProjectSchemaVersion = 1;
 
+export type NarrativeWorkspaceMode = 'story' | 'world-time';
+
 export interface NarrativeEditorState {
 	selectedDay: number;
 	selectedPeriodId: string;
+	/** Optional while schema version 1 projects created before exact-time navigation are still supported. */
+	selectedMinuteOfDay?: number;
+	/** Optional while schema version 1 projects created before the dual-workspace UI are still supported. */
+	workspaceMode?: NarrativeWorkspaceMode;
 }
 
 export interface NarrativeSimulationState {
