@@ -55,4 +55,29 @@ describe('narrative project history', () => {
 		expect(state.present.editor.workspaceMode).toBe('world-time');
 		expect(state.past).toHaveLength(0);
 	});
+
+	test('undo and redo preserve the current editor view instead of restoring an old camera moment', () => {
+		const project = createNarrativeProject('story-1', 'Test', ninetyThreeDaysTemplate);
+		const added = narrativeProjectHistoryReducer(
+			{past: [], present: project, future: []},
+			{
+				type: 'execute',
+				command: {type: 'location/add', id: 'location-bar', name: 'Бар'}
+			}
+		);
+		const navigated = narrativeProjectHistoryReducer(added, {
+			type: 'execute',
+			command: {type: 'editor/selectMoment', day: 30, minuteOfDay: 21 * 60 + 15}
+		});
+		const undone = narrativeProjectHistoryReducer(navigated, {type: 'undo'});
+
+		expect(undone.present.locations).toHaveLength(0);
+		expect(undone.present.editor.selectedDay).toBe(30);
+		expect(undone.present.editor.selectedMinuteOfDay).toBe(21 * 60 + 15);
+
+		const redone = narrativeProjectHistoryReducer(undone, {type: 'redo'});
+		expect(redone.present.locations).toHaveLength(1);
+		expect(redone.present.editor.selectedDay).toBe(30);
+		expect(redone.present.editor.selectedMinuteOfDay).toBe(21 * 60 + 15);
+	});
 });
