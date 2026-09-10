@@ -1,20 +1,12 @@
 import {CharacterMindState, MemoryTrace, PendingReaction, RelationshipState} from './cognition';
+import {NarrativeEditorState} from './editor';
 import {NarrativeCharacter, NarrativeLocation, NarrativeScene} from './entities';
 import {BehaviorProfile, RoutineRule, ScheduleException} from './schedule';
 import {NarrativeProjectTemplate} from './template';
 
 export const narrativeProjectSchemaVersion = 1;
 
-export type NarrativeWorkspaceMode = 'story' | 'world-time';
-
-export interface NarrativeEditorState {
-	selectedDay: number;
-	selectedPeriodId: string;
-	/** Optional while schema version 1 projects created before exact-time navigation are still supported. */
-	selectedMinuteOfDay?: number;
-	/** Optional while schema version 1 projects created before the dual-workspace UI are still supported. */
-	workspaceMode?: NarrativeWorkspaceMode;
-}
+export type {NarrativeWorkspaceMode} from './editor';
 
 export interface NarrativeSimulationState {
 	day: number;
