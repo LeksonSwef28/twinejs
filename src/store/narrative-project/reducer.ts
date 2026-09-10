@@ -17,6 +17,17 @@ function touched(project: NarrativeProject): NarrativeProject {
 	return {...project, updatedAt: new Date().toISOString()};
 }
 
+/**
+ * Undo/redo restores authored/runtime project data but never moves the user's editor viewport.
+ * Editor navigation is a view concern, not part of narrative history.
+ */
+function restoreSnapshotKeepingEditor(
+	snapshot: NarrativeProject,
+	current: NarrativeProject
+): NarrativeProject {
+	return {...snapshot, editor: current.editor};
+}
+
 export function applyNarrativeProjectCommand(
 	project: NarrativeProject,
 	command: NarrativeProjectCommand
@@ -111,7 +122,7 @@ export function narrativeProjectHistoryReducer(
 
 		return {
 			past: state.past.slice(0, -1),
-			present: previous,
+			present: restoreSnapshotKeepingEditor(previous, state.present),
 			future: [state.present, ...state.future]
 		};
 	}
@@ -124,7 +135,7 @@ export function narrativeProjectHistoryReducer(
 
 		return {
 			past: [...state.past, state.present],
-			present: next,
+			present: restoreSnapshotKeepingEditor(next, state.present),
 			future: state.future.slice(1)
 		};
 	}
