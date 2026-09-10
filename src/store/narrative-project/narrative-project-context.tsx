@@ -4,7 +4,6 @@ import {NarrativeProject} from '../../domain/narrative/project';
 import {createNarrativeId} from '../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../domain/narrative/templates/93-days';
 import {
-	NarrativeProjectHistoryAction,
 	NarrativeProjectHistoryState,
 	narrativeProjectHistoryReducer
 } from './reducer';
