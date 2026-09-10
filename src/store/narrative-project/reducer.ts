@@ -1,5 +1,5 @@
 import {NarrativeProjectCommand} from '../../application/narrative/commands';
-import {clampDay} from '../../domain/narrative/calendar';
+import {clampDay, clampMinuteOfDay} from '../../domain/narrative/calendar';
 import {NarrativeProject} from '../../domain/narrative/project';
 
 export interface NarrativeProjectHistoryState {
@@ -58,19 +58,45 @@ export function applyNarrativeProjectCommand(
 					selectedDay: clampDay(command.day, project.template.dayCount)
 				}
 			};
-		case 'editor/selectPeriod':
-			if (!project.template.periods.some(period => period.id === command.periodId)) {
+		case 'editor/selectPeriod': {
+			const period = project.template.periods.find(candidate => candidate.id === command.periodId);
+			if (!period) {
 				return project;
 			}
 			return {
 				...project,
-				editor: {...project.editor, selectedPeriodId: command.periodId}
+				editor: {
+					...project.editor,
+					selectedPeriodId: period.id,
+					selectedMinuteOfDay: period.startMinute
+				}
+			};
+		}
+		case 'editor/selectMoment': {
+			const minuteOfDay = clampMinuteOfDay(command.minuteOfDay);
+			const period = project.template.periods.find(
+				candidate => minuteOfDay >= candidate.startMinute && minuteOfDay < candidate.endMinute
+			);
+			return {
+				...project,
+				editor: {
+					...project.editor,
+					selectedDay: clampDay(command.day, project.template.dayCount),
+					selectedMinuteOfDay: minuteOfDay,
+					selectedPeriodId: period?.id ?? project.editor.selectedPeriodId
+				}
+			};
+		}
+		case 'editor/selectWorkspace':
+			return {
+				...project,
+				editor: {...project.editor, workspaceMode: command.workspace}
 			};
 	}
 }
 
 function isEditorNavigation(command: NarrativeProjectCommand) {
-	return command.type === 'editor/selectDay' || command.type === 'editor/selectPeriod';
+	return command.type.startsWith('editor/');
 }
 
 export function narrativeProjectHistoryReducer(
