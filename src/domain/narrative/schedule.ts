@@ -33,13 +33,23 @@ export interface BehaviorProfile {
 	name: string;
 }
 
+/**
+ * New authored schedules should use timeWindow. `periodId` remains temporarily for
+ * schema-v1 data created by the first prototype.
+ */
+export type RoutineTimeWindow =
+	| {type: 'period'; periodId: string}
+	| {type: 'exact'; startMinute: number; endMinute: number};
+
 export interface RoutineRule {
 	id: EntityId;
 	characterId: EntityId;
 	behaviorProfileId: EntityId;
 	activeRange: DayRange;
 	recurrence: RecurrencePattern;
-	periodId: string;
+	timeWindow?: RoutineTimeWindow;
+	/** Legacy schema-v1 period selector. */
+	periodId?: string;
 	targetLocationId?: EntityId;
 	absent?: boolean;
 }
@@ -48,6 +58,8 @@ export interface ScheduleException {
 	id: EntityId;
 	characterId: EntityId;
 	activeRange: DayRange;
+	timeWindow?: RoutineTimeWindow;
+	/** Legacy schema-v1 period selector. */
 	periodId?: string;
 	targetLocationId?: EntityId;
 	absent?: boolean;
