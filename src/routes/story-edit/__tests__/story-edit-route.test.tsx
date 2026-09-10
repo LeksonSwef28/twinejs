@@ -13,11 +13,6 @@ import {
 	StoryInspector
 } from '../../../test-util';
 import {InnerStoryEditRoute} from '../story-edit-route';
-import {useZoomShortcuts} from '../use-zoom-shortcuts';
-
-jest.mock('../toolbar/story-edit-toolbar');
-jest.mock('../use-zoom-shortcuts');
-jest.mock('../../../components/passage/passage-map/passage-map');
 
 const TestStoryEditRoute: React.FC = () => {
 	const {stories} = useStoriesContext();
@@ -37,8 +32,6 @@ const TestStoryEditRoute: React.FC = () => {
 };
 
 describe('<StoryEditRoute>', () => {
-	const useZoomShortcutsMock = useZoomShortcuts as jest.Mock;
-
 	async function renderComponent(
 		story: Story,
 		contexts?: FakeStateProviderProps
@@ -66,7 +59,6 @@ describe('<StoryEditRoute>', () => {
 
 		jest.useRealTimers();
 
-		// Need this because of <PromptButton>
 		await act(async () => Promise.resolve());
 		return result;
 	}
@@ -78,19 +70,22 @@ describe('<StoryEditRoute>', () => {
 		expect(Helmet.peek().title).toBe(story.name);
 	});
 
-	it('displays the toolbar', async () => {
-		await renderComponent(fakeStory());
-		expect(screen.getByTestId('mock-story-edit-toolbar')).toBeInTheDocument();
+	it('opens the narrative workspace for the story', async () => {
+		const story = fakeStory();
+
+		await renderComponent(story);
+		expect(screen.getByText('Narrative Editor')).toBeInTheDocument();
+		expect(screen.getByRole('heading', {name: story.name})).toBeInTheDocument();
+		expect(screen.getByText(/93 Days/)).toBeInTheDocument();
+		expect(screen.getByText(/День 1/)).toBeInTheDocument();
 	});
 
-	it('displays a passage map', async () => {
+	it('shows the 93 Days period controls', async () => {
 		await renderComponent(fakeStory());
-		expect(screen.getByTestId('mock-passage-map')).toBeInTheDocument();
-	});
-
-	it('sets up zoom keyboard shortcuts', async () => {
-		await renderComponent(fakeStory());
-		expect(useZoomShortcutsMock).toBeCalled();
+		expect(screen.getByRole('button', {name: 'Утро'})).toBeInTheDocument();
+		expect(screen.getByRole('button', {name: 'День'})).toBeInTheDocument();
+		expect(screen.getByRole('button', {name: 'Вечер'})).toBeInTheDocument();
+		expect(screen.getByRole('button', {name: 'Ночь'})).toBeInTheDocument();
 	});
 
 	it('is accessible', async () => {

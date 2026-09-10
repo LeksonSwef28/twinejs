@@ -71,6 +71,7 @@ export const NarrativeWorkspace: React.FC = () => {
 			<div className="narrative-workspace__calendar">
 				<button
 					type="button"
+					aria-label="Предыдущий день"
 					disabled={project.editor.selectedDay <= 1}
 					onClick={() => execute({type: 'editor/selectDay', day: project.editor.selectedDay - 1})}
 				>
@@ -79,6 +80,7 @@ export const NarrativeWorkspace: React.FC = () => {
 				<strong>День {project.editor.selectedDay} · {weekdayLabels[weekday]}</strong>
 				<button
 					type="button"
+					aria-label="Следующий день"
 					disabled={project.editor.selectedDay >= project.template.dayCount}
 					onClick={() => execute({type: 'editor/selectDay', day: project.editor.selectedDay + 1})}
 				>
@@ -102,7 +104,12 @@ export const NarrativeWorkspace: React.FC = () => {
 				<section className="narrative-workspace__panel">
 					<h2>Локации <span>{project.locations.length}</span></h2>
 					<form onSubmit={addLocation} className="narrative-workspace__form">
-						<input value={locationName} placeholder="Например: Бар" onChange={event => setLocationName(event.target.value)} />
+						<input
+							aria-label="Название новой локации"
+							value={locationName}
+							placeholder="Например: Бар"
+							onChange={event => setLocationName(event.target.value)}
+						/>
 						<button type="submit">Добавить</button>
 					</form>
 					<ul>{project.locations.map(location => <li key={location.id}>{location.name}</li>)}</ul>
@@ -112,8 +119,17 @@ export const NarrativeWorkspace: React.FC = () => {
 				<section className="narrative-workspace__panel">
 					<h2>Персонажи <span>{project.characters.length}</span></h2>
 					<form onSubmit={addCharacter} className="narrative-workspace__form narrative-workspace__form--character">
-						<input value={characterName} placeholder="Например: Катя" onChange={event => setCharacterName(event.target.value)} />
-						<select value={cognitionTier} onChange={event => setCognitionTier(event.target.value as CognitionTier)}>
+						<input
+							aria-label="Имя нового персонажа"
+							value={characterName}
+							placeholder="Например: Катя"
+							onChange={event => setCharacterName(event.target.value)}
+						/>
+						<select
+							aria-label="Уровень симуляции персонажа"
+							value={cognitionTier}
+							onChange={event => setCognitionTier(event.target.value as CognitionTier)}
+						>
 							<option value="full">Full mind</option>
 							<option value="light">Light mind</option>
 							<option value="background">Background</option>
