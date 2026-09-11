@@ -1,4 +1,10 @@
-import {clampDay, clampMinuteOfDay, formatMinuteOfDay, weekdayForDay} from '../calendar';
+import {
+	clampDay,
+	clampMinuteOfDay,
+	formatMinuteOfDay,
+	periodContainsMinute,
+	weekdayForDay
+} from '../calendar';
 
 describe('narrative calendar', () => {
 	test('maps repeating weekdays from the configured first day', () => {
@@ -15,6 +21,19 @@ describe('narrative calendar', () => {
 	test('clamps exact time to a single day', () => {
 		expect(clampMinuteOfDay(-1)).toBe(0);
 		expect(clampMinuteOfDay(24 * 60)).toBe(24 * 60 - 1);
+	});
+
+	test('supports periods that wrap through midnight', () => {
+		const night = {
+			id: 'night',
+			label: 'Ночь',
+			startMinute: 22 * 60,
+			endMinute: 6 * 60
+		};
+
+		expect(periodContainsMinute(night, 23 * 60)).toBe(true);
+		expect(periodContainsMinute(night, 2 * 60 + 30)).toBe(true);
+		expect(periodContainsMinute(night, 12 * 60)).toBe(false);
 	});
 
 	test('formats exact time as HH:MM', () => {
