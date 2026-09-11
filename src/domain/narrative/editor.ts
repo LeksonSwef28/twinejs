@@ -58,11 +58,16 @@ export interface StoryCanvasEditorState {
 /**
  * Camera state for the temporal/spatial workspace. It is intentionally editor metadata:
  * moving or zooming this viewport must never advance game time.
+ *
+ * Viewport dimensions are optional for schema-v1 projects and are populated by the UI
+ * once the virtualized timeline is measured.
  */
 export interface WorldTimeViewportState {
 	centerAbsoluteMinute: number;
 	pixelsPerHour: number;
 	scrollY: number;
+	viewportWidth?: number;
+	viewportHeight?: number;
 }
 
 export interface NarrativeEditorState {
