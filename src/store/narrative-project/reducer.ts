@@ -224,6 +224,40 @@ export function applyNarrativeProjectCommand(
 				...project,
 				editor: {...project.editor, workspaceMode: command.workspace}
 			};
+		case 'editor/addCanvasReference': {
+			const canvas = storyCanvas(project);
+			return {
+				...project,
+				editor: {
+					...project.editor,
+					storyCanvas: {
+						...canvas,
+						nodes: [
+							...canvas.nodes,
+							{
+								id: command.canvasNodeId,
+								kind: 'entity',
+								entityRef: command.entityRef,
+								position: command.position
+							}
+						]
+					}
+				}
+			};
+		}
+		case 'editor/removeCanvasNode': {
+			const canvas = storyCanvas(project);
+			return {
+				...project,
+				editor: {
+					...project.editor,
+					storyCanvas: {
+						...canvas,
+						nodes: canvas.nodes.filter(node => node.id !== command.canvasNodeId)
+					}
+				}
+			};
+		}
 		case 'editor/moveCanvasNode': {
 			const canvas = storyCanvas(project);
 			return {
