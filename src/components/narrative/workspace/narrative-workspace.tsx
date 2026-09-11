@@ -9,6 +9,7 @@ import {useNarrativeProject} from '../../../store/narrative-project';
 import {StoryWorkspace} from './story-workspace';
 import {WorldTimeWorkspace} from './world-time-workspace';
 import './narrative-workspace.css';
+import './narrative-workspace-v9.css';
 
 const weekdayLabels = {
 	monday: 'Пн',
