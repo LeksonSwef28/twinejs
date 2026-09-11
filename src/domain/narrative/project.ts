@@ -1,6 +1,7 @@
 import {CharacterMindState, MemoryTrace, PendingReaction, RelationshipState} from './cognition';
 import {NarrativeEditorState} from './editor';
 import {NarrativeCharacter, NarrativeLocation, NarrativeScene} from './entities';
+import {ItemDefinition, ItemInstance} from './items';
 import {BehaviorProfile, RoutineRule, ScheduleException} from './schedule';
 import {StoryConnectionDefinition, StoryNodeDefinition} from './story';
 import {NarrativeProjectTemplate} from './template';
@@ -27,6 +28,8 @@ export interface NarrativeProject {
 	locations: NarrativeLocation[];
 	scenes: NarrativeScene[];
 	characters: NarrativeCharacter[];
+	itemDefinitions: ItemDefinition[];
+	itemInstances: ItemInstance[];
 	behaviorProfiles: BehaviorProfile[];
 	routineRules: RoutineRule[];
 	scheduleExceptions: ScheduleException[];
