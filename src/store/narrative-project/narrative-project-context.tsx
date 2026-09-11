@@ -22,16 +22,18 @@ export interface NarrativeProjectContextValue {
 	createId(prefix: string): string;
 }
 
-const NarrativeProjectContext = React.createContext<NarrativeProjectContextValue | undefined>(
-	undefined
-);
+const NarrativeProjectContext = React.createContext<
+	NarrativeProjectContextValue | undefined
+>(undefined);
 
 export interface NarrativeProjectProviderProps {
 	hostStoryId: string;
 	projectName: string;
 }
 
-export const NarrativeProjectProvider: React.FC<NarrativeProjectProviderProps> = props => {
+export const NarrativeProjectProvider: React.FC<
+	NarrativeProjectProviderProps
+> = props => {
 	const repository = React.useMemo(
 		() =>
 			createLocalStorageNarrativeProjectRepository(
@@ -49,10 +51,13 @@ export const NarrativeProjectProvider: React.FC<NarrativeProjectProviderProps> =
 		narrativeProjectHistoryReducer,
 		initialState
 	);
-	const [saveStatus, setSaveStatus] = React.useState<NarrativeSaveStatus>('saved');
+	const [saveStatus, setSaveStatus] =
+		React.useState<NarrativeSaveStatus>('saved');
 
 	React.useEffect(() => {
 		setSaveStatus('saving');
+		// Pan/zoom can dispatch many lightweight editor-state updates. A slightly
+		// longer debounce avoids serializing the whole project for every mouse move.
 		const timeout = window.setTimeout(() => {
 			try {
 				repository.save(state.present);
@@ -60,13 +65,14 @@ export const NarrativeProjectProvider: React.FC<NarrativeProjectProviderProps> =
 			} catch {
 				setSaveStatus('error');
 			}
-		}, 150);
+		}, 500);
 
 		return () => window.clearTimeout(timeout);
 	}, [repository, state.present]);
 
 	const execute = React.useCallback(
-		(command: NarrativeProjectCommand) => dispatch({type: 'execute', command}),
+		(command: NarrativeProjectCommand) =>
+			dispatch({type: 'execute', command}),
 		[]
 	);
 	const undo = React.useCallback(() => dispatch({type: 'undo'}), []);
@@ -96,7 +102,9 @@ export const NarrativeProjectProvider: React.FC<NarrativeProjectProviderProps> =
 export function useNarrativeProject() {
 	const context = React.useContext(NarrativeProjectContext);
 	if (!context) {
-		throw new Error('useNarrativeProject must be used inside NarrativeProjectProvider');
+		throw new Error(
+			'useNarrativeProject must be used inside NarrativeProjectProvider'
+		);
 	}
 
 	return context;
