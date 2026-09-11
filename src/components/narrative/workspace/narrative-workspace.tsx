@@ -6,6 +6,7 @@ import {
 } from '../../../domain/narrative/calendar';
 import {NarrativeWorkspaceMode} from '../../../domain/narrative/project';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {ProjectLibrary} from './project-library';
 import {StoryWorkspace} from './story-workspace';
 import {WorldTimeWorkspace} from './world-time-workspace';
 import './narrative-workspace.css';
@@ -26,6 +27,7 @@ const minuteStep = 5;
 export const NarrativeWorkspace: React.FC = () => {
 	const {project, execute, undo, redo, canUndo, canRedo, saveStatus} =
 		useNarrativeProject();
+	const [projectLibraryOpen, setProjectLibraryOpen] = React.useState(false);
 	const selectedPeriod =
 		project.template.periods.find(
 			period => period.id === project.editor.selectedPeriodId
@@ -83,6 +85,9 @@ export const NarrativeWorkspace: React.FC = () => {
 								? 'Сохраняю…'
 								: 'Ошибка сохранения'}
 					</span>
+					<button type="button" onClick={() => setProjectLibraryOpen(true)}>
+						Библиотека
+					</button>
 					<button type="button" onClick={undo} disabled={!canUndo}>
 						Отменить
 					</button>
@@ -190,6 +195,10 @@ export const NarrativeWorkspace: React.FC = () => {
 				</div>
 			</div>
 
+			<ProjectLibrary
+				open={projectLibraryOpen}
+				onClose={() => setProjectLibraryOpen(false)}
+			/>
 			{workspaceMode === 'story' ? <StoryWorkspace /> : <WorldTimeWorkspace />}
 		</section>
 	);
