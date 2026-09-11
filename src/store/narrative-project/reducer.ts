@@ -2,8 +2,10 @@ import {NarrativeProjectCommand} from '../../application/narrative/commands';
 import {
 	clampDay,
 	clampMinuteOfDay,
+	minutesPerDay,
 	periodContainsMinute
 } from '../../domain/narrative/calendar';
+import {StoryCanvasEditorState} from '../../domain/narrative/editor';
 import {NarrativeProject} from '../../domain/narrative/project';
 
 export interface NarrativeProjectHistoryState {
@@ -21,15 +23,47 @@ function touched(project: NarrativeProject): NarrativeProject {
 	return {...project, updatedAt: new Date().toISOString()};
 }
 
+function storyCanvas(project: NarrativeProject): StoryCanvasEditorState {
+	return (
+		project.editor.storyCanvas ?? {
+			activeCanvasId: 'story-root',
+			viewport: {x: 0, y: 0, zoom: 1},
+			nodes: []
+		}
+	);
+}
+
 /**
- * Undo/redo restores authored/runtime project data but never moves the user's editor viewport.
- * Editor navigation is a view concern, not part of narrative history.
+ * Undo/redo restores authored data, including which visual node instances exist,
+ * but keeps the current camera and the current positions of nodes that still
+ * exist in the restored snapshot. This prevents Undo from throwing the author
+ * to an old viewport while still allowing node creation/removal to undo cleanly.
  */
-function restoreSnapshotKeepingEditor(
+function restoreSnapshotKeepingEditorView(
 	snapshot: NarrativeProject,
 	current: NarrativeProject
 ): NarrativeProject {
-	return {...snapshot, editor: current.editor};
+	const snapshotCanvas = storyCanvas(snapshot);
+	const currentCanvas = storyCanvas(current);
+	const currentNodes = new Map(currentCanvas.nodes.map(node => [node.id, node]));
+
+	return {
+		...snapshot,
+		editor: {
+			...snapshot.editor,
+			selectedDay: current.editor.selectedDay,
+			selectedPeriodId: current.editor.selectedPeriodId,
+			selectedMinuteOfDay: current.editor.selectedMinuteOfDay,
+			workspaceMode: current.editor.workspaceMode,
+			storyCanvas: {
+				...snapshotCanvas,
+				viewport: currentCanvas.viewport,
+				nodes: snapshotCanvas.nodes.map(node => currentNodes.get(node.id) ?? node)
+			},
+			worldTimeViewport:
+				current.editor.worldTimeViewport ?? snapshot.editor.worldTimeViewport
+		}
+	};
 }
 
 export function applyNarrativeProjectCommand(
@@ -65,6 +99,89 @@ export function applyNarrativeProjectCommand(
 					}
 				]
 			});
+		case 'story/addDraftNode': {
+			const canvas = storyCanvas(project);
+			return touched({
+				...project,
+				storyNodes: [
+					...project.storyNodes,
+					{
+						id: command.id,
+						kind: command.kind,
+						title: command.title.trim() || 'Новый сюжетный блок',
+						participantIds: [],
+						activationState: 'draft'
+					}
+				],
+				editor: {
+					...project.editor,
+					storyCanvas: {
+						...canvas,
+						nodes: [
+							...canvas.nodes,
+							{
+								id: command.canvasNodeId,
+								kind: 'entity',
+								entityRef: {type: 'storyNode', id: command.id},
+								position: command.position
+							}
+						]
+					}
+				}
+			});
+		}
+		case 'story/removeNode':
+			return touched({
+				...project,
+				storyNodes: project.storyNodes.filter(node => node.id !== command.id),
+				storyConnections: project.storyConnections.filter(
+					connection =>
+						connection.sourceNodeId !== command.id &&
+						connection.targetNodeId !== command.id
+				),
+				editor: {
+					...project.editor,
+					storyCanvas: {
+						...storyCanvas(project),
+						nodes: storyCanvas(project).nodes.filter(
+							node => node.entityRef?.id !== command.id
+						)
+					}
+				}
+			});
+		case 'story/updateNodeTitle':
+			return touched({
+				...project,
+				storyNodes: project.storyNodes.map(node =>
+					node.id === command.id
+						? {...node, title: command.title.trim() || node.title}
+						: node
+				)
+			});
+		case 'story/connect': {
+			if (
+				command.sourceNodeId === command.targetNodeId ||
+				!project.storyNodes.some(node => node.id === command.sourceNodeId) ||
+				!project.storyNodes.some(node => node.id === command.targetNodeId)
+			) {
+				return project;
+			}
+
+			return touched({
+				...project,
+				storyConnections: [
+					...project.storyConnections,
+					{
+						id: command.id,
+						sourceNodeId: command.sourceNodeId,
+						targetNodeId: command.targetNodeId,
+						kind: command.kind,
+						sourcePortId: command.sourcePortId,
+						targetPortId: command.targetPortId
+					}
+				]
+			});
+		}
 		case 'editor/selectDay':
 			return {
 				...project,
@@ -107,6 +224,73 @@ export function applyNarrativeProjectCommand(
 				...project,
 				editor: {...project.editor, workspaceMode: command.workspace}
 			};
+		case 'editor/moveCanvasNode': {
+			const canvas = storyCanvas(project);
+			return {
+				...project,
+				editor: {
+					...project.editor,
+					storyCanvas: {
+						...canvas,
+						nodes: canvas.nodes.map(node =>
+							node.id === command.canvasNodeId
+								? {...node, position: command.position}
+								: node
+						)
+					}
+				}
+			};
+		}
+		case 'editor/setStoryViewport':
+			return {
+				...project,
+				editor: {
+					...project.editor,
+					storyCanvas: {
+						...storyCanvas(project),
+						viewport: {
+							x: command.viewport.x,
+							y: command.viewport.y,
+							zoom: Math.max(0.25, Math.min(2.5, command.viewport.zoom))
+						}
+					}
+				}
+			};
+		case 'editor/setWorldTimeViewport': {
+			const maximumAbsoluteMinute = project.template.dayCount * minutesPerDay - 1;
+			const centerAbsoluteMinute = Math.max(
+				0,
+				Math.min(maximumAbsoluteMinute, command.centerAbsoluteMinute)
+			);
+			const day = Math.floor(centerAbsoluteMinute / minutesPerDay) + 1;
+			const minuteOfDay = Math.floor(centerAbsoluteMinute % minutesPerDay);
+			const period = project.template.periods.find(candidate =>
+				periodContainsMinute(candidate, minuteOfDay)
+			);
+			const currentViewport = project.editor.worldTimeViewport ?? {
+				centerAbsoluteMinute,
+				pixelsPerHour: 0.4,
+				scrollY: 0
+			};
+
+			return {
+				...project,
+				editor: {
+					...project.editor,
+					selectedDay: day,
+					selectedMinuteOfDay: minuteOfDay,
+					selectedPeriodId: period?.id ?? project.editor.selectedPeriodId,
+					worldTimeViewport: {
+						...currentViewport,
+						centerAbsoluteMinute,
+						pixelsPerHour: Math.max(0.35, Math.min(480, command.pixelsPerHour)),
+						scrollY: command.scrollY ?? currentViewport.scrollY,
+						viewportWidth: command.viewportWidth ?? currentViewport.viewportWidth,
+						viewportHeight: command.viewportHeight ?? currentViewport.viewportHeight
+					}
+				}
+			};
+		}
 	}
 }
 
@@ -126,7 +310,7 @@ export function narrativeProjectHistoryReducer(
 
 		return {
 			past: state.past.slice(0, -1),
-			present: restoreSnapshotKeepingEditor(previous, state.present),
+			present: restoreSnapshotKeepingEditorView(previous, state.present),
 			future: [state.present, ...state.future]
 		};
 	}
@@ -139,7 +323,7 @@ export function narrativeProjectHistoryReducer(
 
 		return {
 			past: [...state.past, state.present],
-			present: restoreSnapshotKeepingEditor(next, state.present),
+			present: restoreSnapshotKeepingEditorView(next, state.present),
 			future: state.future.slice(1)
 		};
 	}
