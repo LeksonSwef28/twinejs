@@ -54,14 +54,18 @@ describe('<MarqueeablePassageMap>', () => {
 	it('overrides the selected state of passages while the user is dragging', () => {
 		const passages = [
 			fakePassage({
+				height: 100,
 				selected: false,
 				top: 50,
-				left: 50
+				left: 50,
+				width: 100
 			}),
 			fakePassage({
+				height: 100,
 				selected: false,
 				top: 5000,
-				left: 5000
+				left: 5000,
+				width: 100
 			})
 		];
 
@@ -118,14 +122,18 @@ describe('<MarqueeablePassageMap>', () => {
 	it('returns to the outer passage state after a user drag', () => {
 		const passages = [
 			fakePassage({
+				height: 100,
 				selected: false,
 				top: 50,
-				left: 50
+				left: 50,
+				width: 100
 			}),
 			fakePassage({
+				height: 100,
 				selected: false,
 				top: 5000,
-				left: 5000
+				left: 5000,
+				width: 100
 			})
 		];
 
