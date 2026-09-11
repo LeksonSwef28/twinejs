@@ -75,6 +75,144 @@ describe('narrative project history', () => {
 		expect(state.past).toHaveLength(0);
 	});
 
+	test('creates an unscheduled story node and its visual instance together', () => {
+		const project = createNarrativeProject('story-1', 'Test', ninetyThreeDaysTemplate);
+		const state = narrativeProjectHistoryReducer(
+			{past: [], present: project, future: []},
+			{
+				type: 'execute',
+				command: {
+					type: 'story/addDraftNode',
+					id: 'story-node-1',
+					canvasNodeId: 'canvas-node-1',
+					kind: 'beat',
+					title: 'Катя узнаёт правду',
+					position: {x: 100, y: 200}
+				}
+			}
+		);
+
+		expect(state.present.storyNodes).toEqual([
+			expect.objectContaining({
+				id: 'story-node-1',
+				title: 'Катя узнаёт правду',
+				placement: undefined,
+				activationState: 'draft'
+			})
+		]);
+		expect(state.present.editor.storyCanvas?.nodes).toEqual([
+			expect.objectContaining({
+				id: 'canvas-node-1',
+				entityRef: {type: 'storyNode', id: 'story-node-1'},
+				position: {x: 100, y: 200}
+			})
+		]);
+		expect(state.past).toHaveLength(1);
+	});
+
+	test('keeps canvas movement outside authored undo history', () => {
+		const project = createNarrativeProject('story-1', 'Test', ninetyThreeDaysTemplate);
+		const withNode = narrativeProjectHistoryReducer(
+			{past: [], present: project, future: []},
+			{
+				type: 'execute',
+				command: {
+					type: 'editor/addCanvasReference',
+					canvasNodeId: 'visual-katya',
+					entityRef: {type: 'character', id: 'katya'},
+					position: {x: 20, y: 30}
+				}
+			}
+		);
+		const moved = narrativeProjectHistoryReducer(withNode, {
+			type: 'execute',
+			command: {
+				type: 'editor/moveCanvasNode',
+				canvasNodeId: 'visual-katya',
+				position: {x: 220, y: 330}
+			}
+		});
+
+		expect(moved.present.editor.storyCanvas?.nodes[0].position).toEqual({
+			x: 220,
+			y: 330
+		});
+		expect(moved.past).toHaveLength(0);
+	});
+
+	test('connects story nodes through explicit typed ports', () => {
+		const project = createNarrativeProject('story-1', 'Test', ninetyThreeDaysTemplate);
+		let state = narrativeProjectHistoryReducer(
+			{past: [], present: project, future: []},
+			{
+				type: 'execute',
+				command: {
+					type: 'story/addDraftNode',
+					id: 'a',
+					canvasNodeId: 'visual-a',
+					kind: 'beat',
+					title: 'A',
+					position: {x: 0, y: 0}
+				}
+			}
+		);
+		state = narrativeProjectHistoryReducer(state, {
+			type: 'execute',
+			command: {
+				type: 'story/addDraftNode',
+				id: 'b',
+				canvasNodeId: 'visual-b',
+				kind: 'event',
+				title: 'B',
+				position: {x: 300, y: 0}
+			}
+		});
+		state = narrativeProjectHistoryReducer(state, {
+			type: 'execute',
+			command: {
+				type: 'story/connect',
+				id: 'edge-1',
+				sourceNodeId: 'a',
+				targetNodeId: 'b',
+				kind: 'flow',
+				sourcePortId: 'flow-out',
+				targetPortId: 'flow-in'
+			}
+		});
+
+		expect(state.present.storyConnections).toEqual([
+			expect.objectContaining({
+				id: 'edge-1',
+				sourcePortId: 'flow-out',
+				targetPortId: 'flow-in'
+			})
+		]);
+	});
+
+	test('world-time viewport navigation updates the view cursor but not history', () => {
+		const project = createNarrativeProject('story-1', 'Test', ninetyThreeDaysTemplate);
+		const center = 40 * 24 * 60 + 23 * 60;
+		const state = narrativeProjectHistoryReducer(
+			{past: [], present: project, future: []},
+			{
+				type: 'execute',
+				command: {
+					type: 'editor/setWorldTimeViewport',
+					centerAbsoluteMinute: center,
+					pixelsPerHour: 24,
+					viewportWidth: 1000,
+					viewportHeight: 500
+				}
+			}
+		);
+
+		expect(state.present.editor.selectedDay).toBe(41);
+		expect(state.present.editor.selectedMinuteOfDay).toBe(23 * 60);
+		expect(state.present.editor.selectedPeriodId).toBe('night');
+		expect(state.present.editor.worldTimeViewport?.pixelsPerHour).toBe(24);
+		expect(state.past).toHaveLength(0);
+	});
+
 	test('undo and redo preserve the current editor view instead of restoring an old camera moment', () => {
 		const project = createNarrativeProject('story-1', 'Test', ninetyThreeDaysTemplate);
 		const added = narrativeProjectHistoryReducer(
