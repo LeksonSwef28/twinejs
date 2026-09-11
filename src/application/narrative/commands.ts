@@ -4,13 +4,25 @@ import {
 	CanvasViewport
 } from '../../domain/narrative/editor';
 import {CognitionTier} from '../../domain/narrative/entities';
+import {ItemPlacement} from '../../domain/narrative/items';
 import {NarrativeWorkspaceMode} from '../../domain/narrative/project';
-import {StoryConnectionKind, StoryNodeKind} from '../../domain/narrative/story';
+import {
+	StoryConnectionKind,
+	StoryNodeKind,
+	StoryPlacement
+} from '../../domain/narrative/story';
 
 export type NarrativeProjectCommand =
 	| {type: 'project/rename'; name: string}
 	| {type: 'location/add'; id: string; name: string}
 	| {type: 'character/add'; id: string; profileId: string; name: string; cognitionTier: CognitionTier}
+	| {type: 'item/addDefinition'; id: string; name: string}
+	| {
+			type: 'item/addInstance';
+			id: string;
+			definitionId: string;
+			placement?: ItemPlacement;
+	  }
 	| {
 			type: 'story/addDraftNode';
 			id: string;
@@ -21,6 +33,7 @@ export type NarrativeProjectCommand =
 	  }
 	| {type: 'story/removeNode'; id: string}
 	| {type: 'story/updateNodeTitle'; id: string; title: string}
+	| {type: 'story/setPlacement'; id: string; placement?: StoryPlacement}
 	| {
 			type: 'story/connect';
 			id: string;
