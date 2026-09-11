@@ -2,9 +2,10 @@ import {CharacterMindState, MemoryTrace, PendingReaction, RelationshipState} fro
 import {NarrativeEditorState} from './editor';
 import {NarrativeCharacter, NarrativeLocation, NarrativeScene} from './entities';
 import {BehaviorProfile, RoutineRule, ScheduleException} from './schedule';
+import {StoryConnectionDefinition, StoryNodeDefinition} from './story';
 import {NarrativeProjectTemplate} from './template';
 
-export const narrativeProjectSchemaVersion = 1;
+export const narrativeProjectSchemaVersion = 2;
 
 export type {NarrativeWorkspaceMode} from './editor';
 
@@ -29,6 +30,8 @@ export interface NarrativeProject {
 	behaviorProfiles: BehaviorProfile[];
 	routineRules: RoutineRule[];
 	scheduleExceptions: ScheduleException[];
+	storyNodes: StoryNodeDefinition[];
+	storyConnections: StoryConnectionDefinition[];
 	memories: MemoryTrace[];
 	relationships: RelationshipState[];
 	pendingReactions: PendingReaction[];
