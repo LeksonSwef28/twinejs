@@ -50,6 +50,7 @@ function hydrateSchemaV2(
 	const savedCanvas = savedEditor.storyCanvas;
 	const freshWorldTime = fresh.editor.worldTimeViewport!;
 	const savedWorldTime = savedEditor.worldTimeViewport;
+	const savedSimulation = saved.simulation ?? fresh.simulation;
 
 	return {
 		...fresh,
@@ -59,6 +60,8 @@ function hydrateSchemaV2(
 			? saved.itemDefinitions
 			: [],
 		itemInstances: Array.isArray(saved.itemInstances) ? saved.itemInstances : [],
+		objectiveFacts: Array.isArray(saved.objectiveFacts) ? saved.objectiveFacts : [],
+		claims: Array.isArray(saved.claims) ? saved.claims : [],
 		editor: {
 			...fresh.editor,
 			...savedEditor,
@@ -76,6 +79,13 @@ function hydrateSchemaV2(
 					Math.max(0.35, savedWorldTime?.pixelsPerHour ?? 0.4)
 				)
 			}
+		},
+		simulation: {
+			...fresh.simulation,
+			...savedSimulation,
+			characterKnowledge: Array.isArray(savedSimulation.characterKnowledge)
+				? savedSimulation.characterKnowledge
+				: []
 		}
 	};
 }
@@ -106,6 +116,7 @@ function migrateSchemaV1(
 	const legacyCanvas = legacyEditor.storyCanvas;
 	const freshWorldTime = fresh.editor.worldTimeViewport!;
 	const legacyWorldTime = legacyEditor.worldTimeViewport;
+	const legacySimulation = legacy.simulation ?? fresh.simulation;
 
 	return {
 		...fresh,
@@ -118,6 +129,8 @@ function migrateSchemaV1(
 		characters: legacy.characters,
 		itemDefinitions: [],
 		itemInstances: [],
+		objectiveFacts: [],
+		claims: [],
 		behaviorProfiles: legacy.behaviorProfiles ?? [],
 		routineRules: legacy.routineRules ?? [],
 		scheduleExceptions: legacy.scheduleExceptions ?? [],
@@ -145,7 +158,11 @@ function migrateSchemaV1(
 				)
 			}
 		},
-		simulation: legacy.simulation ?? fresh.simulation
+		simulation: {
+			...fresh.simulation,
+			...legacySimulation,
+			characterKnowledge: []
+		}
 	};
 }
 

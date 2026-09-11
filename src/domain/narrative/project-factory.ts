@@ -39,6 +39,8 @@ export function createNarrativeProject(
 		characters: [],
 		itemDefinitions: [],
 		itemInstances: [],
+		objectiveFacts: [],
+		claims: [],
 		behaviorProfiles: [],
 		routineRules: [],
 		scheduleExceptions: [],
@@ -68,7 +70,8 @@ export function createNarrativeProject(
 			day: 1,
 			minuteOfDay: firstPeriod.startMinute,
 			activeBehaviorProfileByCharacter: {},
-			actualLocationByCharacter: {}
+			actualLocationByCharacter: {},
+			characterKnowledge: []
 		}
 	};
 }

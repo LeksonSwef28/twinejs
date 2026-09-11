@@ -57,6 +57,58 @@ describe('narrative authoring domain', () => {
 		]);
 	});
 
+	test('keeps objective facts separate from claims characters may hear', () => {
+		let state = narrativeProjectHistoryReducer(initialState(), {
+			type: 'execute',
+			command: {
+				type: 'fact/add',
+				id: 'fact-door',
+				title: 'Андрей открыл дверь в 21:10'
+			}
+		});
+		state = narrativeProjectHistoryReducer(state, {
+			type: 'execute',
+			command: {
+				type: 'claim/add',
+				id: 'claim-lie',
+				text: 'Андрей весь вечер не выходил из комнаты',
+				aboutFactId: 'fact-door',
+				stance: 'contradicts'
+			}
+		});
+
+		expect(state.present.objectiveFacts).toEqual([
+			expect.objectContaining({
+				id: 'fact-door',
+				title: 'Андрей открыл дверь в 21:10'
+			})
+		]);
+		expect(state.present.claims).toEqual([
+			expect.objectContaining({
+				id: 'claim-lie',
+				aboutFactId: 'fact-door',
+				stance: 'contradicts'
+			})
+		]);
+		expect(state.present.simulation.characterKnowledge).toEqual([]);
+	});
+
+	test('rejects a claim that points to a missing objective fact', () => {
+		const state = narrativeProjectHistoryReducer(initialState(), {
+			type: 'execute',
+			command: {
+				type: 'claim/add',
+				id: 'claim-orphan',
+				text: 'Кто-то видел Катю',
+				aboutFactId: 'missing-fact',
+				stance: 'supports'
+			}
+		});
+
+		expect(state.present.claims).toEqual([]);
+		expect(state.past).toEqual([]);
+	});
+
 	test('lets a story draft gain and lose a world-time placement', () => {
 		let state = narrativeProjectHistoryReducer(initialState(), {
 			type: 'execute',

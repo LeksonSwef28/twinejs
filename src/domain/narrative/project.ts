@@ -2,6 +2,11 @@ import {CharacterMindState, MemoryTrace, PendingReaction, RelationshipState} fro
 import {NarrativeEditorState} from './editor';
 import {NarrativeCharacter, NarrativeLocation, NarrativeScene} from './entities';
 import {ItemDefinition, ItemInstance} from './items';
+import {
+	CharacterKnowledgeState,
+	ClaimDefinition,
+	ObjectiveFactDefinition
+} from './knowledge';
 import {BehaviorProfile, RoutineRule, ScheduleException} from './schedule';
 import {StoryConnectionDefinition, StoryNodeDefinition} from './story';
 import {NarrativeProjectTemplate} from './template';
@@ -15,6 +20,8 @@ export interface NarrativeSimulationState {
 	minuteOfDay: number;
 	activeBehaviorProfileByCharacter: Record<string, string>;
 	actualLocationByCharacter: Record<string, string | undefined>;
+	/** Runtime beliefs/knowledge. Objective facts and claims remain authored definitions. */
+	characterKnowledge: CharacterKnowledgeState[];
 }
 
 export interface NarrativeProject {
@@ -30,6 +37,8 @@ export interface NarrativeProject {
 	characters: NarrativeCharacter[];
 	itemDefinitions: ItemDefinition[];
 	itemInstances: ItemInstance[];
+	objectiveFacts: ObjectiveFactDefinition[];
+	claims: ClaimDefinition[];
 	behaviorProfiles: BehaviorProfile[];
 	routineRules: RoutineRule[];
 	scheduleExceptions: ScheduleException[];

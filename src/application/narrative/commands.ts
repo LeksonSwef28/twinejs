@@ -5,6 +5,7 @@ import {
 } from '../../domain/narrative/editor';
 import {CognitionTier} from '../../domain/narrative/entities';
 import {ItemPlacement} from '../../domain/narrative/items';
+import {ClaimTruthStance} from '../../domain/narrative/knowledge';
 import {NarrativeWorkspaceMode} from '../../domain/narrative/project';
 import {
 	StoryConnectionKind,
@@ -22,6 +23,14 @@ export type NarrativeProjectCommand =
 			id: string;
 			definitionId: string;
 			placement?: ItemPlacement;
+	  }
+	| {type: 'fact/add'; id: string; title: string; description?: string}
+	| {
+			type: 'claim/add';
+			id: string;
+			text: string;
+			aboutFactId?: string;
+			stance?: ClaimTruthStance;
 	  }
 	| {
 			type: 'story/addDraftNode';

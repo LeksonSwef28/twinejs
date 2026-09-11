@@ -131,6 +131,47 @@ export function applyNarrativeProjectCommand(
 					}
 				]
 			});
+		case 'fact/add': {
+			const title = command.title.trim();
+			if (!title) {
+				return project;
+			}
+			return touched({
+				...project,
+				objectiveFacts: [
+					...project.objectiveFacts,
+					{
+						id: command.id,
+						title,
+						description: command.description?.trim() || undefined,
+						tags: []
+					}
+				]
+			});
+		}
+		case 'claim/add': {
+			const text = command.text.trim();
+			if (
+				!text ||
+				(command.aboutFactId !== undefined &&
+					!project.objectiveFacts.some(fact => fact.id === command.aboutFactId))
+			) {
+				return project;
+			}
+			return touched({
+				...project,
+				claims: [
+					...project.claims,
+					{
+						id: command.id,
+						text,
+						aboutFactId: command.aboutFactId,
+						stance: command.stance ?? 'unresolved',
+						tags: []
+					}
+				]
+			});
+		}
 		case 'story/addDraftNode': {
 			const canvas = storyCanvas(project);
 			return touched({
