@@ -99,6 +99,38 @@ export function applyNarrativeProjectCommand(
 					}
 				]
 			});
+		case 'item/addDefinition': {
+			const name = command.name.trim();
+			if (!name) {
+				return project;
+			}
+			return touched({
+				...project,
+				itemDefinitions: [
+					...project.itemDefinitions,
+					{id: command.id, name, tags: []}
+				]
+			});
+		}
+		case 'item/addInstance':
+			if (
+				!project.itemDefinitions.some(
+					definition => definition.id === command.definitionId
+				)
+			) {
+				return project;
+			}
+			return touched({
+				...project,
+				itemInstances: [
+					...project.itemInstances,
+					{
+						id: command.id,
+						definitionId: command.definitionId,
+						placement: command.placement ?? {type: 'unplaced'}
+					}
+				]
+			});
 		case 'story/addDraftNode': {
 			const canvas = storyCanvas(project);
 			return touched({
@@ -158,6 +190,35 @@ export function applyNarrativeProjectCommand(
 						: node
 				)
 			});
+		case 'story/setPlacement':
+			return touched({
+				...project,
+				storyNodes: project.storyNodes.map(node => {
+					if (node.id !== command.id) {
+						return node;
+					}
+					if (!command.placement) {
+						return {...node, placement: undefined};
+					}
+					return {
+						...node,
+						placement: {
+							...command.placement,
+							day:
+								command.placement.day === undefined
+									? undefined
+									: clampDay(
+										command.placement.day,
+										project.template.dayCount
+									  ),
+							minuteOfDay:
+								command.placement.minuteOfDay === undefined
+									? undefined
+									: clampMinuteOfDay(command.placement.minuteOfDay)
+						}
+					};
+				})
+			});
 		case 'story/connect': {
 			if (
 				command.sourceNodeId === command.targetNodeId ||
@@ -191,7 +252,9 @@ export function applyNarrativeProjectCommand(
 				}
 			};
 		case 'editor/selectPeriod': {
-			const period = project.template.periods.find(candidate => candidate.id === command.periodId);
+			const period = project.template.periods.find(
+				candidate => candidate.id === command.periodId
+			);
 			if (!period) {
 				return project;
 			}
@@ -253,7 +316,9 @@ export function applyNarrativeProjectCommand(
 					...project.editor,
 					storyCanvas: {
 						...canvas,
-						nodes: canvas.nodes.filter(node => node.id !== command.canvasNodeId)
+						nodes: canvas.nodes.filter(
+							node => node.id !== command.canvasNodeId
+						)
 					}
 				}
 			};
@@ -291,7 +356,8 @@ export function applyNarrativeProjectCommand(
 				}
 			};
 		case 'editor/setWorldTimeViewport': {
-			const maximumAbsoluteMinute = project.template.dayCount * minutesPerDay - 1;
+			const maximumAbsoluteMinute =
+				project.template.dayCount * minutesPerDay - 1;
 			const centerAbsoluteMinute = Math.max(
 				0,
 				Math.min(maximumAbsoluteMinute, command.centerAbsoluteMinute)
@@ -317,10 +383,15 @@ export function applyNarrativeProjectCommand(
 					worldTimeViewport: {
 						...currentViewport,
 						centerAbsoluteMinute,
-						pixelsPerHour: Math.max(0.35, Math.min(480, command.pixelsPerHour)),
+						pixelsPerHour: Math.max(
+							0.35,
+							Math.min(480, command.pixelsPerHour)
+						),
 						scrollY: command.scrollY ?? currentViewport.scrollY,
-						viewportWidth: command.viewportWidth ?? currentViewport.viewportWidth,
-						viewportHeight: command.viewportHeight ?? currentViewport.viewportHeight
+						viewportWidth:
+							command.viewportWidth ?? currentViewport.viewportWidth,
+						viewportHeight:
+							command.viewportHeight ?? currentViewport.viewportHeight
 					}
 				}
 			};
@@ -362,7 +433,10 @@ export function narrativeProjectHistoryReducer(
 		};
 	}
 
-	const nextProject = applyNarrativeProjectCommand(state.present, action.command);
+	const nextProject = applyNarrativeProjectCommand(
+		state.present,
+		action.command
+	);
 	if (nextProject === state.present) {
 		return state;
 	}
