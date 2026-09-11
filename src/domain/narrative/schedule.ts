@@ -36,10 +36,18 @@ export interface BehaviorProfile {
 /**
  * New authored schedules should use timeWindow. `periodId` remains temporarily for
  * schema-v1 data created by the first prototype.
+ *
+ * `endDayOffset` makes cross-midnight authored windows explicit. Older schema-v1
+ * exact windows may omit it and are interpreted as ending on the same day.
  */
 export type RoutineTimeWindow =
 	| {type: 'period'; periodId: string}
-	| {type: 'exact'; startMinute: number; endMinute: number};
+	| {
+			type: 'exact';
+			startMinute: number;
+			endMinute: number;
+			endDayOffset?: 0 | 1;
+		};
 
 export interface RoutineRule {
 	id: EntityId;
