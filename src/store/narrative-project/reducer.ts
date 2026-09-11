@@ -1,5 +1,9 @@
 import {NarrativeProjectCommand} from '../../application/narrative/commands';
-import {clampDay, clampMinuteOfDay} from '../../domain/narrative/calendar';
+import {
+	clampDay,
+	clampMinuteOfDay,
+	periodContainsMinute
+} from '../../domain/narrative/calendar';
 import {NarrativeProject} from '../../domain/narrative/project';
 
 export interface NarrativeProjectHistoryState {
@@ -85,8 +89,8 @@ export function applyNarrativeProjectCommand(
 		}
 		case 'editor/selectMoment': {
 			const minuteOfDay = clampMinuteOfDay(command.minuteOfDay);
-			const period = project.template.periods.find(
-				candidate => minuteOfDay >= candidate.startMinute && minuteOfDay < candidate.endMinute
+			const period = project.template.periods.find(candidate =>
+				periodContainsMinute(candidate, minuteOfDay)
 			);
 			return {
 				...project,
