@@ -20,6 +20,7 @@ export interface CanvasViewport {
 
 export type StoryCanvasEntityType =
 	| 'character'
+	| 'storyNode'
 	| 'scene'
 	| 'event'
 	| 'dialogue'
@@ -58,9 +59,6 @@ export interface StoryCanvasEditorState {
 /**
  * Camera state for the temporal/spatial workspace. It is intentionally editor metadata:
  * moving or zooming this viewport must never advance game time.
- *
- * Viewport dimensions are optional for schema-v1 projects and are populated by the UI
- * once the virtualized timeline is measured.
  */
 export interface WorldTimeViewportState {
 	centerAbsoluteMinute: number;
@@ -74,12 +72,9 @@ export interface NarrativeEditorState {
 	/** View cursor only. This is not the simulation playhead. */
 	selectedDay: number;
 	selectedPeriodId: string;
-	/** View cursor only. Optional for schema-v1 projects created before exact-time navigation. */
+	/** View cursor only. */
 	selectedMinuteOfDay?: number;
-	/** Optional for schema-v1 projects created before the dual-workspace UI. */
 	workspaceMode?: NarrativeWorkspaceMode;
-	/** Optional for older schema-v1 projects. */
 	storyCanvas?: StoryCanvasEditorState;
-	/** Optional for older schema-v1 projects. */
 	worldTimeViewport?: WorldTimeViewportState;
 }
