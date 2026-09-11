@@ -7,7 +7,7 @@ export interface NarrativeProjectRepository {
 	save(project: NarrativeProject): void;
 }
 
-function looksLikeNarrativeProject(value: unknown): value is NarrativeProject {
+function looksLikeSchemaV2(value: unknown) {
 	if (!value || typeof value !== 'object') {
 		return false;
 	}
@@ -22,6 +22,62 @@ function looksLikeNarrativeProject(value: unknown): value is NarrativeProject {
 		Array.isArray(candidate.storyNodes) &&
 		Array.isArray(candidate.storyConnections)
 	);
+}
+
+/**
+ * Schema v2 intentionally grows during the Authoring MVP. Hydration supplies
+ * newly introduced collections so a project saved by an earlier v2 patch does
+ * not disappear just because a new library was added.
+ */
+function hydrateSchemaV2(
+	value: unknown,
+	hostStoryId: string,
+	projectName: string,
+	template: NarrativeProjectTemplate
+): NarrativeProject | undefined {
+	if (!looksLikeSchemaV2(value)) {
+		return undefined;
+	}
+
+	const saved = value as NarrativeProject;
+	if (saved.hostStoryId !== hostStoryId) {
+		return undefined;
+	}
+
+	const fresh = createNarrativeProject(hostStoryId, projectName, template);
+	const savedEditor = saved.editor ?? fresh.editor;
+	const freshCanvas = fresh.editor.storyCanvas!;
+	const savedCanvas = savedEditor.storyCanvas;
+	const freshWorldTime = fresh.editor.worldTimeViewport!;
+	const savedWorldTime = savedEditor.worldTimeViewport;
+
+	return {
+		...fresh,
+		...saved,
+		template,
+		itemDefinitions: Array.isArray(saved.itemDefinitions)
+			? saved.itemDefinitions
+			: [],
+		itemInstances: Array.isArray(saved.itemInstances) ? saved.itemInstances : [],
+		editor: {
+			...fresh.editor,
+			...savedEditor,
+			storyCanvas: {
+				...freshCanvas,
+				...savedCanvas,
+				viewport: savedCanvas?.viewport ?? freshCanvas.viewport,
+				nodes: savedCanvas?.nodes ?? []
+			},
+			worldTimeViewport: {
+				...freshWorldTime,
+				...savedWorldTime,
+				pixelsPerHour: Math.min(
+					480,
+					Math.max(0.35, savedWorldTime?.pixelsPerHour ?? 0.4)
+				)
+			}
+		}
+	};
 }
 
 function migrateSchemaV1(
@@ -60,6 +116,8 @@ function migrateSchemaV1(
 		locations: legacy.locations,
 		scenes: legacy.scenes ?? [],
 		characters: legacy.characters,
+		itemDefinitions: [],
+		itemInstances: [],
 		behaviorProfiles: legacy.behaviorProfiles ?? [],
 		routineRules: legacy.routineRules ?? [],
 		scheduleExceptions: legacy.scheduleExceptions ?? [],
@@ -81,7 +139,10 @@ function migrateSchemaV1(
 			worldTimeViewport: {
 				...freshWorldTime,
 				...legacyWorldTime,
-				pixelsPerHour: Math.min(480, Math.max(0.35, legacyWorldTime?.pixelsPerHour ?? 0.4))
+				pixelsPerHour: Math.min(
+					480,
+					Math.max(0.35, legacyWorldTime?.pixelsPerHour ?? 0.4)
+				)
 			}
 		},
 		simulation: legacy.simulation ?? fresh.simulation
@@ -105,9 +166,14 @@ export function createLocalStorageNarrativeProjectRepository(
 			try {
 				const saved = window.localStorage.getItem(key);
 				if (saved) {
-					const parsed: unknown = JSON.parse(saved);
-					if (looksLikeNarrativeProject(parsed) && parsed.hostStoryId === hostStoryId) {
-						return parsed;
+					const hydrated = hydrateSchemaV2(
+						JSON.parse(saved),
+						hostStoryId,
+						projectName,
+						template
+					);
+					if (hydrated) {
+						return hydrated;
 					}
 				}
 
