@@ -45,6 +45,25 @@ describe('narrative project history', () => {
 		expect(state.past).toHaveLength(0);
 	});
 
+	test('keeps the wrapped night period synchronized before and after midnight', () => {
+		const project = createNarrativeProject('story-1', 'Test', ninetyThreeDaysTemplate);
+		const lateNight = narrativeProjectHistoryReducer(
+			{past: [], present: project, future: []},
+			{
+				type: 'execute',
+				command: {type: 'editor/selectMoment', day: 4, minuteOfDay: 23 * 60 + 30}
+			}
+		);
+		const earlyNight = narrativeProjectHistoryReducer(lateNight, {
+			type: 'execute',
+			command: {type: 'editor/selectMoment', day: 5, minuteOfDay: 2 * 60 + 15}
+		});
+
+		expect(lateNight.present.editor.selectedPeriodId).toBe('night');
+		expect(earlyNight.present.editor.selectedPeriodId).toBe('night');
+		expect(earlyNight.past).toHaveLength(0);
+	});
+
 	test('switches editor workspace without adding undo history', () => {
 		const project = createNarrativeProject('story-1', 'Test', ninetyThreeDaysTemplate);
 		const state = narrativeProjectHistoryReducer(
