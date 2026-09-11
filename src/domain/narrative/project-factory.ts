@@ -40,6 +40,8 @@ export function createNarrativeProject(
 		behaviorProfiles: [],
 		routineRules: [],
 		scheduleExceptions: [],
+		storyNodes: [],
+		storyConnections: [],
 		memories: [],
 		relationships: [],
 		pendingReactions: [],
@@ -56,7 +58,7 @@ export function createNarrativeProject(
 			},
 			worldTimeViewport: {
 				centerAbsoluteMinute: firstPeriod.startMinute,
-				pixelsPerHour: 120,
+				pixelsPerHour: 0.4,
 				scrollY: 0
 			}
 		},
