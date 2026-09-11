@@ -74,7 +74,7 @@ describe('<StoryEditRoute>', () => {
 		const story = fakeStory();
 
 		await renderComponent(story);
-		expect(screen.getByText('Narrative Editor')).toBeInTheDocument();
+		expect(screen.getByText(/Narrative Editor/)).toBeInTheDocument();
 		expect(screen.getByRole('heading', {name: story.name})).toBeInTheDocument();
 		expect(screen.getByText(/93 Days/)).toBeInTheDocument();
 		expect(screen.getByText(/День 1/)).toBeInTheDocument();
