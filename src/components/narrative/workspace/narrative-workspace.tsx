@@ -193,7 +193,7 @@ export const NarrativeWorkspace: React.FC = () => {
 
 			{workspaceMode === 'story' ? (
 				<div className="narrative-workspace__studio">
-					<aside className="narrative-workspace__library">
+					<aside className="narrative-workspace__library" aria-label="Библиотека истории">
 						<div className="narrative-workspace__panel-heading">
 							<span>STORY</span>
 							<small>сюжетные сущности</small>
@@ -260,7 +260,7 @@ export const NarrativeWorkspace: React.FC = () => {
 						</div>
 					</main>
 
-					<aside className="narrative-workspace__inspector">
+					<aside className="narrative-workspace__inspector" aria-label="Инспектор истории">
 						<div className="narrative-workspace__panel-heading">
 							<span>INSPECTOR</span>
 							<small>story</small>
@@ -298,7 +298,7 @@ export const NarrativeWorkspace: React.FC = () => {
 					</header>
 
 					<div className="narrative-workspace__world-time-layout">
-						<aside className="narrative-workspace__world-library">
+						<aside className="narrative-workspace__world-library" aria-label="Библиотека мира">
 							<div className="narrative-workspace__panel-heading">
 								<span>МИР</span>
 								<small>{project.locations.length} локаций</small>
