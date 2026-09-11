@@ -1,4 +1,8 @@
-import {CanvasPoint, CanvasViewport} from '../../domain/narrative/editor';
+import {
+	CanvasEntityReference,
+	CanvasPoint,
+	CanvasViewport
+} from '../../domain/narrative/editor';
 import {CognitionTier} from '../../domain/narrative/entities';
 import {NarrativeWorkspaceMode} from '../../domain/narrative/project';
 import {StoryConnectionKind, StoryNodeKind} from '../../domain/narrative/story';
@@ -30,6 +34,13 @@ export type NarrativeProjectCommand =
 	| {type: 'editor/selectPeriod'; periodId: string}
 	| {type: 'editor/selectMoment'; day: number; minuteOfDay: number}
 	| {type: 'editor/selectWorkspace'; workspace: NarrativeWorkspaceMode}
+	| {
+			type: 'editor/addCanvasReference';
+			canvasNodeId: string;
+			entityRef: CanvasEntityReference;
+			position: CanvasPoint;
+	  }
+	| {type: 'editor/removeCanvasNode'; canvasNodeId: string}
 	| {type: 'editor/moveCanvasNode'; canvasNodeId: string; position: CanvasPoint}
 	| {type: 'editor/setStoryViewport'; viewport: CanvasViewport}
 	| {
