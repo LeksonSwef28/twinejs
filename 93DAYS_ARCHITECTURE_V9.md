@@ -47,8 +47,9 @@ These distinctions must not collapse:
 - `View Cursor != Simulation Playhead`
 - `Scheduled Presence != Actual Presence`
 - `Canvas Node Instance != Canonical Entity`
-- `Fact != Knowledge != Memory`
+- `Objective Fact != Claim / Statement != Character Knowledge != Memory`
 - `Scene != Event`
+- `Routine / Schedule Intent != Behavior Override != Actual Presence`
 - `NarrativeProjectDefinition != SimulationState != EditorState`
 
 Undo/Redo restores authored state, while keeping the current camera/view where possible.
@@ -126,7 +127,71 @@ TIME
 
 Night should increase the desire to sleep, not force every character to sleep. Work, traits, danger, story events or explicit commands may override it.
 
-## 7. Project Library
+### Reaction selection
+
+An event should not normally hard-code one mandatory emotional response.
+It may expose several authored reaction candidates — often three useful alternatives — and let the character choose among the candidates that pass hard conditions.
+
+Selection can consider:
+
+- current mood;
+- traits and values;
+- relationship state;
+- current goal / urgency;
+- knowledge and active memories;
+- fatigue or other runtime needs;
+- authored story priority.
+
+The editor should explain both sides of the decision: why a reaction was available/blocked and why the winning reaction scored above the alternatives.
+A chosen reaction may change relationships, goals, active behavior, knowledge/memory, inventory, or the desired route/location.
+
+### Behavior and route overrides
+
+A routine is the default intention, not an unbreakable command.
+Behavior or route may change because of:
+
+- an authored story event or explicit command;
+- an urgent character goal;
+- danger or another high-priority world event;
+- newly received knowledge or a rumor;
+- a relationship threshold/change;
+- fatigue, sleep pressure, hunger or another runtime need;
+- an item requirement/opportunity;
+- a schedule exception;
+- travel with / reaction to the player.
+
+Whenever behavior or route changes, the runtime should keep a structured reason so the editor can answer: **why is this character here instead of following the normal schedule?**
+
+## 7. Knowledge, rumors and memory
+
+The cognition model must preserve the difference between world truth and what characters believe.
+
+Conceptual layers:
+
+```text
+ObjectiveFact
+    ↓ may be observed / described
+Claim / Statement
+    ↓ heard, seen, inferred or told
+CharacterKnowledge
+    ↓ may become salient / remembered
+MemoryTrace
+```
+
+Rules:
+
+- a lie or mistaken statement never rewrites the objective fact;
+- a character may know, believe, doubt or misremember a claim independently of whether it is true;
+- rumors are transmitted claims with provenance, not new objective facts;
+- knowledge should retain enough source/confidence context for explainability and later re-transmission;
+- hearing the same claim from several sources may strengthen confidence without automatically making it true;
+- a remembered claim may later be repeated to another character, creating a new knowledge/memory path rather than duplicating the canonical fact.
+
+Memory strength is dynamic rather than a permanent boolean.
+A memory can weaken with time and become more accessible again when it is recalled, repeated, emotionally reinforced or connected to a new important event.
+Authored critical memories may later support explicit persistence/pinning rules, but ordinary memory should be allowed to fade.
+
+## 8. Project Library
 
 Canonical entities should have a shared Project Library accessible from both primary workspaces.
 It is the home for:
@@ -134,12 +199,12 @@ It is the home for:
 - Characters
 - Locations
 - Items (`ItemDefinition` + individual `ItemInstance`)
-- Facts / knowledge definitions
+- objective Facts and reusable claims/knowledge definitions
 - reusable Event Templates later
 
 Dragging or adding an entity to Story creates a visual reference, not a duplicate canonical entity.
 
-## 8. Near-term implementation order
+## 9. Near-term implementation order
 
 ### Authoring MVP
 
@@ -149,7 +214,7 @@ Dragging or adding an entity to Story creates a visual reference, not a duplicat
 4. Persisted authored Story nodes and typed connections
 5. Continuous World / Time pan / zoom timeline
 6. Schedule projection on the visible timeline only
-7. Project Library expansion (items, facts, events)
+7. Project Library expansion (items, facts, claims, events)
 8. Story placement into World / Time
 9. Split View / quick peek where useful
 10. Continuity diagnostics
@@ -161,12 +226,15 @@ Only after the authoring workflow feels good:
 - schedule resolver;
 - presence transitions;
 - goals/actions/utility;
+- reaction candidate selection with explainability;
+- behavior/route overrides with structured reasons;
 - event templates and role binding;
-- memory/knowledge propagation;
+- fact/claim/knowledge/rumor propagation;
+- memory decay and reinforcement;
 - relationship and inventory effects;
 - sleep/fatigue and dynamic behavior changes.
 
-## 9. Persistence
+## 10. Persistence
 
 Schema v2 is now the active persisted format.
 Schema v1 localStorage payloads must migrate rather than disappear.
