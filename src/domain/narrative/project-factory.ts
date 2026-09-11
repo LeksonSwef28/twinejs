@@ -37,6 +37,8 @@ export function createNarrativeProject(
 		locations: [],
 		scenes: [],
 		characters: [],
+		itemDefinitions: [],
+		itemInstances: [],
 		behaviorProfiles: [],
 		routineRules: [],
 		scheduleExceptions: [],
