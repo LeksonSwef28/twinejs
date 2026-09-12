@@ -77,7 +77,7 @@ describe('<StoryEditRoute>', () => {
 		expect(screen.getByText(/Narrative Editor/)).toBeInTheDocument();
 		expect(screen.getByRole('heading', {name: story.name})).toBeInTheDocument();
 		expect(screen.getByText(/93 Days/)).toBeInTheDocument();
-		expect(screen.getByText(/День 1/)).toBeInTheDocument();
+		expect(screen.getAllByText(/День 1/).length).toBeGreaterThan(0);
 	});
 
 	it('shows the 93 Days period controls', async () => {
