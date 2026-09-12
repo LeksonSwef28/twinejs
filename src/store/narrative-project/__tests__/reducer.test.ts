@@ -96,10 +96,10 @@ describe('narrative project history', () => {
 			expect.objectContaining({
 				id: 'story-node-1',
 				title: 'Катя узнаёт правду',
-				placement: undefined,
 				activationState: 'draft'
 			})
 		]);
+		expect(state.present.storyNodes[0].placement).toBeUndefined();
 		expect(state.present.editor.storyCanvas?.nodes).toEqual([
 			expect.objectContaining({
 				id: 'canvas-node-1',
