@@ -64,7 +64,8 @@ describe('narrative moves', () => {
 				id: 'move-ask:outcome:continue',
 				key: 'continue',
 				label: 'Продолжить',
-				effectStoryNodeIds: []
+				effectStoryNodeIds: [],
+				effects: []
 			}
 		]);
 	});
@@ -183,7 +184,6 @@ describe('narrative moves', () => {
 						characterId: 'actor',
 						claimId: 'claim-secret'
 					}
-				}
 			]
 		});
 
@@ -220,13 +220,15 @@ describe('narrative moves', () => {
 					id: 'outcome-yes',
 					key: 'yes',
 					label: 'Да',
-					effectStoryNodeIds: ['scene-yes']
+					effectStoryNodeIds: ['scene-yes'],
+					effects: []
 				},
 				{
 					id: 'outcome-no',
 					key: 'no',
 					label: 'Нет',
-					effectStoryNodeIds: ['scene-no']
+					effectStoryNodeIds: ['scene-no'],
+					effects: []
 				}
 			],
 			resolution: {
@@ -257,13 +259,15 @@ describe('narrative moves', () => {
 					id: 'outcome-success',
 					key: 'success',
 					label: 'Успех',
-					effectStoryNodeIds: []
+					effectStoryNodeIds: [],
+					effects: []
 				},
 				{
 					id: 'outcome-failure',
 					key: 'failure',
 					label: 'Провал',
-					effectStoryNodeIds: []
+					effectStoryNodeIds: [],
+					effects: []
 				}
 			],
 			resolution: {
@@ -305,8 +309,20 @@ describe('narrative moves', () => {
 			kind: 'persuade',
 			label: 'Плохая проверка',
 			outcomes: [
-				{id: 'same', key: 'success', label: 'Успех', effectStoryNodeIds: []},
-				{id: 'failure', key: 'failure', label: 'Провал', effectStoryNodeIds: []}
+				{
+					id: 'same',
+					key: 'success',
+					label: 'Успех',
+					effectStoryNodeIds: [],
+					effects: []
+				},
+				{
+					id: 'failure',
+					key: 'failure',
+					label: 'Провал',
+					effectStoryNodeIds: [],
+					effects: []
+				}
 			],
 			resolution: {
 				type: 'skill-check',
@@ -322,6 +338,62 @@ describe('narrative moves', () => {
 		});
 
 		expect(state.present.narrativeMoves).toHaveLength(0);
+	});
+
+	test('authors a knowledge effect without applying it to preview runtime', () => {
+		let state = projectWithStoryNode();
+		state = execute(state, {
+			type: 'character/add',
+			id: 'speaker',
+			profileId: 'speaker-profile',
+			name: 'Говорящий',
+			cognitionTier: 'full'
+		});
+		state = execute(state, {
+			type: 'character/add',
+			id: 'listener',
+			profileId: 'listener-profile',
+			name: 'Слушатель',
+			cognitionTier: 'full'
+		});
+		state = execute(state, {
+			type: 'claim/add',
+			id: 'claim-rumor',
+			text: 'В подвале кто-то был'
+		});
+		state = execute(state, {
+			type: 'move/add',
+			id: 'move-rumor',
+			storyNodeId: 'scene-a',
+			kind: 'inform',
+			label: 'Передать слух',
+			actorCharacterId: 'speaker',
+			targetCharacterIds: ['listener'],
+			communicatedClaimId: 'claim-rumor',
+			outcomes: [
+				{
+					id: 'outcome-rumor',
+					key: 'continue',
+					label: 'Продолжить',
+					effectStoryNodeIds: [],
+					effects: [
+						{
+							id: 'effect-rumor',
+							type: 'character-learns-claim',
+							recipient: {type: 'move-target', targetIndex: 0},
+							claim: {type: 'communicated-claim'},
+							attitude: 'believes',
+							confidence: 0.75,
+							source: {type: 'move-actor'}
+						}
+					]
+				}
+			],
+			resolution: {type: 'automatic', outcomeId: 'outcome-rumor'}
+		});
+
+		expect(state.present.narrativeMoves[0].outcomes[0].effects).toHaveLength(1);
+		expect(state.present.simulation.characterKnowledge).toEqual([]);
 	});
 
 	test('removing the owning Story node removes its authored moves', () => {
