@@ -1,5 +1,9 @@
 import * as React from 'react';
-import {ClaimTruthStance} from '../../../domain/narrative/knowledge';
+import {
+	ClaimTruthStance,
+	KnowledgeAttitude,
+	KnowledgeSource
+} from '../../../domain/narrative/knowledge';
 import {useNarrativeProject} from '../../../store/narrative-project';
 
 export interface ProjectLibraryProps {
@@ -13,6 +17,20 @@ const stanceLabels: Record<ClaimTruthStance, string> = {
 	unresolved: 'Связь не определена'
 };
 
+const attitudeLabels: Record<KnowledgeAttitude, string> = {
+	knows: 'Знает / уверен',
+	believes: 'Верит',
+	doubts: 'Сомневается',
+	disbelieves: 'Не верит'
+};
+
+const sourceTypeLabels: Record<KnowledgeSource['type'], string> = {
+	authored: 'Задано автором',
+	observed: 'Наблюдал сам',
+	told: 'Кто-то сообщил',
+	inferred: 'Сделал вывод'
+};
+
 export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) => {
 	const {project, execute, createId} = useNarrativeProject();
 	const [factTitle, setFactTitle] = React.useState('');
@@ -21,6 +39,15 @@ export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) =
 	const [claimFactId, setClaimFactId] = React.useState('');
 	const [claimStance, setClaimStance] =
 		React.useState<ClaimTruthStance>('unresolved');
+	const [knowledgeCharacterId, setKnowledgeCharacterId] = React.useState('');
+	const [knowledgeClaimId, setKnowledgeClaimId] = React.useState('');
+	const [knowledgeAttitude, setKnowledgeAttitude] =
+		React.useState<KnowledgeAttitude>('believes');
+	const [knowledgeConfidence, setKnowledgeConfidence] = React.useState('0.75');
+	const [knowledgeSourceType, setKnowledgeSourceType] =
+		React.useState<KnowledgeSource['type']>('authored');
+	const [knowledgeSourceCharacterId, setKnowledgeSourceCharacterId] =
+		React.useState('');
 
 	if (!open) {
 		return null;
@@ -60,6 +87,61 @@ export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) =
 		setClaimText('');
 	}
 
+	function setInitialKnowledge(event: React.FormEvent) {
+		event.preventDefault();
+		const confidence = Number(knowledgeConfidence);
+		if (
+			!knowledgeCharacterId ||
+			!knowledgeClaimId ||
+			!Number.isFinite(confidence) ||
+			confidence < 0 ||
+			confidence > 1
+		) {
+			return;
+		}
+
+		let source: KnowledgeSource;
+		switch (knowledgeSourceType) {
+			case 'authored':
+				source = {type: 'authored'};
+				break;
+			case 'observed':
+				source = {type: 'observed'};
+				break;
+			case 'inferred':
+				source = {type: 'inferred'};
+				break;
+			case 'told':
+				source = {
+					type: 'told',
+					sourceCharacterId: knowledgeSourceCharacterId || undefined
+				};
+				break;
+		}
+
+		execute({
+			type: 'knowledge/setInitial',
+			id: createId('knowledge-seed'),
+			characterId: knowledgeCharacterId,
+			claimId: knowledgeClaimId,
+			attitude: knowledgeAttitude,
+			confidence,
+			source
+		});
+	}
+
+	function sourceDescription(source: KnowledgeSource) {
+		if (source.type === 'told' && source.sourceCharacterId) {
+			const character = project.characters.find(
+				candidate => candidate.id === source.sourceCharacterId
+			);
+			return character
+				? `Сообщил: ${character.name}`
+				: 'Источник-персонаж не найден';
+		}
+		return sourceTypeLabels[source.type];
+	}
+
 	return (
 		<div className="narrative-workspace__library-overlay" role="presentation">
 			<button
@@ -96,8 +178,9 @@ export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) =
 					<span>Предметы <b>{project.itemInstances.length}</b></span>
 					<span>Факты <b>{project.objectiveFacts.length}</b></span>
 					<span>Утверждения <b>{project.claims.length}</b></span>
+					<span>Стартовые знания <b>{project.initialKnowledge.length}</b></span>
 					<span>
-						Текущие знания <b>{project.simulation.characterKnowledge.length}</b>
+						Preview-знания <b>{project.simulation.characterKnowledge.length}</b>
 					</span>
 				</div>
 
@@ -211,13 +294,144 @@ export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) =
 					</div>
 				</section>
 
+				<section className="narrative-workspace__library-section">
+					<div className="narrative-workspace__library-section-heading">
+						<div>
+							<strong>Стартовые знания персонажей</strong>
+							<small>
+								authoring baseline; отсутствие записи означает, что персонаж Claim не знает
+							</small>
+						</div>
+						<span>{project.initialKnowledge.length}</span>
+					</div>
+					<form
+						onSubmit={setInitialKnowledge}
+						className="narrative-workspace__library-form"
+					>
+						<select
+							value={knowledgeCharacterId}
+							aria-label="Персонаж стартового знания"
+							onChange={event => setKnowledgeCharacterId(event.target.value)}
+						>
+							<option value="">Выбери персонажа</option>
+							{project.characters.map(character => (
+								<option key={character.id} value={character.id}>
+									{character.name}
+								</option>
+							))}
+						</select>
+						<select
+							value={knowledgeClaimId}
+							aria-label="Claim стартового знания"
+							onChange={event => setKnowledgeClaimId(event.target.value)}
+						>
+							<option value="">Выбери Claim</option>
+							{project.claims.map(claim => (
+								<option key={claim.id} value={claim.id}>
+									{claim.text}
+								</option>
+							))}
+						</select>
+						<select
+							value={knowledgeAttitude}
+							aria-label="Отношение персонажа к Claim"
+							onChange={event =>
+								setKnowledgeAttitude(event.target.value as KnowledgeAttitude)
+							}
+						>
+							{Object.entries(attitudeLabels).map(([attitude, label]) => (
+								<option key={attitude} value={attitude}>
+									{label}
+								</option>
+							))}
+						</select>
+						<input
+							type="number"
+							min="0"
+							max="1"
+							step="0.05"
+							value={knowledgeConfidence}
+							aria-label="Уверенность персонажа от 0 до 1"
+							onChange={event => setKnowledgeConfidence(event.target.value)}
+						/>
+						<select
+							value={knowledgeSourceType}
+							aria-label="Источник стартового знания"
+							onChange={event => {
+								setKnowledgeSourceType(event.target.value as KnowledgeSource['type']);
+								if (event.target.value !== 'told') {
+									setKnowledgeSourceCharacterId('');
+								}
+							}}
+						>
+							{Object.entries(sourceTypeLabels).map(([sourceType, label]) => (
+								<option key={sourceType} value={sourceType}>
+									{label}
+								</option>
+							))}
+						</select>
+						{knowledgeSourceType === 'told' && (
+							<select
+								value={knowledgeSourceCharacterId}
+								aria-label="Кто сообщил стартовое знание"
+								onChange={event =>
+									setKnowledgeSourceCharacterId(event.target.value)
+								}
+							>
+								<option value="">Источник не указан</option>
+								{project.characters.map(character => (
+									<option key={character.id} value={character.id}>
+										{character.name}
+									</option>
+								))}
+							</select>
+						)}
+						<button
+							type="submit"
+							disabled={!knowledgeCharacterId || !knowledgeClaimId}
+						>
+							Задать стартовое знание
+						</button>
+					</form>
+					<div className="narrative-workspace__library-cards">
+						{project.initialKnowledge.map(seed => {
+							const character = project.characters.find(
+								candidate => candidate.id === seed.characterId
+							);
+							const claim = project.claims.find(candidate => candidate.id === seed.claimId);
+							return (
+								<article key={seed.id}>
+									<span>KNOWLEDGE · {attitudeLabels[seed.attitude]}</span>
+									<strong>{character?.name ?? seed.characterId}</strong>
+									<p>{claim?.text ?? seed.claimId}</p>
+									<small>
+										Уверенность: {seed.confidence.toFixed(2)} · {sourceDescription(seed.source)}
+									</small>
+									<button
+										type="button"
+										onClick={() =>
+											execute({type: 'knowledge/removeInitial', id: seed.id})
+										}
+									>
+										Удалить стартовое знание
+									</button>
+								</article>
+							);
+						})}
+						{project.initialKnowledge.length === 0 && (
+							<p className="narrative-workspace__library-empty">
+								Пока нет стартовых знаний. Любой новый персонаж использует ту же общую модель.
+							</p>
+						)}
+					</div>
+				</section>
+
 				<footer className="narrative-workspace__project-library-footer">
-					<strong>Следующий слой</strong>
+					<strong>Authoring ≠ runtime</strong>
 					<p>
-						Назначение утверждений конкретным персонажам, источник слуха,
-						 уверенность, повторная передача и усиление/затухание памяти будут
-						 работать поверх этих определений, не смешивая их с объективной
-						 истиной мира.
+						Стартовое знание — исходное состояние для нового preview/simulation. Само
+						 редактирование записи не меняет уже запущенное runtime-состояние. Передача
+						 слухов, усиление, забывание и память будут развиваться поверх этой границы.
 					</p>
 				</footer>
 			</aside>
