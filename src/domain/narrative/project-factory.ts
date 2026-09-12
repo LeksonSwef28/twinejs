@@ -41,6 +41,7 @@ export function createNarrativeProject(
 		itemInstances: [],
 		objectiveFacts: [],
 		claims: [],
+		initialKnowledge: [],
 		behaviorProfiles: [],
 		routineRules: [],
 		scheduleExceptions: [],
