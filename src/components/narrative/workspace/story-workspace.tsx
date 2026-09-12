@@ -5,7 +5,7 @@ import {
 	analyzeStoryContinuity,
 	connectedStoryNodeIds
 } from '../../../domain/narrative/story-analysis';
-import {StoryNodeKind} from '../../../domain/narrative/story';
+import {StoryEdgeMode, StoryNodeKind} from '../../../domain/narrative/story';
 import {minutesPerDay} from '../../../domain/narrative/calendar';
 import {useNarrativeProject} from '../../../store/narrative-project';
 
@@ -20,6 +20,11 @@ const storyKindLabels: Record<StoryNodeKind, string> = {
 	dialogue: 'Диалог',
 	condition: 'Условие',
 	effect: 'Последствие'
+};
+
+const edgeModeLabels: Record<StoryEdgeMode, string> = {
+	reference: 'Смысловая',
+	executable: 'Исполняемая'
 };
 
 type SelectedStoryEntity =
@@ -57,6 +62,8 @@ export const StoryWorkspace: React.FC = () => {
 	const [selectedStoryEntity, setSelectedStoryEntity] =
 		React.useState<SelectedStoryEntity>();
 	const [connectionSourceId, setConnectionSourceId] = React.useState<string>();
+	const [connectionMode, setConnectionMode] =
+		React.useState<StoryEdgeMode>('reference');
 	const [dragState, setDragState] = React.useState<DragState>();
 	const [panState, setPanState] = React.useState<PanState>();
 	const storyViewportRef = React.useRef<HTMLDivElement>(null);
@@ -273,6 +280,7 @@ export const StoryWorkspace: React.FC = () => {
 					sourceNodeId: connectionSourceId,
 					targetNodeId: node.entityRef.id,
 					kind: 'flow',
+					mode: connectionMode,
 					sourcePortId: 'flow-out',
 					targetPortId: 'flow-in'
 				});
@@ -540,7 +548,9 @@ export const StoryWorkspace: React.FC = () => {
 				<div className="narrative-workspace__breadcrumbs">
 					История <span>›</span> Главная доска
 					{connectionSourceId && (
-						<strong> · выбери следующий сюжетный блок</strong>
+						<strong>
+							{' '}· {edgeModeLabels[connectionMode]} связь · выбери следующий блок
+						</strong>
 					)}
 				</div>
 				<div
@@ -584,7 +594,7 @@ export const StoryWorkspace: React.FC = () => {
 								return (
 									<path
 										key={connection.id}
-										className={`narrative-workspace__connection is-${connection.kind}${dimmed ? ' is-dimmed' : ' is-highlighted'}`}
+										className={`narrative-workspace__connection is-${connection.kind} is-${connection.mode}${dimmed ? ' is-dimmed' : ' is-highlighted'}`}
 										d={`M ${sourceX} ${sourceY} C ${sourceX + bend} ${sourceY}, ${targetX - bend} ${targetY}, ${targetX} ${targetY}`}
 									/>
 								);
@@ -775,6 +785,25 @@ export const StoryWorkspace: React.FC = () => {
 								</button>
 							)}
 						</div>
+						<div className="narrative-workspace__edge-mode-controls">
+							<span>Новая связь</span>
+							<div>
+								{(['reference', 'executable'] as StoryEdgeMode[]).map(mode => (
+									<button
+										key={mode}
+										type="button"
+										className={connectionMode === mode ? 'is-active' : undefined}
+										onClick={() => setConnectionMode(mode)}
+									>
+										{edgeModeLabels[mode]}
+									</button>
+								))}
+							</div>
+							<small>
+								Смысловая линия ничего не исполняет. Исполняемая участвует в
+								 причинной логике Story и Continuity.
+							</small>
+						</div>
 						<div className="narrative-workspace__inspection-actions">
 							<button
 								type="button"
@@ -865,7 +894,7 @@ export const StoryWorkspace: React.FC = () => {
 				<div className="narrative-workspace__continuity">
 					<strong>Continuity</strong>
 					<div>
-						<span>Без связей</span>
+						<span>Без исполняемых связей</span>
 						<b>{continuity.isolatedNodeIds.length}</b>
 					</div>
 					<div>

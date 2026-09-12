@@ -7,6 +7,7 @@ import {
 } from '../../domain/narrative/calendar';
 import {StoryCanvasEditorState} from '../../domain/narrative/editor';
 import {NarrativeProject} from '../../domain/narrative/project';
+import {storyConnectionKindCanExecute} from '../../domain/narrative/story';
 
 export interface NarrativeProjectHistoryState {
 	past: NarrativeProject[];
@@ -261,10 +262,15 @@ export function applyNarrativeProjectCommand(
 				})
 			});
 		case 'story/connect': {
+			const mode = command.mode ?? 'reference';
 			if (
 				command.sourceNodeId === command.targetNodeId ||
 				!project.storyNodes.some(node => node.id === command.sourceNodeId) ||
-				!project.storyNodes.some(node => node.id === command.targetNodeId)
+				!project.storyNodes.some(node => node.id === command.targetNodeId) ||
+				(mode === 'executable' &&
+					(!storyConnectionKindCanExecute(command.kind) ||
+						!command.sourcePortId ||
+						!command.targetPortId))
 			) {
 				return project;
 			}
@@ -278,10 +284,33 @@ export function applyNarrativeProjectCommand(
 						sourceNodeId: command.sourceNodeId,
 						targetNodeId: command.targetNodeId,
 						kind: command.kind,
+						mode,
 						sourcePortId: command.sourcePortId,
 						targetPortId: command.targetPortId
 					}
 				]
+			});
+		}
+		case 'story/setConnectionMode': {
+			const connection = project.storyConnections.find(
+				candidate => candidate.id === command.id
+			);
+			if (
+				!connection ||
+				(command.mode === 'executable' &&
+					(!storyConnectionKindCanExecute(connection.kind) ||
+						!connection.sourcePortId ||
+						!connection.targetPortId))
+			) {
+				return project;
+			}
+			return touched({
+				...project,
+				storyConnections: project.storyConnections.map(candidate =>
+					candidate.id === command.id
+						? {...candidate, mode: command.mode}
+						: candidate
+				)
 			});
 		}
 		case 'editor/selectDay':

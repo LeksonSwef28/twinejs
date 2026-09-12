@@ -1,11 +1,20 @@
 import {NarrativeProject, narrativeProjectSchemaVersion} from '../../domain/narrative/project';
 import {createNarrativeProject} from '../../domain/narrative/project-factory';
+import {
+	StoryConnectionDefinition,
+	StoryEdgeMode,
+	storyConnectionKindCanExecute
+} from '../../domain/narrative/story';
 import {NarrativeProjectTemplate} from '../../domain/narrative/template';
 
 export interface NarrativeProjectRepository {
 	load(): NarrativeProject;
 	save(project: NarrativeProject): void;
 }
+
+type PersistedStoryConnection = Omit<StoryConnectionDefinition, 'mode'> & {
+	mode?: StoryEdgeMode;
+};
 
 function looksLikeSchemaV2(value: unknown) {
 	if (!value || typeof value !== 'object') {
@@ -22,6 +31,37 @@ function looksLikeSchemaV2(value: unknown) {
 		Array.isArray(candidate.storyNodes) &&
 		Array.isArray(candidate.storyConnections)
 	);
+}
+
+/**
+ * Missing edge mode means legacy schema-v2 data. Only the old TRUE/FALSE kinds
+ * are unambiguous enough to retain executable semantics automatically. Every
+ * other legacy edge becomes a safe reference edge until the author explicitly
+ * promotes it. Explicit executable mode is also downgraded when ports/kind are
+ * not executable-safe.
+ */
+function hydrateStoryConnection(
+	connection: PersistedStoryConnection
+): StoryConnectionDefinition {
+	const hasExecutableShape =
+		storyConnectionKindCanExecute(connection.kind) &&
+		Boolean(connection.sourcePortId) &&
+		Boolean(connection.targetPortId);
+	const clearlyExecutableLegacyKind =
+		connection.kind === 'condition-true' || connection.kind === 'condition-false';
+	const mode: StoryEdgeMode =
+		(connection.mode === 'executable' && hasExecutableShape) ||
+		(connection.mode === undefined && clearlyExecutableLegacyKind && hasExecutableShape)
+			? 'executable'
+			: 'reference';
+
+	return {...connection, mode};
+}
+
+function hydrateStoryConnections(value: unknown): StoryConnectionDefinition[] {
+	return Array.isArray(value)
+		? (value as PersistedStoryConnection[]).map(hydrateStoryConnection)
+		: [];
 }
 
 /**
@@ -62,6 +102,7 @@ function hydrateSchemaV2(
 		itemInstances: Array.isArray(saved.itemInstances) ? saved.itemInstances : [],
 		objectiveFacts: Array.isArray(saved.objectiveFacts) ? saved.objectiveFacts : [],
 		claims: Array.isArray(saved.claims) ? saved.claims : [],
+		storyConnections: hydrateStoryConnections(saved.storyConnections),
 		editor: {
 			...fresh.editor,
 			...savedEditor,

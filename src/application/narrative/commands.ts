@@ -9,6 +9,7 @@ import {ClaimTruthStance} from '../../domain/narrative/knowledge';
 import {NarrativeWorkspaceMode} from '../../domain/narrative/project';
 import {
 	StoryConnectionKind,
+	StoryEdgeMode,
 	StoryNodeKind,
 	StoryPlacement
 } from '../../domain/narrative/story';
@@ -49,9 +50,11 @@ export type NarrativeProjectCommand =
 			sourceNodeId: string;
 			targetNodeId: string;
 			kind: StoryConnectionKind;
+			mode?: StoryEdgeMode;
 			sourcePortId?: string;
 			targetPortId?: string;
 	  }
+	| {type: 'story/setConnectionMode'; id: string; mode: StoryEdgeMode}
 	| {type: 'editor/selectDay'; day: number}
 	| {type: 'editor/selectPeriod'; periodId: string}
 	| {type: 'editor/selectMoment'; day: number; minuteOfDay: number}

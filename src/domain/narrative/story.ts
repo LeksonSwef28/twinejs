@@ -45,10 +45,38 @@ export type StoryConnectionKind =
 	| 'knowledge'
 	| 'relationship';
 
+export type StoryEdgeMode = 'reference' | 'executable';
+
+const executableConnectionKinds = new Set<StoryConnectionKind>([
+	'flow',
+	'condition-true',
+	'condition-false',
+	'effect'
+]);
+
+export function storyConnectionKindCanExecute(kind: StoryConnectionKind) {
+	return executableConnectionKinds.has(kind);
+}
+
 /**
- * Ports are explicit because executable logic must not be inferred from a
- * decorative line. A future graph UI can expose typed TRUE/FALSE/effect/etc.
- * ports without changing the persisted story model.
+ * Executable semantics are opt-in. Missing mode is treated as reference so
+ * older schema-v2 projects and malformed payloads can never gain runtime
+ * behavior merely by being loaded.
+ */
+export function storyConnectionMode(
+	connection: Pick<StoryConnectionDefinition, 'mode' | 'kind' | 'sourcePortId' | 'targetPortId'>
+): StoryEdgeMode {
+	return connection.mode === 'executable' &&
+		storyConnectionKindCanExecute(connection.kind) &&
+		Boolean(connection.sourcePortId) &&
+		Boolean(connection.targetPortId)
+		? 'executable'
+		: 'reference';
+}
+
+/**
+ * Reference edges are authoring/semantic relations only. Executable edges are
+ * explicit causal/runtime connections and therefore require typed ports.
  */
 export interface StoryConnectionDefinition {
 	id: EntityId;
@@ -57,4 +85,5 @@ export interface StoryConnectionDefinition {
 	sourcePortId?: string;
 	targetPortId?: string;
 	kind: StoryConnectionKind;
+	mode: StoryEdgeMode;
 }

@@ -1,4 +1,8 @@
-import {StoryConnectionDefinition, StoryNodeDefinition} from './story';
+import {
+	StoryConnectionDefinition,
+	StoryNodeDefinition,
+	storyConnectionMode
+} from './story';
 
 const continuityConnectionKinds = new Set([
 	'flow',
@@ -18,22 +22,28 @@ export interface StoryContinuityAnalysis {
 }
 
 function continuityConnections(connections: StoryConnectionDefinition[]) {
-	return connections.filter(connection =>
-		continuityConnectionKinds.has(connection.kind)
+	return connections.filter(
+		connection =>
+			storyConnectionMode(connection) === 'executable' &&
+			continuityConnectionKinds.has(connection.kind)
 	);
 }
 
+/**
+ * Focus/highlight follows every authored relation, including reference edges.
+ * Reference edges remain useful for thinking even though they are excluded from
+ * causal continuity and runtime traversal.
+ */
 export function connectedStoryNodeIds(
 	startNodeId: string,
 	connections: StoryConnectionDefinition[]
 ) {
 	const connected = new Set<string>([startNodeId]);
 	const queue = [startNodeId];
-	const causalConnections = continuityConnections(connections);
 
 	while (queue.length > 0) {
 		const current = queue.shift()!;
-		for (const connection of causalConnections) {
+		for (const connection of connections) {
 			let neighbor: string | undefined;
 			if (connection.sourceNodeId === current) {
 				neighbor = connection.targetNodeId;
