@@ -1,4 +1,7 @@
-import {narrativeMoveIsStructurallyValid} from '../../domain/narrative/interaction';
+import {
+	NarrativeMoveDefinition,
+	narrativeMoveIsStructurallyValid
+} from '../../domain/narrative/interaction';
 import {NarrativeProject, narrativeProjectSchemaVersion} from '../../domain/narrative/project';
 import {createNarrativeProject} from '../../domain/narrative/project-factory';
 import {
@@ -66,6 +69,37 @@ function hydrateStoryConnections(value: unknown): StoryConnectionDefinition[] {
 }
 
 /**
+ * A20/A21 projects predate explicit Outcome effects. Add an empty effect list
+ * during hydration before validating the current NarrativeMove shape.
+ */
+function hydrateNarrativeMoves(value: unknown): NarrativeMoveDefinition[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value.flatMap(raw => {
+		if (!raw || typeof raw !== 'object') {
+			return [];
+		}
+		const candidate = raw as NarrativeMoveDefinition;
+		if (!Array.isArray(candidate.outcomes)) {
+			return [];
+		}
+		const hydrated: NarrativeMoveDefinition = {
+			...candidate,
+			outcomes: candidate.outcomes.map(outcome => ({
+				...outcome,
+				effectStoryNodeIds: Array.isArray(outcome.effectStoryNodeIds)
+					? outcome.effectStoryNodeIds
+					: [],
+				effects: Array.isArray(outcome.effects) ? outcome.effects : []
+			}))
+		};
+		return narrativeMoveIsStructurallyValid(hydrated) ? [hydrated] : [];
+	});
+}
+
+/**
  * Schema v2 intentionally grows during the Authoring MVP. Hydration supplies
  * newly introduced collections so a project saved by an earlier v2 patch does
  * not disappear just because a new authoring concept was added.
@@ -103,10 +137,11 @@ function hydrateSchemaV2(
 		itemInstances: Array.isArray(saved.itemInstances) ? saved.itemInstances : [],
 		objectiveFacts: Array.isArray(saved.objectiveFacts) ? saved.objectiveFacts : [],
 		claims: Array.isArray(saved.claims) ? saved.claims : [],
-		storyConnections: hydrateStoryConnections(saved.storyConnections),
-		narrativeMoves: Array.isArray(saved.narrativeMoves)
-			? saved.narrativeMoves.filter(narrativeMoveIsStructurallyValid)
+		initialKnowledge: Array.isArray(saved.initialKnowledge)
+			? saved.initialKnowledge
 			: [],
+		storyConnections: hydrateStoryConnections(saved.storyConnections),
+		narrativeMoves: hydrateNarrativeMoves(saved.narrativeMoves),
 		editor: {
 			...fresh.editor,
 			...savedEditor,
@@ -176,6 +211,7 @@ function migrateSchemaV1(
 		itemInstances: [],
 		objectiveFacts: [],
 		claims: [],
+		initialKnowledge: [],
 		behaviorProfiles: legacy.behaviorProfiles ?? [],
 		routineRules: legacy.routineRules ?? [],
 		scheduleExceptions: legacy.scheduleExceptions ?? [],
