@@ -6,6 +6,7 @@ import {
 } from '../../../domain/narrative/calendar';
 import {NarrativeWorkspaceMode} from '../../../domain/narrative/project';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {NarrativeMovePanel} from './narrative-move-panel';
 import {ProjectLibrary} from './project-library';
 import {StoryWorkspace} from './story-workspace';
 import {WorldTimeWorkspace} from './world-time-workspace';
@@ -199,7 +200,14 @@ export const NarrativeWorkspace: React.FC = () => {
 				open={projectLibraryOpen}
 				onClose={() => setProjectLibraryOpen(false)}
 			/>
-			{workspaceMode === 'story' ? <StoryWorkspace /> : <WorldTimeWorkspace />}
+			{workspaceMode === 'story' ? (
+				<>
+					<StoryWorkspace />
+					<NarrativeMovePanel />
+				</>
+			) : (
+				<WorldTimeWorkspace />
+			)}
 		</section>
 	);
 };
