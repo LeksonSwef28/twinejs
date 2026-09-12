@@ -6,6 +6,12 @@ import {
 	periodContainsMinute
 } from '../../domain/narrative/calendar';
 import {StoryCanvasEditorState} from '../../domain/narrative/editor';
+import {
+	createDefaultNarrativeOutcome,
+	NarrativeConditionDefinition,
+	NarrativeMoveDefinition,
+	narrativeMoveIsStructurallyValid
+} from '../../domain/narrative/interaction';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {storyConnectionKindCanExecute} from '../../domain/narrative/story';
 
@@ -32,6 +38,112 @@ function storyCanvas(project: NarrativeProject): StoryCanvasEditorState {
 			nodes: []
 		}
 	);
+}
+
+function hasCharacter(project: NarrativeProject, id: string) {
+	return project.characters.some(character => character.id === id);
+}
+
+function conditionReferencesExist(
+	project: NarrativeProject,
+	condition: NarrativeConditionDefinition
+): boolean {
+	switch (condition.type) {
+		case 'character-knows-claim':
+			return (
+				hasCharacter(project, condition.characterId) &&
+				project.claims.some(claim => claim.id === condition.claimId)
+			);
+		case 'character-has-item':
+			return (
+				hasCharacter(project, condition.characterId) &&
+				project.itemInstances.some(item => item.id === condition.itemInstanceId)
+			);
+		case 'relationship-at-least':
+			return (
+				hasCharacter(project, condition.fromCharacterId) &&
+				hasCharacter(project, condition.toCharacterId) &&
+				Boolean(condition.axis.trim()) &&
+				Number.isFinite(condition.value)
+			);
+		case 'story-node-state':
+			return project.storyNodes.some(node => node.id === condition.storyNodeId);
+		case 'characters-share-location':
+			return (
+				condition.characterIds.length >= 2 &&
+				condition.characterIds.every(id => hasCharacter(project, id))
+			);
+	}
+}
+
+function narrativeMoveReferencesExist(
+	project: NarrativeProject,
+	move: NarrativeMoveDefinition
+): boolean {
+	if (!project.storyNodes.some(node => node.id === move.storyNodeId)) {
+		return false;
+	}
+	if (move.actorCharacterId && !hasCharacter(project, move.actorCharacterId)) {
+		return false;
+	}
+	if (!move.targetCharacterIds.every(id => hasCharacter(project, id))) {
+		return false;
+	}
+	if (
+		move.communicatedClaimId &&
+		!project.claims.some(claim => claim.id === move.communicatedClaimId)
+	) {
+		return false;
+	}
+	if (!move.guards.every(guard => conditionReferencesExist(project, guard.condition))) {
+		return false;
+	}
+	if (
+		move.resolution.type === 'condition' &&
+		!conditionReferencesExist(project, move.resolution.condition)
+	) {
+		return false;
+	}
+	return move.outcomes.every(outcome =>
+		outcome.effectStoryNodeIds.every(id =>
+			project.storyNodes.some(node => node.id === id)
+		)
+	);
+}
+
+function conditionReferencesStoryNode(
+	condition: NarrativeConditionDefinition,
+	storyNodeId: string
+) {
+	return (
+		condition.type === 'story-node-state' &&
+		condition.storyNodeId === storyNodeId
+	);
+}
+
+function removeStoryNodeFromNarrativeMoves(
+	moves: NarrativeMoveDefinition[],
+	storyNodeId: string
+): NarrativeMoveDefinition[] {
+	return moves
+		.filter(move => move.storyNodeId !== storyNodeId)
+		.filter(
+			move =>
+				move.resolution.type !== 'condition' ||
+				!conditionReferencesStoryNode(move.resolution.condition, storyNodeId)
+		)
+		.map(move => ({
+			...move,
+			guards: move.guards.filter(
+				guard => !conditionReferencesStoryNode(guard.condition, storyNodeId)
+			),
+			outcomes: move.outcomes.map(outcome => ({
+				...outcome,
+				effectStoryNodeIds: outcome.effectStoryNodeIds.filter(
+					id => id !== storyNodeId
+				)
+			}))
+		}));
 }
 
 /**
@@ -213,6 +325,10 @@ export function applyNarrativeProjectCommand(
 						connection.sourceNodeId !== command.id &&
 						connection.targetNodeId !== command.id
 				),
+				narrativeMoves: removeStoryNodeFromNarrativeMoves(
+					project.narrativeMoves,
+					command.id
+				),
 				editor: {
 					...project.editor,
 					storyCanvas: {
@@ -313,6 +429,52 @@ export function applyNarrativeProjectCommand(
 				)
 			});
 		}
+		case 'move/add': {
+			if (project.narrativeMoves.some(move => move.id === command.id)) {
+				return project;
+			}
+			const defaultOutcome = createDefaultNarrativeOutcome(command.id);
+			const outcomes = command.outcomes ?? [defaultOutcome];
+			const resolution =
+				command.resolution ??
+				({
+					type: 'automatic',
+					outcomeId: outcomes[0]?.id ?? defaultOutcome.id
+				} as const);
+			const move: NarrativeMoveDefinition = {
+				id: command.id,
+				storyNodeId: command.storyNodeId,
+				kind: command.kind,
+				label: command.label.trim(),
+				actorCharacterId: command.actorCharacterId,
+				targetCharacterIds: command.targetCharacterIds ?? [],
+				communicatedClaimId: command.communicatedClaimId,
+				communicationIntent: command.communicationIntent,
+				guards: command.guards ?? [],
+				resolution,
+				outcomes
+			};
+			if (
+				!narrativeMoveIsStructurallyValid(move) ||
+				!narrativeMoveReferencesExist(project, move)
+			) {
+				return project;
+			}
+			return touched({
+				...project,
+				narrativeMoves: [...project.narrativeMoves, move]
+			});
+		}
+		case 'move/remove':
+			if (!project.narrativeMoves.some(move => move.id === command.id)) {
+				return project;
+			}
+			return touched({
+				...project,
+				narrativeMoves: project.narrativeMoves.filter(
+					move => move.id !== command.id
+				)
+			});
 		case 'editor/selectDay':
 			return {
 				...project,
