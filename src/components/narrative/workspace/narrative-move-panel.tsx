@@ -36,7 +36,6 @@ const intentLabels: Record<CommunicationIntent, string> = {
 type ResolutionMode = 'automatic' | 'skill-check';
 
 export interface NarrativeMovePanelProps {
-	/** When omitted, the panel lets the author choose the owning Story node. */
 	storyNodeId?: string;
 }
 
@@ -51,10 +50,8 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 	const [targetCharacterId, setTargetCharacterId] = React.useState('');
 	const [claimId, setClaimId] = React.useState('');
 	const [intent, setIntent] = React.useState<CommunicationIntent | ''>('');
-	const [requireActorKnowsClaim, setRequireActorKnowsClaim] =
-		React.useState(false);
-	const [resolutionMode, setResolutionMode] =
-		React.useState<ResolutionMode>('automatic');
+	const [requireActorKnowsClaim, setRequireActorKnowsClaim] = React.useState(false);
+	const [resolutionMode, setResolutionMode] = React.useState<ResolutionMode>('automatic');
 	const [skillKey, setSkillKey] = React.useState('');
 	const [difficulty, setDifficulty] = React.useState(10);
 	const [diceCount, setDiceCount] = React.useState(2);
@@ -64,13 +61,9 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 	const activeStoryNodeId = storyNodeId ?? selectedStoryNodeId;
 
 	const moves = activeStoryNodeId
-		? project.narrativeMoves.filter(
-				move => move.storyNodeId === activeStoryNodeId
-			)
+		? project.narrativeMoves.filter(move => move.storyNodeId === activeStoryNodeId)
 		: [];
-	const charactersById = new Map(
-		project.characters.map(character => [character.id, character])
-	);
+	const charactersById = new Map(project.characters.map(character => [character.id, character]));
 	const claimsById = new Map(project.claims.map(claim => [claim.id, claim]));
 
 	function addMove(event: React.FormEvent) {
@@ -81,7 +74,7 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 		}
 		if (
 			resolutionMode === 'skill-check' &&
-			(!skillKey.trim() || diceCount < 1 || dieSides < 2)
+			(!skillKey.trim() || !Number.isFinite(difficulty) || diceCount < 1 || dieSides < 2)
 		) {
 			return;
 		}
@@ -102,35 +95,7 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 				: [];
 		const moveId = createId('narrative-move');
 		const skillOutcomes = createDefaultSkillCheckOutcomes(moveId);
-		const outcomes =
-			resolutionMode === 'skill-check' ? skillOutcomes : undefined;
-		const resolution =
-			resolutionMode === 'skill-check'
-				? ({
-						type: 'skill-check' as const,
-						check: {
-							skillKey: skillKey.trim(),
-							difficulty,
-							rollRule: {
-								type: 'dice' as const,
-								diceCount,
-								dieSides
-							},
-							modifiers: modifierLabel.trim()
-								? [
-										{
-											id: createId('check-modifier'),
-											label: modifierLabel.trim(),
-											value: modifierValue
-										}
-								  ]
-								: [],
-							successOutcomeId: skillOutcomes[0].id,
-							failureOutcomeId: skillOutcomes[1].id,
-							retryPolicy: 'never' as const
-						}
-				  }
-				: undefined;
+		const isSkillCheck = resolutionMode === 'skill-check';
 
 		execute({
 			type: 'move/add',
@@ -143,8 +108,29 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 			communicatedClaimId: claimId || undefined,
 			communicationIntent: claimId && intent ? intent : undefined,
 			guards,
-			resolution,
-			outcomes
+			outcomes: isSkillCheck ? skillOutcomes : undefined,
+			resolution: isSkillCheck
+				? {
+						type: 'skill-check',
+						check: {
+							skillKey: skillKey.trim(),
+							difficulty,
+							rollRule: {type: 'dice', diceCount, dieSides},
+							modifiers: modifierLabel.trim()
+								? [
+										{
+											id: createId('check-modifier'),
+											label: modifierLabel.trim(),
+											value: modifierValue
+										}
+								  ]
+								: [],
+							successOutcomeId: skillOutcomes[0].id,
+							failureOutcomeId: skillOutcomes[1].id,
+							retryPolicy: 'never'
+						}
+				  }
+				: undefined
 		});
 		setLabel('');
 	}
@@ -153,9 +139,9 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 		<section className="narrative-workspace__move-editor" aria-label="Narrative Moves">
 			<h2>Narrative Moves</h2>
 			<p>
-				Реплика или действие отделены от способа разрешения. Обычный ход может
-				 пройти автоматически, а проверка навыка использует те же Outcomes.
+				Реплика или действие отделены от способа разрешения: без проверки или через Skill Check.
 			</p>
+
 			{!storyNodeId && (
 				<select
 					aria-label="Сюжетный блок Narrative Move"
@@ -164,12 +150,11 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 				>
 					<option value="">Выбери сюжетный блок</option>
 					{project.storyNodes.map(node => (
-						<option key={node.id} value={node.id}>
-							{node.title}
-						</option>
+						<option key={node.id} value={node.id}>{node.title}</option>
 					))}
 				</select>
 			)}
+
 			<form onSubmit={addMove} className="narrative-workspace__compact-form">
 				<select
 					aria-label="Тип narrative move"
@@ -177,9 +162,7 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 					onChange={event => setKind(event.target.value as NarrativeMoveKind)}
 				>
 					{Object.entries(moveKindLabels).map(([value, text]) => (
-						<option key={value} value={value}>
-							{text}
-						</option>
+						<option key={value} value={value}>{text}</option>
 					))}
 				</select>
 				<input
@@ -195,9 +178,7 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 				>
 					<option value="">Актор не назначен</option>
 					{project.characters.map(character => (
-						<option key={character.id} value={character.id}>
-							{character.name}
-						</option>
+						<option key={character.id} value={character.id}>{character.name}</option>
 					))}
 				</select>
 				<select
@@ -207,9 +188,7 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 				>
 					<option value="">Без конкретной цели</option>
 					{project.characters.map(character => (
-						<option key={character.id} value={character.id}>
-							{character.name}
-						</option>
+						<option key={character.id} value={character.id}>{character.name}</option>
 					))}
 				</select>
 				<select
@@ -225,24 +204,18 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 				>
 					<option value="">Без Claim</option>
 					{project.claims.map(claim => (
-						<option key={claim.id} value={claim.id}>
-							{claim.text}
-						</option>
+						<option key={claim.id} value={claim.id}>{claim.text}</option>
 					))}
 				</select>
 				<select
 					aria-label="Намерение говорящего"
 					value={intent}
 					disabled={!claimId}
-					onChange={event =>
-						setIntent(event.target.value as CommunicationIntent | '')
-					}
+					onChange={event => setIntent(event.target.value as CommunicationIntent | '')}
 				>
 					<option value="">Намерение не задано</option>
 					{Object.entries(intentLabels).map(([value, text]) => (
-						<option key={value} value={value}>
-							{text}
-						</option>
+						<option key={value} value={value}>{text}</option>
 					))}
 				</select>
 				<label>
@@ -254,17 +227,15 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 					/>{' '}
 					Доступно только если актор знает этот Claim
 				</label>
-
 				<select
 					aria-label="Способ разрешения narrative move"
 					value={resolutionMode}
-					onChange={event =>
-						setResolutionMode(event.target.value as ResolutionMode)
-					}
+					onChange={event => setResolutionMode(event.target.value as ResolutionMode)}
 				>
 					<option value="automatic">Без проверки</option>
 					<option value="skill-check">Проверка навыка</option>
 				</select>
+
 				{resolutionMode === 'skill-check' && (
 					<fieldset className="narrative-workspace__skill-check-editor">
 						<legend>Skill Check</legend>
@@ -274,110 +245,49 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 							placeholder="Например: Убеждение"
 							onChange={event => setSkillKey(event.target.value)}
 						/>
-						<label>
-							Сложность
-							<input
-								type="number"
-								value={difficulty}
-								onChange={event => setDifficulty(Number(event.target.value))}
-							/>
-						</label>
-						<label>
-							Кубиков
-							<input
-								type="number"
-								min={1}
-								value={diceCount}
-								onChange={event => setDiceCount(Number(event.target.value))}
-							/>
-						</label>
-						<label>
-							Граней
-							<input
-								type="number"
-								min={2}
-								value={dieSides}
-								onChange={event => setDieSides(Number(event.target.value))}
-							/>
-						</label>
+						<label>Сложность <input type="number" value={difficulty} onChange={event => setDifficulty(Number(event.target.value))} /></label>
+						<label>Кубиков <input type="number" min={1} value={diceCount} onChange={event => setDiceCount(Number(event.target.value))} /></label>
+						<label>Граней <input type="number" min={2} value={dieSides} onChange={event => setDieSides(Number(event.target.value))} /></label>
 						<input
 							aria-label="Название модификатора проверки"
 							value={modifierLabel}
 							placeholder="Модификатор, например Доверие"
 							onChange={event => setModifierLabel(event.target.value)}
 						/>
-						<label>
-							Значение модификатора
-							<input
-								type="number"
-								value={modifierValue}
-								onChange={event => setModifierValue(Number(event.target.value))}
-							/>
-						</label>
-						<small>
-							Результаты создаются отдельно: SUCCESS и FAILURE. Сам runtime-бросок
-							 не выполняется редактором.
-						</small>
+						<label>Значение модификатора <input type="number" value={modifierValue} onChange={event => setModifierValue(Number(event.target.value))} /></label>
+						<small>SUCCESS и FAILURE — отдельные Outcomes. Бросок выполняет runtime, не редактор.</small>
 					</fieldset>
 				)}
-				<button type="submit" disabled={!activeStoryNodeId}>
-					+ Narrative Move
-				</button>
+
+				<button type="submit" disabled={!activeStoryNodeId}>+ Narrative Move</button>
 			</form>
 
 			{moves.length > 0 && (
 				<div className="narrative-workspace__move-list">
 					{moves.map(move => {
-						const actor = move.actorCharacterId
-							? charactersById.get(move.actorCharacterId)
-							: undefined;
-						const targets = move.targetCharacterIds
-							.map(id => charactersById.get(id)?.name)
-							.filter(Boolean)
-							.join(', ');
-						const claim = move.communicatedClaimId
-							? claimsById.get(move.communicatedClaimId)
-							: undefined;
-						const resolutionSummary =
-							move.resolution.type === 'skill-check'
-								? `${move.resolution.check.skillKey} · ${move.resolution.check.rollRule.diceCount}d${move.resolution.check.rollRule.dieSides} · сложность ${move.resolution.check.difficulty}`
-								: move.resolution.type === 'condition'
-									? 'условие'
-									: 'без проверки';
+						const actor = move.actorCharacterId ? charactersById.get(move.actorCharacterId) : undefined;
+						const targets = move.targetCharacterIds.map(id => charactersById.get(id)?.name).filter(Boolean).join(', ');
+						const claim = move.communicatedClaimId ? claimsById.get(move.communicatedClaimId) : undefined;
+						const resolutionSummary = move.resolution.type === 'skill-check'
+							? `${move.resolution.check.skillKey} · ${move.resolution.check.rollRule.diceCount}d${move.resolution.check.rollRule.dieSides} · сложность ${move.resolution.check.difficulty}`
+							: move.resolution.type === 'condition' ? 'условие' : 'без проверки';
+
 						return (
 							<article key={move.id} className="narrative-workspace__move-card">
 								<strong>{move.label}</strong>
-								<small>
-									{moveKindLabels[move.kind]} · {resolutionSummary} ·{' '}
-									{move.outcomes.length} outcome
-								</small>
+								<small>{moveKindLabels[move.kind]} · {resolutionSummary} · {move.outcomes.length} outcome</small>
 								{actor && <span>Актор: {actor.name}</span>}
 								{targets && <span>Цель: {targets}</span>}
-								{claim && (
-									<span>
-										Claim: {claim.text}
-										{move.communicationIntent
-											? ` · ${intentLabels[move.communicationIntent]}`
-											: ''}
-									</span>
-								)}
-								{move.guards.length > 0 && (
-									<span>Eligibility guards: {move.guards.length}</span>
-								)}
-								<button
-									type="button"
-									onClick={() => execute({type: 'move/remove', id: move.id})}
-								>
-									Удалить move
-								</button>
+								{claim && <span>Claim: {claim.text}{move.communicationIntent ? ` · ${intentLabels[move.communicationIntent]}` : ''}</span>}
+								{move.guards.length > 0 && <span>Eligibility guards: {move.guards.length}</span>}
+								<button type="button" onClick={() => execute({type: 'move/remove', id: move.id})}>Удалить move</button>
 							</article>
 						);
 					})}
 				</div>
 			)}
 			<small>
-				Важно: истинность Claim, намерение говорящего, результат проверки и вера
-				 слушателя — разные состояния. Создание move не меняет runtime-знания.
+				Истинность Claim, намерение говорящего, результат проверки и вера слушателя — разные состояния.
 			</small>
 		</section>
 	);
