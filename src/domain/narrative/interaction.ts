@@ -83,7 +83,7 @@ export type NarrativeKnowledgeRecipientDefinition =
 
 export type NarrativeClaimReferenceDefinition =
 	| {type: 'claim'; claimId: EntityId}
-	| {type: 'communicated-claim'};
+	| {type: 'communicated-claim'; claimId?: never};
 
 export type NarrativeKnowledgeEffectSourceDefinition =
 	| {type: 'authored'}
