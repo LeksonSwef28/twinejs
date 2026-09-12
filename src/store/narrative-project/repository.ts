@@ -263,5 +263,6 @@ export function createLocalStorageNarrativeProjectRepository(
 			if (typeof window !== 'undefined') {
 				window.localStorage.setItem(key, JSON.stringify(project));
 			}
+		}
 	};
 }
