@@ -39,6 +39,20 @@ export interface KnowledgeMoment {
 	minuteOfDay: number;
 }
 
+/**
+ * Authored baseline cognition for a character at simulation start.
+ * This is deliberately separate from live CharacterKnowledgeState so editing
+ * the project never pretends that a preview/runtime event already happened.
+ */
+export interface InitialKnowledgeSeed {
+	id: EntityId;
+	characterId: EntityId;
+	claimId: EntityId;
+	attitude: KnowledgeAttitude;
+	confidence: number;
+	source: KnowledgeSource;
+}
+
 /** Runtime cognition state. This is not an objective fact and is not a MemoryTrace. */
 export interface CharacterKnowledgeState {
 	id: EntityId;
@@ -51,4 +65,46 @@ export interface CharacterKnowledgeState {
 	learnedAt?: KnowledgeMoment;
 	lastReinforcedAt?: KnowledgeMoment;
 	timesHeard: number;
+}
+
+export function characterKnowledgeStateId(characterId: EntityId, claimId: EntityId) {
+	return `knowledge:${characterId}:${claimId}`;
+}
+
+export function knowledgeConfidenceIsValid(confidence: number) {
+	return Number.isFinite(confidence) && confidence >= 0 && confidence <= 1;
+}
+
+/**
+ * Materializes authored baseline knowledge into a fresh runtime state. Calling
+ * this function is an explicit simulation/preview initialization step; merely
+ * authoring a seed never mutates runtime state.
+ */
+export function createCharacterKnowledgeStateFromSeed(
+	seed: InitialKnowledgeSeed
+): CharacterKnowledgeState {
+	if (!knowledgeConfidenceIsValid(seed.confidence)) {
+		throw new RangeError('Knowledge confidence must be between 0 and 1.');
+	}
+
+	return {
+		id: characterKnowledgeStateId(seed.characterId, seed.claimId),
+		characterId: seed.characterId,
+		claimId: seed.claimId,
+		attitude: seed.attitude,
+		confidence: seed.confidence,
+		source: seed.source,
+		timesHeard: 1
+	};
+}
+
+export function initializeCharacterKnowledge(
+	seeds: InitialKnowledgeSeed[]
+): CharacterKnowledgeState[] {
+	const byCharacterAndClaim = new Map<string, CharacterKnowledgeState>();
+	for (const seed of seeds) {
+		const state = createCharacterKnowledgeStateFromSeed(seed);
+		byCharacterAndClaim.set(`${seed.characterId}:${seed.claimId}`, state);
+	}
+	return [...byCharacterAndClaim.values()];
 }
