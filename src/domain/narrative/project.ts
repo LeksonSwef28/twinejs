@@ -1,6 +1,7 @@
 import {CharacterMindState, MemoryTrace, PendingReaction, RelationshipState} from './cognition';
 import {NarrativeEditorState} from './editor';
 import {NarrativeCharacter, NarrativeLocation, NarrativeScene} from './entities';
+import {NarrativeMoveDefinition} from './interaction';
 import {ItemDefinition, ItemInstance} from './items';
 import {
 	CharacterKnowledgeState,
@@ -44,6 +45,8 @@ export interface NarrativeProject {
 	scheduleExceptions: ScheduleException[];
 	storyNodes: StoryNodeDefinition[];
 	storyConnections: StoryConnectionDefinition[];
+	/** Authored actions/dialogue choices owned by Story nodes. */
+	narrativeMoves: NarrativeMoveDefinition[];
 	memories: MemoryTrace[];
 	relationships: RelationshipState[];
 	pendingReactions: PendingReaction[];
