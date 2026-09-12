@@ -4,9 +4,12 @@ import {
 	connectedStoryNodeIds
 } from '../../../domain/narrative/story-analysis';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
-import {narrativeProjectHistoryReducer} from '../reducer';
+import {
+	narrativeProjectHistoryReducer,
+	NarrativeProjectHistoryState
+} from '../reducer';
 
-function initialState() {
+function initialState(): NarrativeProjectHistoryState {
 	return {
 		past: [],
 		present: createNarrativeProject(
@@ -18,7 +21,7 @@ function initialState() {
 	};
 }
 
-function stateWithTwoStoryNodes() {
+function stateWithTwoStoryNodes(): NarrativeProjectHistoryState {
 	let state = initialState();
 	for (const [id, x] of [
 		['a', 0],
