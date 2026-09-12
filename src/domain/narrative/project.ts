@@ -6,6 +6,7 @@ import {ItemDefinition, ItemInstance} from './items';
 import {
 	CharacterKnowledgeState,
 	ClaimDefinition,
+	InitialKnowledgeSeed,
 	ObjectiveFactDefinition
 } from './knowledge';
 import {BehaviorProfile, RoutineRule, ScheduleException} from './schedule';
@@ -40,6 +41,8 @@ export interface NarrativeProject {
 	itemInstances: ItemInstance[];
 	objectiveFacts: ObjectiveFactDefinition[];
 	claims: ClaimDefinition[];
+	/** Authored simulation-start cognition; does not mutate live preview/runtime state. */
+	initialKnowledge: InitialKnowledgeSeed[];
 	behaviorProfiles: BehaviorProfile[];
 	routineRules: RoutineRule[];
 	scheduleExceptions: ScheduleException[];
