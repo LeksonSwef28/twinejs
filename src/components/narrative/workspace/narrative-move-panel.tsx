@@ -33,7 +33,8 @@ const intentLabels: Record<CommunicationIntent, string> = {
 };
 
 export interface NarrativeMovePanelProps {
-	storyNodeId: string;
+	/** When omitted, the MVP panel lets the author choose the owning Story node. */
+	storyNodeId?: string;
 }
 
 /**
@@ -45,6 +46,7 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 	storyNodeId
 }) => {
 	const {project, execute, createId} = useNarrativeProject();
+	const [selectedStoryNodeId, setSelectedStoryNodeId] = React.useState('');
 	const [label, setLabel] = React.useState('');
 	const [kind, setKind] = React.useState<NarrativeMoveKind>('inform');
 	const [actorCharacterId, setActorCharacterId] = React.useState('');
@@ -53,10 +55,13 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 	const [intent, setIntent] = React.useState<CommunicationIntent | ''>('');
 	const [requireActorKnowsClaim, setRequireActorKnowsClaim] =
 		React.useState(false);
+	const activeStoryNodeId = storyNodeId ?? selectedStoryNodeId;
 
-	const moves = project.narrativeMoves.filter(
-		move => move.storyNodeId === storyNodeId
-	);
+	const moves = activeStoryNodeId
+		? project.narrativeMoves.filter(
+				move => move.storyNodeId === activeStoryNodeId
+			)
+		: [];
 	const charactersById = new Map(
 		project.characters.map(character => [character.id, character])
 	);
@@ -65,7 +70,7 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 	function addMove(event: React.FormEvent) {
 		event.preventDefault();
 		const title = label.trim();
-		if (!title) {
+		if (!title || !activeStoryNodeId) {
 			return;
 		}
 
@@ -87,7 +92,7 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 		execute({
 			type: 'move/add',
 			id: createId('narrative-move'),
-			storyNodeId,
+			storyNodeId: activeStoryNodeId,
 			kind,
 			label: title,
 			actorCharacterId: actorCharacterId || undefined,
@@ -107,6 +112,20 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 				 создаём базовый вариант <strong>без броска</strong>; проверки навыка будут
 				 использовать тот же Outcome-контракт.
 			</p>
+			{!storyNodeId && (
+				<select
+					aria-label="Сюжетный блок Narrative Move"
+					value={selectedStoryNodeId}
+					onChange={event => setSelectedStoryNodeId(event.target.value)}
+				>
+					<option value="">Выбери сюжетный блок</option>
+					{project.storyNodes.map(node => (
+						<option key={node.id} value={node.id}>
+							{node.title}
+						</option>
+					))}
+				</select>
+			)}
 			<form onSubmit={addMove} className="narrative-workspace__compact-form">
 				<select
 					aria-label="Тип narrative move"
@@ -191,7 +210,9 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 					/>{' '}
 					Доступно только если актор знает этот Claim
 				</label>
-				<button type="submit">+ Narrative Move</button>
+				<button type="submit" disabled={!activeStoryNodeId}>
+					+ Narrative Move
+				</button>
 			</form>
 
 			{moves.length > 0 && (
