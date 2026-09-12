@@ -24,6 +24,7 @@ const connections: StoryConnectionDefinition[] = [
 		sourceNodeId: 'a',
 		targetNodeId: 'b',
 		kind: 'flow',
+		mode: 'executable',
 		sourcePortId: 'flow-out',
 		targetPortId: 'flow-in'
 	},
@@ -32,6 +33,7 @@ const connections: StoryConnectionDefinition[] = [
 		sourceNodeId: 'b',
 		targetNodeId: 'c',
 		kind: 'condition-true',
+		mode: 'executable',
 		sourcePortId: 'true',
 		targetPortId: 'flow-in'
 	}
@@ -67,7 +69,8 @@ describe('story continuity analysis', () => {
 					id: 'semantic',
 					sourceNodeId: 'a',
 					targetNodeId: 'b',
-					kind: 'semantic'
+					kind: 'semantic',
+					mode: 'reference'
 				}
 			],
 			93
