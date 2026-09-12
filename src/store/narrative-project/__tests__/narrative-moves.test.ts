@@ -135,14 +135,14 @@ describe('narrative moves', () => {
 			actorCharacterId: 'speaker',
 			targetCharacterIds: ['listener'],
 			communicatedClaimId: 'claim-permission',
-			communicationIntent: 'deceive'
+			communicationIntent: 'deceptive'
 		});
 
 		expect(state.present.objectiveFacts[0].title).toBe(
 			'Начальник не давал разрешения'
 		);
 		expect(state.present.claims[0].stance).toBe('contradicts');
-		expect(state.present.narrativeMoves[0].communicationIntent).toBe('deceive');
+		expect(state.present.narrativeMoves[0].communicationIntent).toBe('deceptive');
 		expect(state.present.simulation.characterKnowledge).toEqual([]);
 	});
 
