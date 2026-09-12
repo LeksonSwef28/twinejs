@@ -1,6 +1,7 @@
 # 93 Days Editor — Architecture v9
 
-This file is the **current implementation-facing source of truth** for the `93-days-editor` branch.
+> **Historical architecture.** `93DAYS_ARCHITECTURE_V10.md` is now the current implementation-facing source of truth for the `93-days-editor` branch. v9 remains here to preserve the design trail.
+
 Older design packs remain useful as history, but old workspace models such as separate Days Overview / Day Matrix / Scene Graph screens are superseded.
 
 ## 1. Two primary workspaces
