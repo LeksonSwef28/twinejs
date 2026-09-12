@@ -12,7 +12,11 @@ import {
 	NarrativeResolutionDefinition
 } from '../../domain/narrative/interaction';
 import {ItemPlacement} from '../../domain/narrative/items';
-import {ClaimTruthStance} from '../../domain/narrative/knowledge';
+import {
+	ClaimTruthStance,
+	KnowledgeAttitude,
+	KnowledgeSource
+} from '../../domain/narrative/knowledge';
 import {NarrativeWorkspaceMode} from '../../domain/narrative/project';
 import {
 	StoryConnectionKind,
@@ -40,6 +44,16 @@ export type NarrativeProjectCommand =
 			aboutFactId?: string;
 			stance?: ClaimTruthStance;
 	  }
+	| {
+			type: 'knowledge/setInitial';
+			id: string;
+			characterId: string;
+			claimId: string;
+			attitude: KnowledgeAttitude;
+			confidence: number;
+			source: KnowledgeSource;
+	  }
+	| {type: 'knowledge/removeInitial'; id: string}
 	| {
 			type: 'story/addDraftNode';
 			id: string;
