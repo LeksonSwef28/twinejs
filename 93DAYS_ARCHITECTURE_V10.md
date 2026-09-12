@@ -67,6 +67,21 @@ Ambiguous legacy connections must migrate conservatively. A connection must neve
 
 This separation is a prerequisite for reliable Story Brain analysis and Skill Check outcome branches.
 
+### Current implementation status
+
+`V10-A07 Safe Story Edge Mode` is now implemented in the branch:
+
+- new connections default to `reference` unless the author explicitly chooses `executable`;
+- executable edges require an executable-safe connection kind and both typed ports;
+- Story UI exposes the choice when creating a connection;
+- reference edges still participate in visual Focus/highlighting;
+- only executable edges participate in causal Continuity analysis;
+- legacy schema-v2 `flow`, `semantic`, `knowledge`, `relationship` and `effect` edges without an explicit mode migrate to `reference`;
+- legacy `condition-true` / `condition-false` edges migrate to `executable` only when both ports are present;
+- malformed persisted executable edges are downgraded to `reference` during hydration.
+
+This closes the ambiguity that previously existed between decorative Story links and executable narrative logic.
+
 ## 4. Story Brain / Narrative Reasoning
 
 Story Brain is a **read-only authoring intelligence layer**, not an NPC brain and not an automatic story writer.
@@ -79,236 +94,234 @@ Primary authoring queries:
 - **Coverage** — where a thread/character line becomes weak or accidentally ends;
 - **Bridges** — which existing characters, claims, knowledge, relationships, items, time/location intersections, dormant beats or templates might connect two parts of the story.
 
-Story Brain may use authored definitions and optional preview state, but it must not mutate either.
-
-Suggestions require explicit author acceptance.
+Story Brain must not mutate authored state by itself. It may explain, diagnose and propose candidates; the author decides whether to change the project.
 
 ## 5. Narrative Interaction / Resolution
 
-The stable model is:
+Story interactions use one generic pipeline:
 
 ```text
 Narrative Move
-    ↓
+      ↓
 Eligibility / Guards
-    ↓
+      ↓
 Resolution
-    ↓
-Named Outcome
-    ↓
-Typed Effects / executable Story continuation
+      ↓
+Outcome
+      ↓
+Effects / Story continuation
 ```
 
-A Narrative Move is a generic authored attempt/choice. It may represent dialogue, action, investigation, accusation, persuasion, giving an item, leaving, or another custom interaction.
+A Narrative Move is an authored attempt or choice: speak, ask, tell, lie, persuade, threaten, inspect, give an item, leave, and so on. The system must not require a dice roll for every move.
 
-### Eligibility
+### Eligibility / Guards
 
-Eligibility answers: **may this move be attempted/shown?**
+Eligibility answers whether the move may be attempted at all. Examples:
 
-Examples:
-
-- actor knows Claim X;
-- item is owned/present;
+- character knows a required Claim;
 - relationship threshold is met;
-- target is present;
-- previous Story/Event state allows it.
+- required Item is present;
+- actor/target are in a compatible place/time;
+- previous Story state exists;
+- move has not been consumed when one-shot semantics apply.
 
-A blocked move was never attempted. It is not equivalent to a failed check.
+An unavailable move is not the same thing as a failed skill check.
 
 ### Resolution
 
-Initial resolution strategies:
+Resolution decides how an available move is resolved.
+
+Initial resolver families:
 
 ```text
-automatic / no check
+automatic
 condition
-skill check
+skill-check
 ```
 
-The architecture does not force a dice check onto ordinary dialogue/actions.
+The model remains extensible to passive checks, opposed checks, random/world checks or authored custom resolvers later.
 
-## 6. Skill Checks
+### Skill Check
 
-A Skill Check is one resolution strategy, not a parallel story engine.
+A skill check is one resolver, not a separate Story system.
 
-Conceptual definition:
+A check contains at minimum:
 
-```text
-skillId
-difficulty
-roll policy
-contextual modifiers
-named outcome keys
-```
+- skill/stat reference;
+- difficulty;
+- modifiers/considerations;
+- roll rule;
+- authored outcomes;
+- retry policy when relevant.
 
-Default authoring outcomes:
+Default outputs:
 
 ```text
 success
 failure
 ```
 
-The persisted model must permit future additional outputs such as critical success/failure or custom named outcomes.
+The domain must allow later outputs such as `critical-success`, `critical-failure` or custom authored outcome identifiers without redesigning the Story graph.
 
-The exact dice formula, skill-value source, critical thresholds and retry policy are runtime/gameplay policy decisions and are intentionally not hard-coded into the Story Canvas architecture.
+Failure is a valid narrative outcome, not automatically a dead end. Story Brain should later be able to diagnose a failure branch that has no meaningful consequence/continuation.
 
-Runtime resolution should produce a structured explainability trace (`CheckResolved`) with actor, skill, roll/modifiers, total, difficulty, selected outcome and provenance.
+## 6. Truth, lies and belief
 
-## 7. Failure is narrative content
+Truth and deception are independent from success/failure.
 
-Failure is not synonymous with “nothing happened”.
-
-A failure outcome may:
-
-- continue to a different Story branch;
-- change a relationship or mood;
-- create suspicion/knowledge/memory;
-- transfer/lose an item;
-- change a goal/route/presence intention;
-- close one opportunity and open another.
-
-Story Brain should diagnose an accidental dead/empty failure path, but it must not require success and failure branches to have equal length.
-
-## 8. Truth, deception and knowledge
-
-The cognition chain remains:
+Conceptual cognition chain:
 
 ```text
 ObjectiveFact
-    ↓ may be described/contradicted
+    ↓ may be described by
 Claim / Statement
-    ↓ held differently by each character
+    ↓ communicated / observed / inferred
 CharacterKnowledge
-    ↓ may become salient/remembered
+    ↓ may become salient
 MemoryTrace
 ```
 
-A Narrative Move that communicates a Claim adds **speaker intent**, not a second truth system.
+Communication also has speaker intent. Example intent families include:
 
-Examples:
+```text
+honest
+deceptive
+mistaken
+uncertain
+withholding
+```
 
-- false Claim + deliberate `deceive` intent → lie attempt;
-- false Claim + speaker sincerely believes it → mistaken information, not deliberate lying;
-- true Claim + failed persuasion → truth was told but listener may reject it;
-- false Claim + successful deception → listener may believe it, but ObjectiveFact is unchanged.
+Therefore:
 
-`CharacterKnowledgeState` remains generic for every Character. No record means that character is unaware of the Claim.
+- a false Claim spoken sincerely because the speaker believes it is not a deliberate lie;
+- a false Claim knowingly presented as true may be deception;
+- a true Claim may fail to persuade the listener;
+- a successful deception may change listener knowledge/belief but must never rewrite the objective Fact.
 
-## 9. Outcomes and effects
+Each `CharacterKnowledgeState` belongs to one `characterId` and one `claimId`; the model is generic for every authored character. Absence of a knowledge state means the character has no represented knowledge of that Claim.
 
-A resolved move selects a named Outcome.
+## 7. Outcomes and effects
 
-Outcome can both route executable Story flow and reference typed effects affecting:
+An outcome chooses the narrative result of a resolved move. Outcomes may continue into different executable Story branches.
 
+Effects may change authored/runtime state such as:
+
+- Claim/Knowledge/Memory;
+- relationship or mood;
+- inventory;
+- goals/behavior override;
+- desired route/location;
 - Story state;
-- Fact/Claim/Knowledge/Memory;
-- relationships/mood;
-- goals;
-- inventory/items;
-- desired route/presence;
-- runtime/history events.
+- world facts when an actual world event makes a new fact true.
 
-The resolver decides **which Outcome** occurred. The Outcome/Effect execution boundary decides **what state changes**. These responsibilities stay separate.
+An Outcome is not itself an Effect: one outcome may apply several effects and then continue to another Story node.
 
-## 10. Reusable events and large variation
+## 8. Reusable interactions and scale
 
-Large event counts must come from composition instead of pair-specific hard-coded event types.
+The project targets many characters and many events. It must not require a unique implementation type for every concrete pair of characters.
 
-Reuse path:
+Reusable Event/Interaction Templates should support role slots and bindings:
 
 ```text
-EventTemplate
-  ├─ RoleSlots
-  ├─ guards
-  ├─ Narrative Move / nested flow
-  └─ Outcomes
-        ↓
-RoleBinding
-        ↓
-Concrete occurrence
+Template: Share a rumor
+  speaker role
+  listener role
+  claim role/input
+  authored moves/resolution/effects
+
+Concrete binding:
+  speaker = Character A
+  listener = Character B
+  claim = Claim 42
 ```
 
-The same authored interaction template may bind different Characters, Claims, Items or Locations without duplicating canonical definitions.
+Unique authored scenes remain possible. Templates exist to reduce combinatorial authoring cost, not to force all scenes to become generic.
 
-Unique authored scenes remain first-class. Templates are a scalability mechanism, not a requirement that every scene be systemic.
+## 9. Story continuity direction
 
-## 11. Story Brain becomes resolution-aware
+Continuity analysis must use executable causal edges for statements such as "this branch ends here". Reference edges may be traversed for Focus/context but must never make an otherwise dead executable branch look alive.
 
-For Conditions and Skill Checks, Story Brain analyzes **all authored executable outcomes** without rolling dice.
+Desired diagnostics include:
 
-It may report:
+- isolated authored material;
+- executable branches with no continuation;
+- character/story threads that run out too early;
+- success/failure outcomes with asymmetric or missing authored consequences;
+- dormant alternatives and cross-character handoffs;
+- bridges through Claims/Knowledge, relationships, items, time/location intersections and reusable templates;
+- gates explaining why a branch/move is unavailable.
 
-- a missing prerequisite;
-- an impossible knowledge gate;
-- dependencies of success/failure/custom outcomes;
-- an accidental immediate dead outcome;
-- a Claim/Knowledge effect that unlocks later content;
-- a branch with no meaningful state change or continuation.
+## 10. Behavior and simulation direction
 
-It must never choose the player's result during authoring analysis.
+Living Simulation remains after the Authoring MVP.
 
-## 12. Persistence and implementation boundary
-
-Schema v2 remains the active persisted project format for the current implementation. Existing v2 payloads must hydrate newly introduced collections safely.
-
-Long-term logical projections remain distinct:
+Target cycle:
 
 ```text
-Authored Project
-Editor Workspace State
-Preview / Simulation State
+TIME
+→ SCHEDULE
+→ PRESENCE
+→ AVAILABLE EVENTS / MOVES
+→ CHARACTER GOALS
+→ AVAILABLE ACTIONS
+→ ELIGIBILITY / HARD CONDITIONS
+→ RESOLUTION / UTILITY / DECISION
+→ ACTION / EVENT
+→ OUTCOME / EFFECTS
+→ WORLD STATE
+→ MEMORY / KNOWLEDGE / RELATIONSHIPS / INVENTORY
+→ next cycle
 ```
 
-They may temporarily share one storage envelope, but history/serialization operations must explicitly select the intended projection.
+Night increases sleep pressure; it does not force sleep. Authored events, work, danger, goals, traits or explicit commands may override routine behavior.
 
-## 13. Current implementation delta
+Whenever a route/behavior changes, runtime should retain structured reasons for explainability.
 
-Current code already has strong foundations for:
+## 11. Project Library
 
-- two workspaces;
-- Story pan/zoom/free nodes and basic connections;
-- unscheduled Story placement;
-- World-Time pan/zoom/visible-time projection;
-- ObjectiveFact / Claim / CharacterKnowledge foundation;
-- Project Library;
-- basic structural continuity analysis;
-- schema v2 hydration/migration.
+The shared Project Library remains available from both workspaces and is not a third workspace.
 
-Not yet implemented as persisted/runtime features:
+Canonical entity families include:
 
-- explicit `edgeMode: reference | executable` migration;
-- first-class NarrativeMove / SkillCheck definitions;
-- named resolution outcome ports;
-- resolution-aware Story Brain;
-- full Focus/Why/Impact/Coverage/Bridge query service;
-- runtime dice/skill resolution;
-- runtime gossip/memory/behavior simulation.
+- Characters;
+- Locations;
+- Item Definitions and Item Instances;
+- Objective Facts;
+- Claims / reusable statement definitions;
+- Event / Interaction Templates later;
+- reusable skill definitions/check authoring inputs later.
 
-## 14. Recommended implementation order
+Adding an entity to Story creates a visual reference; it does not duplicate the canonical entity.
 
-Do not jump directly into Living Simulation.
+## 12. Near-term implementation order
 
-1. Safe Story edge mode + migration.
-2. Narrative Interaction authoring foundation: moves, guards, automatic resolution, intent, named outcomes.
-3. Skill Check authoring: skill/difficulty/roll-policy references + success/failure/custom executable ports.
-4. Reconcile Knowledge seams for truth/intent/belief.
-5. Story Brain graph index + Focus/Impact.
-6. Why / availability explanation.
-7. Coverage / continuity + outcome-aware diagnostics.
-8. Bridge Candidate Finder.
-9. Persistence projection split/validation.
-10. Only then implement runtime Narrative Move/Skill Check resolution and broader Living Simulation slices.
+### Authoring foundation already underway
 
-## 15. Gate
+- schema v2 and safe hydration;
+- CanvasNodeInstance Story rendering;
+- Story pan/zoom/drag;
+- persisted Story nodes;
+- continuous World/Time timeline;
+- Project Library items/facts/claims;
+- Story placement into World/Time;
+- early continuity diagnostics.
 
-The v10 design is accepted with local runtime-policy spikes still open for:
+### v10 next vertical slices
 
-- exact dice formula;
-- skill-value source;
-- critical/retry policy;
-- Story Brain ranking thresholds;
-- scale/performance worker/index choices;
-- graph UI adapter compatibility;
-- physical persistence split choice.
+1. **V10-A20 Narrative Move foundation** — authored move + guards + automatic/no-roll resolution + outcomes;
+2. **V10-A21 Skill Check foundation** — skill/difficulty/modifiers + deterministic resolver contract + success/failure outcome ports;
+3. knowledge/runtime reconciliation so generic `CharacterKnowledgeState` can participate in move guards/effects;
+4. Story Brain Focus + Impact;
+5. Story Brain Why;
+6. Story Brain Coverage;
+7. Story Brain Bridge Finder;
+8. reusable Event/Interaction Templates and role binding after the direct authoring model proves usable.
 
-These do not require rebuilding the accepted architecture.
+Do not jump directly to autonomous Living Simulation before these authoring semantics are understandable and testable.
+
+## 13. Persistence
+
+Schema v2 remains the active persisted format during Authoring MVP evolution.
+Hydration must supply/normalize newly introduced collections and fields so earlier v2 projects do not disappear.
+
+`NarrativeProjectRepository` remains the persistence boundary. A later storage split may physically separate authored project definition, editor state and preview simulation state, but UI/domain code should not depend directly on localStorage.
