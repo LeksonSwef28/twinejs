@@ -115,7 +115,8 @@ describe('narrative project repository migration', () => {
 			'Old cognition',
 			ninetyThreeDaysTemplate
 		);
-		const {initialKnowledge: _removed, ...payload} = project;
+		const payload: Partial<typeof project> = {...project};
+		delete payload.initialKnowledge;
 		window.localStorage.setItem(storageKey, JSON.stringify(payload));
 
 		const repository = createLocalStorageNarrativeProjectRepository(
