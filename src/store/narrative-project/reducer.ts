@@ -9,9 +9,11 @@ import {StoryCanvasEditorState} from '../../domain/narrative/editor';
 import {
 	createDefaultNarrativeOutcome,
 	NarrativeConditionDefinition,
+	NarrativeKnowledgeEffectDefinition,
 	NarrativeMoveDefinition,
 	narrativeMoveIsStructurallyValid
 } from '../../domain/narrative/interaction';
+import {knowledgeConfidenceIsValid, KnowledgeSource} from '../../domain/narrative/knowledge';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {storyConnectionKindCanExecute} from '../../domain/narrative/story';
 
@@ -42,6 +44,17 @@ function storyCanvas(project: NarrativeProject): StoryCanvasEditorState {
 
 function hasCharacter(project: NarrativeProject, id: string) {
 	return project.characters.some(character => character.id === id);
+}
+
+function knowledgeSourceReferencesExist(
+	project: NarrativeProject,
+	source: KnowledgeSource
+) {
+	return (
+		source.type !== 'told' ||
+		!source.sourceCharacterId ||
+		hasCharacter(project, source.sourceCharacterId)
+	);
 }
 
 function conditionReferencesExist(
@@ -76,6 +89,38 @@ function conditionReferencesExist(
 	}
 }
 
+function narrativeKnowledgeEffectReferencesExist(
+	project: NarrativeProject,
+	move: NarrativeMoveDefinition,
+	effect: NarrativeKnowledgeEffectDefinition
+) {
+	if (
+		effect.recipient.type === 'character' &&
+		!hasCharacter(project, effect.recipient.characterId)
+	) {
+		return false;
+	}
+	if (
+		effect.recipient.type === 'move-target' &&
+		!move.targetCharacterIds[effect.recipient.targetIndex]
+	) {
+		return false;
+	}
+	if (
+		effect.claim.type === 'claim' &&
+		!project.claims.some(claim => claim.id === effect.claim.claimId)
+	) {
+		return false;
+	}
+	if (effect.claim.type === 'communicated-claim' && !move.communicatedClaimId) {
+		return false;
+	}
+	if (effect.source.type === 'move-actor' && !move.actorCharacterId) {
+		return false;
+	}
+	return true;
+}
+
 function narrativeMoveReferencesExist(
 	project: NarrativeProject,
 	move: NarrativeMoveDefinition
@@ -104,10 +149,14 @@ function narrativeMoveReferencesExist(
 	) {
 		return false;
 	}
-	return move.outcomes.every(outcome =>
-		outcome.effectStoryNodeIds.every(id =>
-			project.storyNodes.some(node => node.id === id)
-		)
+	return move.outcomes.every(
+		outcome =>
+			outcome.effectStoryNodeIds.every(id =>
+				project.storyNodes.some(node => node.id === id)
+			) &&
+			(outcome.effects ?? []).every(effect =>
+				narrativeKnowledgeEffectReferencesExist(project, move, effect)
+			)
 	);
 }
 
@@ -285,6 +334,54 @@ export function applyNarrativeProjectCommand(
 				]
 			});
 		}
+		case 'knowledge/setInitial': {
+			if (
+				!hasCharacter(project, command.characterId) ||
+				!project.claims.some(claim => claim.id === command.claimId) ||
+				!knowledgeConfidenceIsValid(command.confidence) ||
+				!knowledgeSourceReferencesExist(project, command.source)
+			) {
+				return project;
+			}
+			const existing = project.initialKnowledge.find(
+				seed =>
+					seed.characterId === command.characterId &&
+					seed.claimId === command.claimId
+			);
+			if (
+				project.initialKnowledge.some(
+					seed => seed.id === command.id && seed.id !== existing?.id
+				)
+			) {
+				return project;
+			}
+			const seed = {
+				id: existing?.id ?? command.id,
+				characterId: command.characterId,
+				claimId: command.claimId,
+				attitude: command.attitude,
+				confidence: command.confidence,
+				source: command.source
+			};
+			return touched({
+				...project,
+				initialKnowledge: existing
+					? project.initialKnowledge.map(candidate =>
+							candidate.id === existing.id ? seed : candidate
+					  )
+					: [...project.initialKnowledge, seed]
+			});
+		}
+		case 'knowledge/removeInitial':
+			if (!project.initialKnowledge.some(seed => seed.id === command.id)) {
+				return project;
+			}
+			return touched({
+				...project,
+				initialKnowledge: project.initialKnowledge.filter(
+					seed => seed.id !== command.id
+				)
+			});
 		case 'story/addDraftNode': {
 			const canvas = storyCanvas(project);
 			return touched({
