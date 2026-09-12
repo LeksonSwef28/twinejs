@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
 	CommunicationIntent,
+	createDefaultSkillCheckOutcomes,
 	NarrativeMoveKind
 } from '../../../domain/narrative/interaction';
 import {useNarrativeProject} from '../../../store/narrative-project';
@@ -32,16 +33,13 @@ const intentLabels: Record<CommunicationIntent, string> = {
 	other: 'Другое намерение'
 };
 
+type ResolutionMode = 'automatic' | 'skill-check';
+
 export interface NarrativeMovePanelProps {
-	/** When omitted, the MVP panel lets the author choose the owning Story node. */
+	/** When omitted, the panel lets the author choose the owning Story node. */
 	storyNodeId?: string;
 }
 
-/**
- * Minimal A20 authoring surface. It creates generic narrative moves with an
- * automatic/no-check resolution. Skill checks are deliberately added in A21
- * on top of the same move/outcome contract rather than as a parallel system.
- */
 export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 	storyNodeId
 }) => {
@@ -55,6 +53,14 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 	const [intent, setIntent] = React.useState<CommunicationIntent | ''>('');
 	const [requireActorKnowsClaim, setRequireActorKnowsClaim] =
 		React.useState(false);
+	const [resolutionMode, setResolutionMode] =
+		React.useState<ResolutionMode>('automatic');
+	const [skillKey, setSkillKey] = React.useState('');
+	const [difficulty, setDifficulty] = React.useState(10);
+	const [diceCount, setDiceCount] = React.useState(2);
+	const [dieSides, setDieSides] = React.useState(6);
+	const [modifierLabel, setModifierLabel] = React.useState('');
+	const [modifierValue, setModifierValue] = React.useState(0);
 	const activeStoryNodeId = storyNodeId ?? selectedStoryNodeId;
 
 	const moves = activeStoryNodeId
@@ -73,6 +79,12 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 		if (!title || !activeStoryNodeId) {
 			return;
 		}
+		if (
+			resolutionMode === 'skill-check' &&
+			(!skillKey.trim() || diceCount < 1 || dieSides < 2)
+		) {
+			return;
+		}
 
 		const guards =
 			requireActorKnowsClaim && actorCharacterId && claimId
@@ -88,10 +100,41 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 						}
 				  ]
 				: [];
+		const moveId = createId('narrative-move');
+		const skillOutcomes = createDefaultSkillCheckOutcomes(moveId);
+		const outcomes =
+			resolutionMode === 'skill-check' ? skillOutcomes : undefined;
+		const resolution =
+			resolutionMode === 'skill-check'
+				? ({
+						type: 'skill-check' as const,
+						check: {
+							skillKey: skillKey.trim(),
+							difficulty,
+							rollRule: {
+								type: 'dice' as const,
+								diceCount,
+								dieSides
+							},
+							modifiers: modifierLabel.trim()
+								? [
+										{
+											id: createId('check-modifier'),
+											label: modifierLabel.trim(),
+											value: modifierValue
+										}
+								  ]
+								: [],
+							successOutcomeId: skillOutcomes[0].id,
+							failureOutcomeId: skillOutcomes[1].id,
+							retryPolicy: 'never' as const
+						}
+				  }
+				: undefined;
 
 		execute({
 			type: 'move/add',
-			id: createId('narrative-move'),
+			id: moveId,
 			storyNodeId: activeStoryNodeId,
 			kind,
 			label: title,
@@ -99,7 +142,9 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 			targetCharacterIds: targetCharacterId ? [targetCharacterId] : [],
 			communicatedClaimId: claimId || undefined,
 			communicationIntent: claimId && intent ? intent : undefined,
-			guards
+			guards,
+			resolution,
+			outcomes
 		});
 		setLabel('');
 	}
@@ -108,9 +153,8 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 		<section className="narrative-workspace__move-editor" aria-label="Narrative Moves">
 			<h2>Narrative Moves</h2>
 			<p>
-				Реплика или действие описывается отдельно от способа разрешения. Сейчас
-				 создаём базовый вариант <strong>без броска</strong>; проверки навыка будут
-				 использовать тот же Outcome-контракт.
+				Реплика или действие отделены от способа разрешения. Обычный ход может
+				 пройти автоматически, а проверка навыка использует те же Outcomes.
 			</p>
 			{!storyNodeId && (
 				<select
@@ -141,7 +185,7 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 				<input
 					aria-label="Текст или смысл narrative move"
 					value={label}
-					placeholder="Например: Сказать, что начальник разрешил пройти"
+					placeholder="Например: Убедить охранника пропустить"
 					onChange={event => setLabel(event.target.value)}
 				/>
 				<select
@@ -210,6 +254,72 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 					/>{' '}
 					Доступно только если актор знает этот Claim
 				</label>
+
+				<select
+					aria-label="Способ разрешения narrative move"
+					value={resolutionMode}
+					onChange={event =>
+						setResolutionMode(event.target.value as ResolutionMode)
+					}
+				>
+					<option value="automatic">Без проверки</option>
+					<option value="skill-check">Проверка навыка</option>
+				</select>
+				{resolutionMode === 'skill-check' && (
+					<fieldset className="narrative-workspace__skill-check-editor">
+						<legend>Skill Check</legend>
+						<input
+							aria-label="Навык или характеристика"
+							value={skillKey}
+							placeholder="Например: Убеждение"
+							onChange={event => setSkillKey(event.target.value)}
+						/>
+						<label>
+							Сложность
+							<input
+								type="number"
+								value={difficulty}
+								onChange={event => setDifficulty(Number(event.target.value))}
+							/>
+						</label>
+						<label>
+							Кубиков
+							<input
+								type="number"
+								min={1}
+								value={diceCount}
+								onChange={event => setDiceCount(Number(event.target.value))}
+							/>
+						</label>
+						<label>
+							Граней
+							<input
+								type="number"
+								min={2}
+								value={dieSides}
+								onChange={event => setDieSides(Number(event.target.value))}
+							/>
+						</label>
+						<input
+							aria-label="Название модификатора проверки"
+							value={modifierLabel}
+							placeholder="Модификатор, например Доверие"
+							onChange={event => setModifierLabel(event.target.value)}
+						/>
+						<label>
+							Значение модификатора
+							<input
+								type="number"
+								value={modifierValue}
+								onChange={event => setModifierValue(Number(event.target.value))}
+							/>
+						</label>
+						<small>
+							Результаты создаются отдельно: SUCCESS и FAILURE. Сам runtime-бросок
+							 не выполняется редактором.
+						</small>
+					</fieldset>
+				)}
 				<button type="submit" disabled={!activeStoryNodeId}>
 					+ Narrative Move
 				</button>
@@ -228,11 +338,17 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 						const claim = move.communicatedClaimId
 							? claimsById.get(move.communicatedClaimId)
 							: undefined;
+						const resolutionSummary =
+							move.resolution.type === 'skill-check'
+								? `${move.resolution.check.skillKey} · ${move.resolution.check.rollRule.diceCount}d${move.resolution.check.rollRule.dieSides} · сложность ${move.resolution.check.difficulty}`
+								: move.resolution.type === 'condition'
+									? 'условие'
+									: 'без проверки';
 						return (
 							<article key={move.id} className="narrative-workspace__move-card">
 								<strong>{move.label}</strong>
 								<small>
-									{moveKindLabels[move.kind]} · без броска ·{' '}
+									{moveKindLabels[move.kind]} · {resolutionSummary} ·{' '}
 									{move.outcomes.length} outcome
 								</small>
 								{actor && <span>Актор: {actor.name}</span>}
@@ -260,8 +376,8 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 				</div>
 			)}
 			<small>
-				Важно: истинность Claim, намерение говорящего и вера слушателя — разные
-				 состояния. Создание move не меняет runtime-знания персонажей.
+				Важно: истинность Claim, намерение говорящего, результат проверки и вера
+				 слушателя — разные состояния. Создание move не меняет runtime-знания.
 			</small>
 		</section>
 	);
