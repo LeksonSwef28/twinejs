@@ -4,6 +4,13 @@ import {
 	CanvasViewport
 } from '../../domain/narrative/editor';
 import {CognitionTier} from '../../domain/narrative/entities';
+import {
+	CommunicationIntent,
+	NarrativeGuardDefinition,
+	NarrativeMoveKind,
+	NarrativeOutcomeDefinition,
+	NarrativeResolutionDefinition
+} from '../../domain/narrative/interaction';
 import {ItemPlacement} from '../../domain/narrative/items';
 import {ClaimTruthStance} from '../../domain/narrative/knowledge';
 import {NarrativeWorkspaceMode} from '../../domain/narrative/project';
@@ -55,6 +62,21 @@ export type NarrativeProjectCommand =
 			targetPortId?: string;
 	  }
 	| {type: 'story/setConnectionMode'; id: string; mode: StoryEdgeMode}
+	| {
+			type: 'move/add';
+			id: string;
+			storyNodeId: string;
+			kind: NarrativeMoveKind;
+			label: string;
+			actorCharacterId?: string;
+			targetCharacterIds?: string[];
+			communicatedClaimId?: string;
+			communicationIntent?: CommunicationIntent;
+			guards?: NarrativeGuardDefinition[];
+			resolution?: NarrativeResolutionDefinition;
+			outcomes?: NarrativeOutcomeDefinition[];
+	  }
+	| {type: 'move/remove'; id: string}
 	| {type: 'editor/selectDay'; day: number}
 	| {type: 'editor/selectPeriod'; periodId: string}
 	| {type: 'editor/selectMoment'; day: number; minuteOfDay: number}
