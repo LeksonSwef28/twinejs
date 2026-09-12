@@ -1,4 +1,5 @@
 import {EntityId} from './entities';
+import {KnowledgeAttitude, knowledgeConfidenceIsValid} from './knowledge';
 import {StoryNodeActivationState} from './story';
 
 /**
@@ -71,13 +72,46 @@ export interface NarrativeGuardDefinition {
 	negated?: boolean;
 }
 
+/**
+ * Outcome effects refer either to fixed canonical entities or to the current
+ * move. This keeps direct authoring useful while leaving room for future role
+ * bindings in reusable Interaction Templates.
+ */
+export type NarrativeKnowledgeRecipientDefinition =
+	| {type: 'character'; characterId: EntityId}
+	| {type: 'move-target'; targetIndex: number};
+
+export type NarrativeClaimReferenceDefinition =
+	| {type: 'claim'; claimId: EntityId}
+	| {type: 'communicated-claim'};
+
+export type NarrativeKnowledgeEffectSourceDefinition =
+	| {type: 'authored'}
+	| {type: 'move-actor'}
+	| {type: 'observed'}
+	| {type: 'inferred'};
+
+export interface NarrativeKnowledgeEffectDefinition {
+	id: EntityId;
+	type: 'character-learns-claim';
+	recipient: NarrativeKnowledgeRecipientDefinition;
+	claim: NarrativeClaimReferenceDefinition;
+	attitude: KnowledgeAttitude;
+	confidence: number;
+	source: NarrativeKnowledgeEffectSourceDefinition;
+}
+
+export type NarrativeEffectDefinition = NarrativeKnowledgeEffectDefinition;
+
 export interface NarrativeOutcomeDefinition {
 	id: EntityId;
 	/** Stable semantic key such as continue/success/failure. */
 	key: string;
 	label: string;
-	/** Story effects/continuations remain canonical Story nodes, not duplicated here. */
+	/** Story continuations remain canonical Story nodes, not duplicated here. */
 	effectStoryNodeIds: EntityId[];
+	/** Runtime/domain effects applied only when this outcome is actually resolved. */
+	effects: NarrativeEffectDefinition[];
 }
 
 /**
@@ -165,7 +199,8 @@ export function createDefaultNarrativeOutcome(
 		id: `${moveId}:outcome:continue`,
 		key: 'continue',
 		label: 'Продолжить',
-		effectStoryNodeIds: []
+		effectStoryNodeIds: [],
+		effects: []
 	};
 }
 
@@ -177,13 +212,15 @@ export function createDefaultSkillCheckOutcomes(
 			id: `${moveId}:outcome:success`,
 			key: 'success',
 			label: 'Успех',
-			effectStoryNodeIds: []
+			effectStoryNodeIds: [],
+			effects: []
 		},
 		{
 			id: `${moveId}:outcome:failure`,
 			key: 'failure',
 			label: 'Провал',
-			effectStoryNodeIds: []
+			effectStoryNodeIds: [],
+			effects: []
 		}
 	];
 }
@@ -222,6 +259,29 @@ function skillCheckIsStructurallyValid(
 	return true;
 }
 
+function narrativeEffectIsStructurallyValid(effect: NarrativeEffectDefinition) {
+	if (!effect.id || !knowledgeConfidenceIsValid(effect.confidence)) {
+		return false;
+	}
+	if (
+		effect.recipient.type === 'character' &&
+		!effect.recipient.characterId
+	) {
+		return false;
+	}
+	if (
+		effect.recipient.type === 'move-target' &&
+		(!Number.isInteger(effect.recipient.targetIndex) ||
+			effect.recipient.targetIndex < 0)
+	) {
+		return false;
+	}
+	if (effect.claim.type === 'claim' && !effect.claim.claimId) {
+		return false;
+	}
+	return true;
+}
+
 /**
  * Checks only the self-contained shape of a move. References to project
  * characters/claims/items/story nodes are validated at the application/store
@@ -236,6 +296,7 @@ export function narrativeMoveIsStructurallyValid(
 
 	const outcomeIds = new Set<string>();
 	const outcomeKeys = new Set<string>();
+	const effectIds = new Set<string>();
 	for (const outcome of move.outcomes) {
 		if (
 			!outcome.id ||
@@ -248,6 +309,15 @@ export function narrativeMoveIsStructurallyValid(
 		}
 		outcomeIds.add(outcome.id);
 		outcomeKeys.add(outcome.key);
+		for (const effect of outcome.effects ?? []) {
+			if (
+				effectIds.has(effect.id) ||
+				!narrativeEffectIsStructurallyValid(effect)
+			) {
+				return false;
+			}
+			effectIds.add(effect.id);
+		}
 	}
 
 	const guardIds = new Set<string>();
