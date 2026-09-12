@@ -46,6 +46,7 @@ export function createNarrativeProject(
 		scheduleExceptions: [],
 		storyNodes: [],
 		storyConnections: [],
+		narrativeMoves: [],
 		memories: [],
 		relationships: [],
 		pendingReactions: [],
