@@ -7,7 +7,7 @@ import {
 import {useNarrativeProject} from '../../../store/narrative-project';
 
 const moveKindLabels: Record<NarrativeMoveKind, string> = {
-	ask: 'Спросить',
+	['ask']: 'Спросить',
 	inform: 'Сообщить',
 	persuade: 'Убедить',
 	deceive: 'Обмануть',
