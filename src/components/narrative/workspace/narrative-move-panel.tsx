@@ -106,7 +106,7 @@ export const NarrativeMovePanel: React.FC<NarrativeMovePanelProps> = ({
 
 	return (
 		<section className="narrative-workspace__move-editor" aria-label="Narrative Moves">
-			<h3>Narrative Moves</h3>
+			<h2>Narrative Moves</h2>
 			<p>
 				Реплика или действие описывается отдельно от способа разрешения. Сейчас
 				 создаём базовый вариант <strong>без броска</strong>; проверки навыка будут
