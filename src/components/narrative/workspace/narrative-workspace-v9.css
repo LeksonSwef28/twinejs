@@ -189,6 +189,60 @@
 	left: 8px;
 }
 
+.narrative-workspace__move-editor {
+	display: grid;
+	gap: 10px;
+	margin: 12px;
+	padding: 14px;
+	border: 1px solid rgba(127, 127, 127, 0.24);
+	border-radius: 10px;
+	background: rgba(127, 127, 127, 0.035);
+}
+
+.narrative-workspace__move-editor h3,
+.narrative-workspace__move-editor p {
+	margin: 0;
+}
+
+.narrative-workspace__move-editor > select,
+.narrative-workspace__move-editor form select,
+.narrative-workspace__move-editor form input[type='text'] {
+	width: 100%;
+}
+
+.narrative-workspace__move-editor form {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 8px;
+}
+
+.narrative-workspace__move-editor form label {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 12px;
+}
+
+.narrative-workspace__move-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	gap: 8px;
+}
+
+.narrative-workspace__move-card {
+	display: grid;
+	gap: 5px;
+	padding: 9px;
+	border: 1px solid rgba(127, 127, 127, 0.18);
+	border-radius: 8px;
+}
+
+.narrative-workspace__move-card span,
+.narrative-workspace__move-card small {
+	font-size: 11px;
+	line-height: 1.35;
+}
+
 @media (prefers-reduced-motion: no-preference) {
 	.narrative-workspace button.narrative-workspace__node,
 	.narrative-workspace__connection {
