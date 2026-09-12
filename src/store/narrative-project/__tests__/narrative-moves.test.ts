@@ -184,6 +184,7 @@ describe('narrative moves', () => {
 						characterId: 'actor',
 						claimId: 'claim-secret'
 					}
+				}
 			]
 		});
 
