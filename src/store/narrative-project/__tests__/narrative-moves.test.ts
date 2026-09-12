@@ -245,6 +245,85 @@ describe('narrative moves', () => {
 		expect(state.present.narrativeMoves[0].outcomes).toHaveLength(2);
 	});
 
+	test('stores a skill check as one resolution with separate success and failure outcomes', () => {
+		const state = execute(projectWithStoryNode(), {
+			type: 'move/add',
+			id: 'move-persuade',
+			storyNodeId: 'scene-a',
+			kind: 'persuade',
+			label: 'Убедить охранника',
+			outcomes: [
+				{
+					id: 'outcome-success',
+					key: 'success',
+					label: 'Успех',
+					effectStoryNodeIds: []
+				},
+				{
+					id: 'outcome-failure',
+					key: 'failure',
+					label: 'Провал',
+					effectStoryNodeIds: []
+				}
+			],
+			resolution: {
+				type: 'skill-check',
+				check: {
+					skillKey: 'persuasion',
+					difficulty: 12,
+					rollRule: {type: 'dice', diceCount: 2, dieSides: 6},
+					modifiers: [
+						{id: 'trust-modifier', label: 'Доверие', value: 2}
+					],
+					successOutcomeId: 'outcome-success',
+					failureOutcomeId: 'outcome-failure',
+					retryPolicy: 'never'
+				}
+			}
+		});
+
+		expect(state.present.narrativeMoves[0].resolution).toEqual({
+			type: 'skill-check',
+			check: expect.objectContaining({
+				skillKey: 'persuasion',
+				difficulty: 12,
+				successOutcomeId: 'outcome-success',
+				failureOutcomeId: 'outcome-failure'
+			})
+		});
+		expect(state.present.narrativeMoves[0].outcomes.map(outcome => outcome.key)).toEqual([
+			'success',
+			'failure'
+		]);
+	});
+
+	test('rejects a malformed skill check instead of hiding it with defaults', () => {
+		const state = execute(projectWithStoryNode(), {
+			type: 'move/add',
+			id: 'bad-check',
+			storyNodeId: 'scene-a',
+			kind: 'persuade',
+			label: 'Плохая проверка',
+			outcomes: [
+				{id: 'same', key: 'success', label: 'Успех', effectStoryNodeIds: []},
+				{id: 'failure', key: 'failure', label: 'Провал', effectStoryNodeIds: []}
+			],
+			resolution: {
+				type: 'skill-check',
+				check: {
+					skillKey: '',
+					difficulty: 10,
+					rollRule: {type: 'dice', diceCount: 2, dieSides: 6},
+					modifiers: [],
+					successOutcomeId: 'same',
+					failureOutcomeId: 'same'
+				}
+			}
+		});
+
+		expect(state.present.narrativeMoves).toHaveLength(0);
+	});
+
 	test('removing the owning Story node removes its authored moves', () => {
 		let state = execute(projectWithStoryNode(), {
 			type: 'move/add',
