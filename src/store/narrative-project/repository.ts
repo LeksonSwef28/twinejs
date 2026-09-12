@@ -1,3 +1,4 @@
+import {narrativeMoveIsStructurallyValid} from '../../domain/narrative/interaction';
 import {NarrativeProject, narrativeProjectSchemaVersion} from '../../domain/narrative/project';
 import {createNarrativeProject} from '../../domain/narrative/project-factory';
 import {
@@ -67,7 +68,7 @@ function hydrateStoryConnections(value: unknown): StoryConnectionDefinition[] {
 /**
  * Schema v2 intentionally grows during the Authoring MVP. Hydration supplies
  * newly introduced collections so a project saved by an earlier v2 patch does
- * not disappear just because a new library was added.
+ * not disappear just because a new authoring concept was added.
  */
 function hydrateSchemaV2(
 	value: unknown,
@@ -103,6 +104,9 @@ function hydrateSchemaV2(
 		objectiveFacts: Array.isArray(saved.objectiveFacts) ? saved.objectiveFacts : [],
 		claims: Array.isArray(saved.claims) ? saved.claims : [],
 		storyConnections: hydrateStoryConnections(saved.storyConnections),
+		narrativeMoves: Array.isArray(saved.narrativeMoves)
+			? saved.narrativeMoves.filter(narrativeMoveIsStructurallyValid)
+			: [],
 		editor: {
 			...fresh.editor,
 			...savedEditor,
@@ -177,6 +181,7 @@ function migrateSchemaV1(
 		scheduleExceptions: legacy.scheduleExceptions ?? [],
 		storyNodes: [],
 		storyConnections: [],
+		narrativeMoves: [],
 		memories: legacy.memories ?? [],
 		relationships: legacy.relationships ?? [],
 		pendingReactions: legacy.pendingReactions ?? [],
@@ -258,6 +263,5 @@ export function createLocalStorageNarrativeProjectRepository(
 			if (typeof window !== 'undefined') {
 				window.localStorage.setItem(key, JSON.stringify(project));
 			}
-		}
 	};
 }
