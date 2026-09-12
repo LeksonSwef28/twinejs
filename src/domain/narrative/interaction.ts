@@ -24,16 +24,16 @@ export type NarrativeMoveKind =
 	| 'custom';
 
 /**
- * Speaker intent is deliberately separate from Claim truth. A character may
- * sincerely repeat a false Claim or deliberately deceive with a true fragment.
+ * Speaker intent is deliberately separate from Claim truth and from the kind
+ * of move. "Persuade" or "accuse" describes the action; this field describes
+ * the speaker's epistemic/communication stance while doing it.
  */
 export type CommunicationIntent =
-	| 'inform'
-	| 'deceive'
-	| 'persuade'
-	| 'accuse'
-	| 'speculate'
-	| 'conceal'
+	| 'honest'
+	| 'deceptive'
+	| 'mistaken'
+	| 'uncertain'
+	| 'withholding'
 	| 'other';
 
 export type NarrativeConditionDefinition =
