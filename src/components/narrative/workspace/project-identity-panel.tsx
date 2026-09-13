@@ -3,7 +3,8 @@ import {useNarrativeProject} from '../../../store/narrative-project';
 import {CanonicalEntityPanel} from './canonical-entity-panel';
 
 export const ProjectIdentityPanel: React.FC = () => {
-	const {project, execute} = useNarrativeProject();
+	const {project, execute, recovery, startFreshAfterRecovery} =
+		useNarrativeProject();
 	const [name, setName] = React.useState(project.name);
 
 	React.useEffect(() => {
@@ -22,6 +23,27 @@ export const ProjectIdentityPanel: React.FC = () => {
 
 	return (
 		<>
+			{recovery && (
+				<section
+					className="narrative-workspace__project-identity"
+					role="alert"
+					aria-label="Восстановление проекта"
+				>
+					<div>
+						<strong>Сохранение проекта повреждено или несовместимо.</strong>
+						<p>
+							Автосохранение заблокировано, чтобы не перезаписать исходные
+							 данные. Повреждённый payload сохранён отдельно
+							{recovery.backupKeys.length > 0
+								? ` (${recovery.backupKeys.length} recovery-копия).`
+								: ', но браузер не позволил создать recovery-копию.'}
+						</p>
+					</div>
+					<button type="button" onClick={startFreshAfterRecovery}>
+						Начать с чистого проекта
+					</button>
+				</section>
+			)}
 			<form
 				className="narrative-workspace__project-identity"
 				onSubmit={rename}
