@@ -8,13 +8,23 @@ import {
 import {StoryCanvasEditorState} from '../../domain/narrative/editor';
 import {
 	createDefaultNarrativeOutcome,
+	NarrativeCharacterReferenceDefinition,
 	NarrativeConditionDefinition,
-	NarrativeKnowledgeEffectDefinition,
+	NarrativeEffectDefinition,
 	NarrativeMoveDefinition,
 	narrativeMoveIsStructurallyValid
 } from '../../domain/narrative/interaction';
+import {
+	instantiateInteractionTemplate,
+	interactionTemplateIsStructurallyValid
+} from '../../domain/narrative/interaction-template';
 import {knowledgeConfidenceIsValid, KnowledgeSource} from '../../domain/narrative/knowledge';
 import {NarrativeProject} from '../../domain/narrative/project';
+import {
+	ReactionCandidateSetDefinition,
+	reactionCandidateSetIsStructurallyValid
+} from '../../domain/narrative/reaction';
+import {starterInteractionTemplates} from '../../domain/narrative/standard-interaction-templates';
 import {storyConnectionKindCanExecute} from '../../domain/narrative/story';
 
 export interface NarrativeProjectHistoryState {
@@ -89,36 +99,77 @@ function conditionReferencesExist(
 	}
 }
 
-function narrativeKnowledgeEffectReferencesExist(
+function characterReferenceReferencesExist(
 	project: NarrativeProject,
 	move: NarrativeMoveDefinition,
-	effect: NarrativeKnowledgeEffectDefinition
+	reference: NarrativeCharacterReferenceDefinition
 ) {
-	if (
-		effect.recipient.type === 'character' &&
-		!hasCharacter(project, effect.recipient.characterId)
-	) {
-		return false;
+	switch (reference.type) {
+		case 'character':
+			return hasCharacter(project, reference.characterId);
+		case 'move-actor':
+			return Boolean(move.actorCharacterId);
+		case 'move-target':
+			return Boolean(move.targetCharacterIds[reference.targetIndex]);
 	}
-	if (
-		effect.recipient.type === 'move-target' &&
-		!move.targetCharacterIds[effect.recipient.targetIndex]
-	) {
-		return false;
+}
+
+function narrativeEffectReferencesExist(
+	project: NarrativeProject,
+	move: NarrativeMoveDefinition,
+	effect: NarrativeEffectDefinition
+) {
+	switch (effect.type) {
+		case 'character-learns-claim':
+			if (
+				effect.recipient.type === 'character' &&
+				!hasCharacter(project, effect.recipient.characterId)
+			) {
+				return false;
+			}
+			if (
+				effect.recipient.type === 'move-target' &&
+				!move.targetCharacterIds[effect.recipient.targetIndex]
+			) {
+				return false;
+			}
+			if (
+				effect.claim.type === 'claim' &&
+				!project.claims.some(claim => claim.id === effect.claim.claimId)
+			) {
+				return false;
+			}
+			if (effect.claim.type === 'communicated-claim' && !move.communicatedClaimId) {
+				return false;
+			}
+			return effect.source.type !== 'move-actor' || Boolean(move.actorCharacterId);
+		case 'relationship-adjust':
+			return (
+				characterReferenceReferencesExist(project, move, effect.from) &&
+				characterReferenceReferencesExist(project, move, effect.to)
+			);
+		case 'character-mood-set':
+			return characterReferenceReferencesExist(project, move, effect.character);
+		case 'item-set-placement':
+			if (!project.itemInstances.some(item => item.id === effect.itemInstanceId)) {
+				return false;
+			}
+			if (effect.placement.type === 'location') {
+				return project.locations.some(
+					location => location.id === effect.placement.locationId
+				);
+			}
+			if (effect.placement.type === 'character') {
+				return characterReferenceReferencesExist(
+					project,
+					move,
+					effect.placement.character
+				);
+			}
+			return true;
+		case 'story-node-set-state':
+			return project.storyNodes.some(node => node.id === effect.storyNodeId);
 	}
-	if (
-		effect.claim.type === 'claim' &&
-		!project.claims.some(claim => claim.id === effect.claim.claimId)
-	) {
-		return false;
-	}
-	if (effect.claim.type === 'communicated-claim' && !move.communicatedClaimId) {
-		return false;
-	}
-	if (effect.source.type === 'move-actor' && !move.actorCharacterId) {
-		return false;
-	}
-	return true;
 }
 
 function narrativeMoveReferencesExist(
@@ -155,9 +206,48 @@ function narrativeMoveReferencesExist(
 				project.storyNodes.some(node => node.id === id)
 			) &&
 			(outcome.effects ?? []).every(effect =>
-				narrativeKnowledgeEffectReferencesExist(project, move, effect)
+				narrativeEffectReferencesExist(project, move, effect)
 			)
 	);
+}
+
+function reactionCandidateSetReferencesExist(
+	project: NarrativeProject,
+	set: ReactionCandidateSetDefinition
+) {
+	if (
+		!project.storyNodes.some(node => node.id === set.storyNodeId) ||
+		!hasCharacter(project, set.reactingCharacterId) ||
+		(set.counterpartCharacterId !== undefined &&
+			!hasCharacter(project, set.counterpartCharacterId))
+	) {
+		return false;
+	}
+
+	for (const candidate of set.candidates) {
+		const move = project.narrativeMoves.find(move => move.id === candidate.moveId);
+		if (!move || move.storyNodeId !== set.storyNodeId) {
+			return false;
+		}
+		if (!candidate.guards.every(guard => conditionReferencesExist(project, guard.condition))) {
+			return false;
+		}
+		for (const consideration of candidate.considerations) {
+			if (
+				consideration.type === 'knows-claim' &&
+				!project.claims.some(claim => claim.id === consideration.claimId)
+			) {
+				return false;
+			}
+			if (
+				consideration.type === 'story-node-state' &&
+				!project.storyNodes.some(node => node.id === consideration.storyNodeId)
+			) {
+				return false;
+			}
+		}
+	}
+	return true;
 }
 
 function conditionReferencesStoryNode(
@@ -190,9 +280,55 @@ function removeStoryNodeFromNarrativeMoves(
 				...outcome,
 				effectStoryNodeIds: outcome.effectStoryNodeIds.filter(
 					id => id !== storyNodeId
+				),
+				effects: (outcome.effects ?? []).filter(
+					effect =>
+						effect.type !== 'story-node-set-state' ||
+						effect.storyNodeId !== storyNodeId
 				)
 			}))
 		}));
+}
+
+function reactionSetReferencesStoryNode(
+	set: ReactionCandidateSetDefinition,
+	storyNodeId: string
+) {
+	return (
+		set.storyNodeId === storyNodeId ||
+		set.candidates.some(
+			candidate =>
+				candidate.guards.some(guard =>
+					conditionReferencesStoryNode(guard.condition, storyNodeId)
+				) ||
+				candidate.considerations.some(
+					consideration =>
+						consideration.type === 'story-node-state' &&
+						consideration.storyNodeId === storyNodeId
+				)
+		)
+	);
+}
+
+function addMovesAtomically(
+	project: NarrativeProject,
+	moves: NarrativeMoveDefinition[]
+) {
+	if (moves.length === 0) {
+		return project;
+	}
+	const ids = new Set(project.narrativeMoves.map(move => move.id));
+	for (const move of moves) {
+		if (
+			ids.has(move.id) ||
+			!narrativeMoveIsStructurallyValid(move) ||
+			!narrativeMoveReferencesExist(project, move)
+		) {
+			return project;
+		}
+		ids.add(move.id);
+	}
+	return touched({...project, narrativeMoves: [...project.narrativeMoves, ...moves]});
 }
 
 /**
@@ -426,6 +562,9 @@ export function applyNarrativeProjectCommand(
 					project.narrativeMoves,
 					command.id
 				),
+				reactionCandidateSets: project.reactionCandidateSets.filter(
+					set => !reactionSetReferencesStoryNode(set, command.id)
+				),
 				editor: {
 					...project.editor,
 					storyCanvas: {
@@ -551,25 +690,132 @@ export function applyNarrativeProjectCommand(
 				resolution,
 				outcomes
 			};
+			return addMovesAtomically(project, [move]);
+		}
+		case 'move/addMany':
+			return addMovesAtomically(project, command.moves);
+		case 'move/addEffect': {
+			const move = project.narrativeMoves.find(move => move.id === command.moveId);
+			const outcome = move?.outcomes.find(outcome => outcome.id === command.outcomeId);
 			if (
-				!narrativeMoveIsStructurallyValid(move) ||
-				!narrativeMoveReferencesExist(project, move)
+				!move ||
+				!outcome ||
+				project.narrativeMoves.some(candidate =>
+					candidate.outcomes.some(candidateOutcome =>
+						(candidateOutcome.effects ?? []).some(
+							effect => effect.id === command.effect.id
+						)
+					)
+				)
+			) {
+				return project;
+			}
+			const updatedMove: NarrativeMoveDefinition = {
+				...move,
+				outcomes: move.outcomes.map(candidate =>
+					candidate.id === outcome.id
+						? {
+								...candidate,
+								effects: [...(candidate.effects ?? []), command.effect]
+						  }
+						: candidate
+				)
+			};
+			if (
+				!narrativeMoveIsStructurallyValid(updatedMove) ||
+				!narrativeMoveReferencesExist(project, updatedMove)
 			) {
 				return project;
 			}
 			return touched({
 				...project,
-				narrativeMoves: [...project.narrativeMoves, move]
+				narrativeMoves: project.narrativeMoves.map(candidate =>
+					candidate.id === move.id ? updatedMove : candidate
+				)
 			});
 		}
-		case 'move/remove':
+		case 'move/remove': {
 			if (!project.narrativeMoves.some(move => move.id === command.id)) {
 				return project;
 			}
+			const reactionCandidateSets = project.reactionCandidateSets
+				.map(set => ({
+					...set,
+					candidates: set.candidates.filter(candidate => candidate.moveId !== command.id)
+				}))
+				.filter(set => set.candidates.length > 0);
 			return touched({
 				...project,
 				narrativeMoves: project.narrativeMoves.filter(
 					move => move.id !== command.id
+				),
+				reactionCandidateSets
+			});
+		}
+		case 'template/add':
+			if (
+				project.interactionTemplates.some(
+					template => template.id === command.template.id
+				) ||
+				starterInteractionTemplates.some(
+					template => template.id === command.template.id
+				) ||
+				!interactionTemplateIsStructurallyValid(command.template)
+			) {
+				return project;
+			}
+			return touched({
+				...project,
+				interactionTemplates: [...project.interactionTemplates, command.template]
+			});
+		case 'template/remove':
+			if (!project.interactionTemplates.some(template => template.id === command.id)) {
+				return project;
+			}
+			return touched({
+				...project,
+				interactionTemplates: project.interactionTemplates.filter(
+					template => template.id !== command.id
+				)
+			});
+		case 'template/instantiate': {
+			const template = [...starterInteractionTemplates, ...project.interactionTemplates].find(
+				candidate => candidate.id === command.templateId
+			);
+			if (!template) {
+				return project;
+			}
+			try {
+				const instance = instantiateInteractionTemplate(
+					template,
+					command.binding,
+					command.instanceId
+				);
+				return addMovesAtomically(project, instance.moves);
+			} catch {
+				return project;
+			}
+		}
+		case 'reaction/addSet':
+			if (
+				project.reactionCandidateSets.some(set => set.id === command.set.id) ||
+				!reactionCandidateSetIsStructurallyValid(command.set) ||
+				!reactionCandidateSetReferencesExist(project, command.set)
+			) {
+				return project;
+			}
+			return touched({
+				...project,
+				reactionCandidateSets: [...project.reactionCandidateSets, command.set]
+			});
+		case 'reaction/removeSet':
+			if (!project.reactionCandidateSets.some(set => set.id === command.id)) {
+				return project;
+			}
+			return touched({
+				...project,
+				reactionCandidateSets: project.reactionCandidateSets.filter(
+					set => set.id !== command.id
 				)
 			});
 		case 'editor/selectDay':
