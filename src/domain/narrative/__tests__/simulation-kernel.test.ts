@@ -16,7 +16,9 @@ function simulation(
 		activeBehaviorProfileByCharacter: {},
 		actualLocationByCharacter: {},
 		characterKnowledge: [],
-		...patch
+		bodyByCharacter: {},
+		...patch,
+		bodyByCharacter: patch.bodyByCharacter ?? {}
 	};
 }
 
