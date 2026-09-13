@@ -540,5 +540,6 @@ export function createLocalStorageNarrativeRuntimeSnapshotRepository(
 			if (typeof window !== 'undefined') {
 				window.localStorage.removeItem(key);
 			}
+		}
 	};
 }
