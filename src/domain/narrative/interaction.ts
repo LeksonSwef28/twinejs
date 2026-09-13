@@ -123,9 +123,13 @@ export interface NarrativeMoodEffectDefinition {
 }
 
 export type NarrativeItemPlacementTargetDefinition =
-	| {type: 'unplaced'}
-	| {type: 'location'; locationId: EntityId}
-	| {type: 'character'; character: NarrativeCharacterReferenceDefinition};
+	| {type: 'unplaced'; locationId?: never; character?: never}
+	| {type: 'location'; locationId: EntityId; character?: never}
+	| {
+			type: 'character';
+			character: NarrativeCharacterReferenceDefinition;
+			locationId?: never;
+	  };
 
 export interface NarrativeItemPlacementEffectDefinition {
 	id: EntityId;
