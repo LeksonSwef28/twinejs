@@ -7,6 +7,7 @@ import {
 	Weekday
 } from '../../../domain/narrative/schedule';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {routineRuleIsAuthoringValid} from '../../../store/narrative-project/routine-authoring';
 
 const weekdayLabels: Record<Weekday, string> = {
 	monday: 'Пн',
@@ -216,6 +217,12 @@ export const RoutineAuthoringPanel: React.FC = () => {
 			targetLocationId: destinationMode === 'location' ? locationId : undefined,
 			absent: destinationMode === 'absent' ? true : undefined
 		};
+		if (!routineRuleIsAuthoringValid(project, rule)) {
+			setMessage(
+				'Расписание не сохранено: проверь диапазон дней, повтор, время и ссылки.'
+			);
+			return;
+		}
 		execute({type: editingRuleId ? 'routine/update' : 'routine/add', rule});
 		resetForm();
 	}
