@@ -5,7 +5,9 @@ import {
 	weekdayForDay
 } from '../../../domain/narrative/calendar';
 import {NarrativeWorkspaceMode} from '../../../domain/narrative/project';
+import {workspacePanelsForMode} from '../../../domain/narrative/workspace-navigation';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {CrossWorkspaceNavigator} from './cross-workspace-navigator';
 import {InteractionTemplatePanel} from './interaction-template-panel';
 import {NarrativeMovePanel} from './narrative-move-panel';
 import {OutcomeEffectsPanel} from './outcome-effects-panel';
@@ -16,6 +18,7 @@ import {StoryWorkspace} from './story-workspace';
 import {WorldTimeWorkspace} from './world-time-workspace';
 import './narrative-workspace.css';
 import './narrative-workspace-v9.css';
+import './workspace-navigation.css';
 
 const weekdayLabels = {
 	monday: 'Пн',
@@ -33,6 +36,7 @@ export const NarrativeWorkspace: React.FC = () => {
 	const {project, execute, undo, redo, canUndo, canRedo, saveStatus} =
 		useNarrativeProject();
 	const [projectLibraryOpen, setProjectLibraryOpen] = React.useState(false);
+	const [splitView, setSplitView] = React.useState(false);
 	const selectedPeriod =
 		project.template.periods.find(
 			period => period.id === project.editor.selectedPeriodId
@@ -41,6 +45,7 @@ export const NarrativeWorkspace: React.FC = () => {
 		project.editor.selectedMinuteOfDay ?? selectedPeriod?.startMinute ?? 0;
 	const workspaceMode: NarrativeWorkspaceMode =
 		project.editor.workspaceMode ?? 'story';
+	const visiblePanels = workspacePanelsForMode(workspaceMode, splitView);
 	const weekday = weekdayForDay(
 		project.editor.selectedDay,
 		project.template.day1Weekday
@@ -93,6 +98,14 @@ export const NarrativeWorkspace: React.FC = () => {
 					<button type="button" onClick={() => setProjectLibraryOpen(true)}>
 						Библиотека
 					</button>
+					<button
+						type="button"
+						aria-pressed={splitView}
+						className={splitView ? 'is-active' : undefined}
+						onClick={() => setSplitView(current => !current)}
+					>
+						{splitView ? 'Закрыть Split View' : 'Split View'}
+					</button>
 					<button type="button" onClick={undo} disabled={!canUndo}>
 						Отменить
 					</button>
@@ -127,6 +140,7 @@ export const NarrativeWorkspace: React.FC = () => {
 				>
 					Время и мир
 				</button>
+				{splitView && <small>Split View — это линза, не третье workspace.</small>}
 			</div>
 
 			<div className="narrative-workspace__timebar">
@@ -200,21 +214,44 @@ export const NarrativeWorkspace: React.FC = () => {
 				</div>
 			</div>
 
+			<CrossWorkspaceNavigator />
 			<ProjectLibrary
 				open={projectLibraryOpen}
 				onClose={() => setProjectLibraryOpen(false)}
 			/>
-			{workspaceMode === 'story' ? (
+
+			{splitView ? (
+				<div className="narrative-workspace__split-view" aria-label="Split View Story и World Time">
+					<div className="narrative-workspace__split-pane is-story">
+						<div className="narrative-workspace__split-pane-heading">
+							<strong>Story</strong>
+							<small>authoring</small>
+						</div>
+						<StoryWorkspace />
+					</div>
+					<div className="narrative-workspace__split-pane is-world-time">
+						<div className="narrative-workspace__split-pane-heading">
+							<strong>World / Time</strong>
+							<small>same view cursor, simulation unchanged</small>
+						</div>
+						<WorldTimeWorkspace />
+					</div>
+				</div>
+			) : (
 				<>
-					<StoryWorkspace />
+					{visiblePanels.showStory && <StoryWorkspace />}
+					{visiblePanels.showWorldTime && <WorldTimeWorkspace />}
+				</>
+			)}
+
+			{visiblePanels.showStory && (
+				<>
 					<StoryBrainPanel />
 					<NarrativeMovePanel />
 					<OutcomeEffectsPanel />
 					<InteractionTemplatePanel />
 					<ReactionCandidatesPanel />
 				</>
-			) : (
-				<WorldTimeWorkspace />
 			)}
 		</section>
 	);
