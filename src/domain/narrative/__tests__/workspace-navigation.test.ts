@@ -36,7 +36,7 @@ function automaticMove(
 	return {
 		id,
 		storyNodeId,
-		kind: 'action',
+		kind: 'custom',
 		label: id,
 		actorCharacterId,
 		targetCharacterIds,
