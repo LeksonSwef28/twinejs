@@ -1,5 +1,6 @@
 import {NarrativeEditorState} from '../../domain/narrative/editor';
 import {NarrativeProject, NarrativeSimulationState} from '../../domain/narrative/project';
+import {activeStoryExecutionIsValid} from '../../domain/narrative/runtime-execution';
 
 export const narrativeProjectPersistenceFormat = 'narrative-project-projections-v1';
 
@@ -111,6 +112,11 @@ export function isNarrativeProjectPersistenceEnvelope(
 export function composeNarrativeProjectPersistence(
 	envelope: NarrativeProjectPersistenceEnvelope
 ): NarrativeProject {
+	const activeStoryExecutions = Array.isArray(
+		envelope.runtime.activeStoryExecutions
+	)
+		? envelope.runtime.activeStoryExecutions.filter(activeStoryExecutionIsValid)
+		: [];
 	return {
 		schemaVersion: envelope.schemaVersion,
 		...envelope.authored,
@@ -123,7 +129,7 @@ export function composeNarrativeProjectPersistence(
 		itemPlacementOverrides: envelope.runtime.itemPlacementOverrides ?? {},
 		storyNodeStateOverrides: envelope.runtime.storyNodeStateOverrides ?? {},
 		runtimeOccurrences: envelope.runtime.runtimeOccurrences ?? [],
-		activeStoryExecutions: envelope.runtime.activeStoryExecutions ?? [],
+		activeStoryExecutions,
 		simulation: envelope.runtime.simulation
 	};
 }
