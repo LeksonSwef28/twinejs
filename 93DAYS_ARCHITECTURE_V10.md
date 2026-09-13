@@ -97,6 +97,19 @@ Primary authoring queries:
 
 Story Brain must not mutate authored state by itself. It may explain, diagnose and propose candidates; the author decides whether to change the project.
 
+### A23 / A24 implementation status
+
+`V10-A23 Story Brain Focus + Impact` and `V10-A24 Story Brain Why` are implemented:
+
+- a derived semantic graph index connects Story nodes, Narrative Moves, Claims, Characters and Item instances without becoming a second source of truth;
+- Focus traverses a bounded semantic neighborhood and may include reference Story edges because they are useful authoring context;
+- Impact follows only explicit dependency/causal directions, so a reference Story edge never makes a branch look causally affected;
+- Story nodes, Moves and Claims can be selected as analysis focus in the Story Brain lens;
+- WHY reuses the existing runtime guard/condition evaluator rather than inventing a parallel explanation engine;
+- move availability is explained as `available | blocked | unknown`, with per-guard traces;
+- automatic and condition resolution expose the currently implied outcome, while a skill-check explanation states that runtime skill value and roll are still required;
+- all A23/A24 queries are read-only and do not mutate authored or preview state.
+
 ## 5. Narrative Interaction / Resolution
 
 Story interactions use one generic pipeline:
@@ -301,7 +314,7 @@ Desired diagnostics include:
 - bridges through Claims/Knowledge, relationships, items, time/location intersections and reusable templates;
 - gates explaining why a branch/move is unavailable.
 
-The runtime guard evaluator now returns `met | unmet | unknown` plus an explanation trace. This is intentionally reusable by the future Story Brain `Why` view instead of inventing a second condition explanation engine.
+The runtime guard evaluator returns `met | unmet | unknown` plus an explanation trace. The current Story Brain `Why` view reuses that same evaluator instead of inventing a second condition explanation engine.
 
 ## 10. Behavior and simulation direction
 
@@ -365,16 +378,17 @@ Adding an entity to Story creates a visual reference; it does not duplicate the 
 - automatic/condition/skill-check resolution;
 - authored initial CharacterKnowledge baseline;
 - runtime guard evaluation with explanation traces;
-- first knowledge Outcome effect and reinforcement semantics.
+- first knowledge Outcome effect and reinforcement semantics;
+- Story Brain derived semantic graph index;
+- Story Brain Focus + Impact read-only query/UI lens;
+- Story Brain Why using the same runtime guard/condition traces.
 
 ### v10 next vertical slices
 
-1. **Story Brain Focus + Impact** — derive the relevant authored/causal neighborhood and downstream dependencies without mutating the project;
-2. **Story Brain Why** — consume the existing guard/resolution traces to explain availability, blocking and unknown state;
-3. **Story Brain Coverage** — analyze success/failure and character/thread continuations for accidental early endings;
-4. **Story Brain Bridge Finder** — propose existing Claims/Knowledge, relationships, items, time/location intersections, dormant beats and templates as possible continuations;
-5. reusable Event/Interaction Templates and role binding after the direct authoring model proves usable;
-6. expand Outcome effects (memory, relationship, inventory, story/world state) only through typed, explainable contracts.
+1. **V10-A25 Story Brain Coverage** — analyze success/failure outcomes and character/thread continuations for accidental early endings or consequence-free branches;
+2. **V10-A26 Story Brain Bridge Finder** — rank existing Claims/Knowledge, relationships, items, time/location intersections and dormant/unscheduled Story material as explainable continuation candidates;
+3. reusable Event/Interaction Templates and role binding after the direct authoring model proves usable;
+4. expand Outcome effects (memory, relationship, inventory, story/world state) only through typed, explainable contracts.
 
 Do not jump directly to autonomous Living Simulation before these authoring semantics are understandable and testable.
 
