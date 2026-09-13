@@ -281,7 +281,7 @@ export function advanceActiveStoryExecutions(
 ): StoryExecutionAdvanceResult {
 	const toAbsolute = runtimeExecutionAbsoluteMinute(toMoment);
 	let history = runtimeOccurrences;
-	let overrides = {...storyNodeStateOverrides};
+	const overrides = {...storyNodeStateOverrides};
 	const completionTraces: StoryExecutionCompletionTrace[] = [];
 	const completedIds = new Set<EntityId>();
 
