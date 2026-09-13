@@ -48,6 +48,7 @@ These distinctions must not collapse:
 - `Move unavailable != Skill Check failed`
 - `InteractionTemplate != Concrete NarrativeMove != Runtime Occurrence`
 - `ReactionCandidate != PendingReaction != Selected/Executed Action`
+- `Authored Effect Definition != Applied Runtime Effect`
 - `Scene != Event`
 - `Routine / Schedule Intent != Behavior Override != Actual Presence`
 - `NarrativeProjectDefinition != SimulationState != EditorState`
@@ -120,6 +121,8 @@ Story Brain must not mutate authored state by itself. It may explain, diagnose a
 - Bridge Finder ranks only already-authored material and explains every score contribution;
 - bridge signals currently include Characters, Claims/initial Knowledge, Item guards, location/time proximity, reference hints and dormant/unplaced Story material;
 - direct executable continuations are excluded from bridge candidates because they are already continuations.
+
+Story Brain Impact also indexes typed Outcome effects introduced by A29 so a Move can expose affected Characters, Items and Story nodes without executing the effect.
 
 ## 5. Narrative Interaction / Resolution
 
@@ -234,15 +237,40 @@ The same Claim may have independent seeds/states for any number of characters. A
 
 An outcome chooses the narrative result of a resolved move. Outcomes may continue into different executable Story branches.
 
-Effects may change runtime/world state such as Claim/Knowledge/Memory, relationships/mood, inventory, goals/behavior override, desired route/location, Story state, or world facts when an actual world event makes a new fact true.
+An Outcome is not itself an Effect: one outcome may apply several effects and then continue to another Story node. Authoring an effect never means that effect has already happened in preview/runtime.
 
-An Outcome is not itself an Effect: one outcome may apply several effects and then continue to another Story node.
+### A29 Typed Outcome Effects
 
-### Knowledge effect foundation
+`V10-A29 Typed Outcome Effects` is implemented as an extension of the same Outcome contract, not a parallel event system.
 
-The current foundation introduces an authored `character-learns-claim` Outcome effect. It can target a fixed canonical Character or a target slot on the current Narrative Move, and may refer to a fixed Claim or the Claim communicated by the current Move.
+Current typed effect families are:
 
-Applying the effect at runtime creates or reinforces the per-character `CharacterKnowledgeState`, including provenance, confidence, `timesHeard`, `learnedAt` and `lastReinforcedAt` where applicable. Authoring an Outcome effect does **not** apply it to preview state.
+```text
+character-learns-claim
+relationship-adjust
+character-mood-set
+item-set-placement
+story-node-set-state
+```
+
+The first one preserves the existing generic CharacterKnowledge model. The additional effect types use explicit references to canonical Characters, Item Instances or Story nodes and may also resolve `move-actor` / `move-target` references where appropriate.
+
+Runtime application is handled by a pure projection function: it receives a selected Move/Outcome and a runtime-state snapshot, returns a new snapshot plus explanation traces, and never mutates authored definitions or the input state. Randomness and action selection remain outside this function.
+
+Current runtime projection can therefore explain transitions such as:
+
+```text
+trust: 10 -> 7
+mood: neutral -> angry
+Item key: unplaced -> Character A
+Story node: dormant -> available
+```
+
+Story Brain Impact derives relations from these authored typed effects without applying them. A Story-side Outcome Effects editor can add relationship, mood, item-placement and Story-state effects to a chosen Outcome; this authoring action does not mutate current preview state.
+
+This does **not** yet mean that authored/runtime/editor persistence has been physically split. `NarrativeProject` remains the temporary in-memory envelope accepted by v10; the later persistence projection cleanup is still required.
+
+Memory creation, goal/behavior changes, desired-route effects and objective world-fact mutation remain later typed extensions and must not be represented as untyped script strings.
 
 ## 8. Reusable interactions and scale
 
@@ -264,19 +292,22 @@ Concrete use
 ordinary NarrativeMove records
 ```
 
-### A27 implementation status
+### A27 / A30 implementation status
 
-`V10-A27 Reusable Interaction Template Foundation` is implemented with these boundaries:
+`V10-A27 Reusable Interaction Template Foundation` is implemented, and A30 adds its first authoring-polish layer:
 
 - `InteractionTemplateDefinition` contains reusable role slots, Claim slots and reusable Move shells;
 - `InteractionTemplateBinding` explicitly binds those slots to canonical project entities;
 - instantiation fails closed when required bindings are missing;
 - a template never executes directly and does not introduce a second Guard/Resolution/Outcome language;
 - instantiation materializes ordinary `NarrativeMoveDefinition` records which then use the existing interaction pipeline;
-- a built-in “Поделиться утверждением” starter template proves the generic binding flow in the Story UI;
-- schema-v2 persistence can safely hydrate authored project template definitions and rejects malformed definitions.
+- a built-in “Поделиться утверждением” starter template proves the generic binding flow;
+- the Story UI can now create a simple custom two-role reusable template, optionally with a required Claim slot;
+- project commands can add/remove templates explicitly;
+- template instantiation is one atomic authoring command, so materializing multiple Moves is one Undo step rather than several unrelated history entries;
+- schema-v2 persistence hydrates project template definitions and rejects malformed definitions.
 
-This slice intentionally does **not** yet claim a full arbitrary template designer. The current UI binds/instantiates templates; richer custom-template editing is an authoring-polish follow-up.
+The custom template editor is intentionally useful but constrained. It is **not yet** a general arbitrary multi-role/multi-move template designer with full Guard/Resolution/Effect editing. More powerful editing should extend this same contract rather than introduce another template representation.
 
 ## 9. Character reaction candidates
 
@@ -300,9 +331,9 @@ Ranked candidates
 selection/execution is a later explicit runtime/author decision
 ```
 
-### A28 implementation status
+### A28 / A30 implementation status
 
-`V10-A28 Character Reaction Candidate Foundation` is implemented:
+`V10-A28 Character Reaction Candidate Foundation` is implemented, and A30 adds direct authoring:
 
 - candidate sets belong to a Story context and a generic `reactingCharacterId`;
 - candidates point to ordinary Narrative Moves rather than duplicating action content;
@@ -311,14 +342,15 @@ selection/execution is a later explicit runtime/author decision
 - every matched consideration contributes an explicit signed weight and explanation trace;
 - ranking is deterministic and read-only; available candidates rank before unknown/blocked candidates, then by score;
 - Story Brain query can derive reaction evaluations for the focused Story context;
-- a Story-side inspection panel exposes authored reaction sets without executing them;
+- the Story UI can author/remove Reaction Candidate Sets, add any number of candidates, assign valence/base score, and attach first-pass relationship/mood/Claim/memory considerations;
+- candidate Moves are validated against the same owning Story node;
+- project commands and Undo treat a saved candidate set as one authoring operation;
+- deleting a Move prunes its reaction candidate references and removes sets that become empty;
 - schema-v2 persistence hydrates candidate sets safely and rejects malformed definitions.
 
 Traits, goals, fatigue/needs and story-priority scoring are **not fabricated** before canonical domain state exists for them. They remain planned extensions to the same consideration contract.
 
-Authored `ReactionCandidateDefinition` is distinct from existing `PendingReaction`: the former is reusable authoring input; the latter remains runtime-ish pending state. Neither is the same as a selected/executed action.
-
-The current slice provides the model, evaluator, persistence and read-side inspection. Full in-app editing of arbitrary Reaction Candidate Sets remains a follow-up authoring slice; the system does not pretend that persistence alone is an editor.
+Authored `ReactionCandidateDefinition` is distinct from existing `PendingReaction`: the former is reusable authoring input; the latter remains runtime-ish pending state. Neither is the same as a selected/executed action. Candidate ranking still never auto-executes a response.
 
 ## 10. Story continuity direction
 
@@ -397,20 +429,23 @@ Adding an entity to Story creates a visual reference; it does not duplicate the 
 - automatic/condition/skill-check resolution;
 - authored initial CharacterKnowledge baseline;
 - runtime guard evaluation with explanation traces;
-- first knowledge Outcome effect and reinforcement semantics;
+- knowledge Outcome effect and reinforcement semantics;
 - Story Brain Focus + Impact + Why;
 - Story Brain Coverage + deterministic Bridge Finder;
-- reusable Interaction Template model/binding/materialization foundation;
-- explainable Character Reaction Candidate model/evaluator/read-side inspection.
+- reusable Interaction Template model/binding/materialization plus constrained custom-template authoring;
+- explainable Character Reaction Candidate model/evaluator plus direct candidate-set authoring;
+- typed Outcome effects for relationships, mood, Item placement and Story state;
+- pure typed-effect runtime projection with explanation traces;
+- atomic template instantiation / Undo-friendly authoring commands.
 
 ### v10 next vertical slices
 
-1. **V10-A29 Typed Outcome Effects** — expand Effects beyond knowledge into relationship, mood, inventory and Story-state changes through typed, pure, explainable contracts;
-2. **V10-A30 Template / Reaction Authoring Polish** — add explicit project commands and focused editors for custom template definitions and Reaction Candidate Sets, including atomic undo-friendly authoring operations;
+1. **V10-A31 Memory Foundation** — make creation/reinforcement of `MemoryTrace` an explicit typed Outcome/runtime contract tied to event/Claim/Character provenance rather than a loose tag-only store;
+2. **V10-A32 Memory Salience / Decay** — derive current salience from importance, strength, recency and reinforcement without deleting objective history or rewriting Facts/Claims;
 3. continue Story ↔ World/Time semantic navigation and Split View ergonomics;
 4. persistence projection cleanup and scale/performance gates before autonomous Living Simulation.
 
-A29/A30 must preserve the existing distinction between authored definitions and runtime state. Do not make candidate ranking automatically execute an action.
+A31/A32 must preserve `ObjectiveFact != Claim != CharacterKnowledge != Memory`. Memory fading may influence recall/reaction scoring, but it must not make an objective Fact false or silently remove authored history.
 
 ## 14. Persistence
 
@@ -422,6 +457,7 @@ Current compatibility rules include:
 - older Narrative Move Outcomes without `effects` hydrate with `effects: []`;
 - missing `interactionTemplates` hydrates to `[]`;
 - missing `reactionCandidateSets` hydrates to `[]`;
-- malformed template/reaction definitions are filtered rather than silently promoted into executable behavior.
+- malformed template/reaction definitions are filtered rather than silently promoted into executable behavior;
+- typed Outcome effects remain part of authored Move definitions and are validated before application.
 
 `NarrativeProjectRepository` remains the persistence boundary. A later storage split may physically separate authored project definition, editor state and preview simulation state, but UI/domain code should not depend directly on localStorage.
