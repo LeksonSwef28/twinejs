@@ -88,6 +88,8 @@ Deliverables:
 - explanation/debug trace for world-state transitions;
 - no autonomous character choice is hidden inside the clock.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #214: canonical stepping across days and project end, deterministic due-work ordering, Story scheduled-work projection without execution, project-level orchestration, lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A38 — Body / Needs Foundation
 
 **Goal:** implement the first body-state systems on top of the simulation kernel instead of as disconnected UI flags.
