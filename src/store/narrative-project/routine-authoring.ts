@@ -1,4 +1,10 @@
 import {NarrativeProjectCommand} from '../../application/narrative/commands';
+import {
+	NarrativeConditionDefinition,
+	NarrativeGuardDefinition,
+	NarrativeOutcomeDefinition,
+	narrativeMoveIsStructurallyValid
+} from '../../domain/narrative/interaction';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {RoutineRule} from '../../domain/narrative/schedule';
 import {
@@ -26,10 +32,28 @@ export interface StoryMetadataAuthoringCommand {
 	runtimePolicy?: StoryRuntimePolicyDefinition;
 }
 
+export type MoveConditionAuthoringCommand =
+	| {
+			type: 'move/addGuard';
+			moveId: string;
+			guard: NarrativeGuardDefinition;
+	  }
+	| {type: 'move/removeGuard'; moveId: string; guardId: string}
+	| {
+			type: 'move/setConditionResolution';
+			moveId: string;
+			condition: NarrativeConditionDefinition;
+			trueOutcomeId: string;
+			falseOutcomeId: string;
+			newFalseOutcome?: NarrativeOutcomeDefinition;
+	  }
+	| {type: 'move/setAutomaticResolution'; moveId: string; outcomeId: string};
+
 export type NarrativeAuthoringCommand =
 	| NarrativeProjectCommand
 	| RoutineAuthoringCommand
-	| StoryMetadataAuthoringCommand;
+	| StoryMetadataAuthoringCommand
+	| MoveConditionAuthoringCommand;
 
 export type NarrativeProjectAuthoringAction =
 	| {type: 'execute'; command: NarrativeAuthoringCommand}
@@ -160,6 +184,41 @@ function storyMetadataCommandIsAuthoringValid(
 	);
 }
 
+export function narrativeConditionReferencesExist(
+	project: NarrativeProject,
+	condition: NarrativeConditionDefinition
+): boolean {
+	switch (condition.type) {
+		case 'character-knows-claim':
+			return (
+				project.characters.some(character => character.id === condition.characterId) &&
+				project.claims.some(claim => claim.id === condition.claimId)
+			);
+		case 'character-has-item':
+			return (
+				project.characters.some(character => character.id === condition.characterId) &&
+				project.itemInstances.some(item => item.id === condition.itemInstanceId)
+			);
+		case 'relationship-at-least':
+			return (
+				project.characters.some(character => character.id === condition.fromCharacterId) &&
+				project.characters.some(character => character.id === condition.toCharacterId) &&
+				Boolean(condition.axis.trim()) &&
+				Number.isFinite(condition.value)
+			);
+		case 'story-node-state':
+			return project.storyNodes.some(node => node.id === condition.storyNodeId);
+		case 'characters-share-location':
+			return (
+				condition.characterIds.length >= 2 &&
+				new Set(condition.characterIds).size === condition.characterIds.length &&
+				condition.characterIds.every(id =>
+					project.characters.some(character => character.id === id)
+				)
+			);
+	}
+}
+
 function touched(project: NarrativeProject): NarrativeProject {
 	return {...project, updatedAt: new Date().toISOString()};
 }
@@ -229,6 +288,124 @@ function applyStoryMetadataCommand(
 	});
 }
 
+function newOutcomeIsValid(
+	moveOutcomeIds: Set<string>,
+	moveOutcomeKeys: Set<string>,
+	outcome: NarrativeOutcomeDefinition
+) {
+	return (
+		Boolean(outcome.id) &&
+		Boolean(outcome.key.trim()) &&
+		Boolean(outcome.label.trim()) &&
+		!moveOutcomeIds.has(outcome.id) &&
+		!moveOutcomeKeys.has(outcome.key) &&
+		outcome.effects.length === 0 &&
+		outcome.effectStoryNodeIds.length === 0
+	);
+}
+
+function applyMoveConditionCommand(
+	project: NarrativeProject,
+	command: MoveConditionAuthoringCommand
+): NarrativeProject {
+	const move = project.narrativeMoves.find(candidate => candidate.id === command.moveId);
+	if (!move) {
+		return project;
+	}
+
+	if (command.type === 'move/addGuard') {
+		if (
+			!command.guard.id ||
+			move.guards.some(guard => guard.id === command.guard.id) ||
+			!narrativeConditionReferencesExist(project, command.guard.condition)
+		) {
+			return project;
+		}
+		const candidate = {...move, guards: [...move.guards, command.guard]};
+		if (!narrativeMoveIsStructurallyValid(candidate)) {
+			return project;
+		}
+		return touched({
+			...project,
+			narrativeMoves: project.narrativeMoves.map(item =>
+				item.id === move.id ? candidate : item
+			)
+		});
+	}
+
+	if (command.type === 'move/removeGuard') {
+		if (!move.guards.some(guard => guard.id === command.guardId)) {
+			return project;
+		}
+		return touched({
+			...project,
+			narrativeMoves: project.narrativeMoves.map(item =>
+				item.id === move.id
+					? {...move, guards: move.guards.filter(guard => guard.id !== command.guardId)}
+					: item
+			)
+		});
+	}
+
+	if (command.type === 'move/setAutomaticResolution') {
+		if (!move.outcomes.some(outcome => outcome.id === command.outcomeId)) {
+			return project;
+		}
+		return touched({
+			...project,
+			narrativeMoves: project.narrativeMoves.map(item =>
+				item.id === move.id
+					? {...move, resolution: {type: 'automatic', outcomeId: command.outcomeId}}
+					: item
+			)
+		});
+	}
+
+	if (!narrativeConditionReferencesExist(project, command.condition)) {
+		return project;
+	}
+	const outcomeIds = new Set(move.outcomes.map(outcome => outcome.id));
+	const outcomeKeys = new Set(move.outcomes.map(outcome => outcome.key));
+	let outcomes = move.outcomes;
+	if (!outcomeIds.has(command.falseOutcomeId)) {
+		const newFalseOutcome = command.newFalseOutcome;
+		if (
+			!newFalseOutcome ||
+			newFalseOutcome.id !== command.falseOutcomeId ||
+			!newOutcomeIsValid(outcomeIds, outcomeKeys, newFalseOutcome)
+		) {
+			return project;
+		}
+		outcomes = [...outcomes, newFalseOutcome];
+	}
+	if (
+		command.trueOutcomeId === command.falseOutcomeId ||
+		!outcomes.some(outcome => outcome.id === command.trueOutcomeId) ||
+		!outcomes.some(outcome => outcome.id === command.falseOutcomeId)
+	) {
+		return project;
+	}
+	const candidate = {
+		...move,
+		outcomes,
+		resolution: {
+			type: 'condition' as const,
+			condition: command.condition,
+			trueOutcomeId: command.trueOutcomeId,
+			falseOutcomeId: command.falseOutcomeId
+		}
+	};
+	if (!narrativeMoveIsStructurallyValid(candidate)) {
+		return project;
+	}
+	return touched({
+		...project,
+		narrativeMoves: project.narrativeMoves.map(item =>
+			item.id === move.id ? candidate : item
+		)
+	});
+}
+
 function isRoutineCommand(
 	command: NarrativeAuthoringCommand
 ): command is RoutineAuthoringCommand {
@@ -245,6 +422,17 @@ function isStoryMetadataCommand(
 	return command.type === 'story/updateAuthoring';
 }
 
+function isMoveConditionCommand(
+	command: NarrativeAuthoringCommand
+): command is MoveConditionAuthoringCommand {
+	return (
+		command.type === 'move/addGuard' ||
+		command.type === 'move/removeGuard' ||
+		command.type === 'move/setConditionResolution' ||
+		command.type === 'move/setAutomaticResolution'
+	);
+}
+
 export function narrativeProjectAuthoringReducer(
 	state: NarrativeProjectHistoryState,
 	action: NarrativeProjectAuthoringAction
@@ -252,7 +440,11 @@ export function narrativeProjectAuthoringReducer(
 	if (action.type === 'undo' || action.type === 'redo') {
 		return narrativeProjectHistoryReducer(state, action);
 	}
-	if (!isRoutineCommand(action.command) && !isStoryMetadataCommand(action.command)) {
+	if (
+		!isRoutineCommand(action.command) &&
+		!isStoryMetadataCommand(action.command) &&
+		!isMoveConditionCommand(action.command)
+	) {
 		return narrativeProjectHistoryReducer(state, {
 			type: 'execute',
 			command: action.command
@@ -261,7 +453,9 @@ export function narrativeProjectAuthoringReducer(
 
 	const nextProject = isRoutineCommand(action.command)
 		? applyRoutineCommand(state.present, action.command)
-		: applyStoryMetadataCommand(state.present, action.command);
+		: isStoryMetadataCommand(action.command)
+			? applyStoryMetadataCommand(state.present, action.command)
+			: applyMoveConditionCommand(state.present, action.command);
 	if (nextProject === state.present) {
 		return state;
 	}

@@ -10,6 +10,7 @@ import {useNarrativeProject} from '../../../store/narrative-project';
 import {CrossWorkspaceNavigator} from './cross-workspace-navigator';
 import {InteractionTemplatePanel} from './interaction-template-panel';
 import {MemorySaliencePanel} from './memory-salience-panel';
+import {MoveConditionsPanel} from './move-conditions-panel';
 import {NarrativeMovePanel} from './narrative-move-panel';
 import {OutcomeEffectsPanel} from './outcome-effects-panel';
 import {ProjectLibrary} from './project-library';
@@ -272,6 +273,7 @@ export const NarrativeWorkspace: React.FC = () => {
 					<StoryMetadataPanel />
 					<StoryBrainPanel />
 					<NarrativeMovePanel />
+					<MoveConditionsPanel />
 					<OutcomeEffectsPanel />
 					<MemorySaliencePanel />
 					<InteractionTemplatePanel />
