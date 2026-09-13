@@ -1,3 +1,4 @@
+import {CharacterBodyState, bodyStateIsValid} from '../../domain/narrative/body';
 import {
 	CharacterMindState,
 	MemoryTrace,
@@ -66,6 +67,21 @@ function hydrateStringRecord(value: unknown): Record<string, string> {
 	return Object.fromEntries(
 		Object.entries(value).filter(([, entry]) => typeof entry === 'string')
 	) as Record<string, string>;
+}
+
+function hydrateBodyStateRecord(
+	value: unknown
+): Record<string, CharacterBodyState> {
+	if (!isRecord(value)) {
+		return {};
+	}
+	return Object.fromEntries(
+		Object.entries(value).flatMap(([characterId, state]) =>
+			bodyStateIsValid(state) && state.characterId === characterId
+				? [[characterId, state]]
+				: []
+		)
+	) as Record<string, CharacterBodyState>;
 }
 
 function hydrateMemories(value: unknown): MemoryTrace[] {
@@ -195,7 +211,8 @@ function hydrateSimulation(
 			value.activeBehaviorProfileByCharacter
 		),
 		actualLocationByCharacter: hydrateStringRecord(value.actualLocationByCharacter),
-		characterKnowledge: hydrateCharacterKnowledge(value.characterKnowledge)
+		characterKnowledge: hydrateCharacterKnowledge(value.characterKnowledge),
+		bodyByCharacter: hydrateBodyStateRecord(value.bodyByCharacter)
 	};
 }
 
