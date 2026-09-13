@@ -117,6 +117,8 @@ Deliverables:
 - different bags permit different item sizes/capacity (e.g. portfolio can carry thermos + other items; small bag only small essentials);
 - weight/capacity rules are data-driven and explainable.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #250: injury pain/treatment/recovery rules, sleep-aware recovery through the Simulation Playhead, data-driven pockets/bag/container capacity, weight/size/hand constraints, runtime item placement overlays that preserve authored ItemInstance placement, combined body/injury/carrying action explanations, A39 project/runtime-snapshot persistence with pre-A39 compatibility, lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A40 — Living Simulation Vertical Slice
 
 **Goal:** prove the architecture with one complete playable simulated day before scaling toward all 93 days.
