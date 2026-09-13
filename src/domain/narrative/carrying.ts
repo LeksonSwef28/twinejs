@@ -1,7 +1,6 @@
 import {EntityId} from './entities';
 import {
 	ItemCarryProperties,
-	ItemContainerProperties,
 	ItemDefinition,
 	ItemInstance,
 	ItemRuntimePlacement,
