@@ -8,6 +8,10 @@ import {
 	narrativeProjectHistoryReducer
 } from './reducer';
 import {createLocalStorageNarrativeProjectRepository} from './repository';
+import {
+	keepCurrentRuntime,
+	replaceRuntimeProjectInHistory
+} from './runtime-history';
 
 export type NarrativeSaveStatus = 'saved' | 'saving' | 'error';
 
@@ -35,30 +39,6 @@ const NarrativeProjectContext = React.createContext<
 export interface NarrativeProjectProviderProps {
 	hostStoryId: string;
 	projectName: string;
-}
-
-/**
- * Authoring Undo/Redo owns authored/editor snapshots only. A running playtest is
- * an independent timeline, so restoring an authoring snapshot must keep the
- * current runtime projection instead of time-travelling the simulation.
- */
-function keepCurrentRuntime(
-	authoredSnapshot: NarrativeProject,
-	current: NarrativeProject
-): NarrativeProject {
-	return {
-		...authoredSnapshot,
-		memories: current.memories,
-		relationships: current.relationships,
-		pendingReactions: current.pendingReactions,
-		mindStates: current.mindStates,
-		injuriesByCharacter: current.injuriesByCharacter,
-		itemPlacementOverrides: current.itemPlacementOverrides,
-		storyNodeStateOverrides: current.storyNodeStateOverrides,
-		runtimeOccurrences: current.runtimeOccurrences,
-		activeStoryExecutions: current.activeStoryExecutions,
-		simulation: current.simulation
-	};
 }
 
 export const NarrativeProjectProvider: React.FC<
@@ -107,9 +87,7 @@ export const NarrativeProjectProvider: React.FC<
 		);
 	}, []);
 	const replaceRuntimeProject = React.useCallback((project: NarrativeProject) => {
-		setState(current =>
-			project === current.present ? current : {...current, present: project}
-		);
+		setState(current => replaceRuntimeProjectInHistory(current, project));
 	}, []);
 	const undo = React.useCallback(() => {
 		setState(current => {
