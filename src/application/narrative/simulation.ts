@@ -6,6 +6,13 @@ import {
 	BodyStateEffect,
 	createCharacterBodyState
 } from '../../domain/narrative/body';
+import {
+	advanceInjuryStateMap,
+	applyInjuryEffect,
+	InjuryAdvanceTrace,
+	InjuryEffect,
+	InjuryEffectTrace
+} from '../../domain/narrative/injury';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {
 	scheduledStoryWork,
@@ -19,11 +26,17 @@ export interface NarrativeProjectSimulationStepResult {
 	dueWork: SimulationScheduledWork[];
 	trace: SimulationStepTrace;
 	bodyTraces: BodyAdvanceTrace[];
+	injuryTraces: InjuryAdvanceTrace[];
 }
 
 export interface NarrativeProjectBodyEffectResult {
 	project: NarrativeProject;
 	trace: BodyEffectTrace;
+}
+
+export interface NarrativeProjectInjuryEffectResult {
+	project: NarrativeProject;
+	trace: InjuryEffectTrace;
 }
 
 function bodyRuntimeForCharacters(project: NarrativeProject) {
@@ -38,11 +51,25 @@ function bodyRuntimeForCharacters(project: NarrativeProject) {
 	return result;
 }
 
+function injuryRuntimeForCharacters(project: NarrativeProject) {
+	const result = Object.fromEntries(
+		Object.entries(project.simulation.injuriesByCharacter).map(
+			([characterId, injuries]) => [characterId, [...injuries]]
+		)
+	);
+	for (const character of [...project.characters].sort((a, b) =>
+		a.id.localeCompare(b.id)
+	)) {
+		result[character.id] ??= [];
+	}
+	return result;
+}
+
 /**
- * Project-level A37/A38 orchestrator. Exact authored Story placements become
- * declarative due-work, while body state advances by the minutes actually
- * applied by the Simulation Playhead. Authoring/editor data and authored
- * `updatedAt` remain untouched by runtime time flow.
+ * Project-level A37-A39 orchestrator. Exact authored Story placements become
+ * declarative due-work, while needs and injuries advance by the minutes
+ * actually applied by the Simulation Playhead. Authoring/editor data and
+ * authored `updatedAt` remain untouched by runtime time flow.
  */
 export function advanceNarrativeProjectSimulation(
 	project: NarrativeProject,
@@ -63,20 +90,33 @@ export function advanceNarrativeProjectSimulation(
 		bodyRuntimeForCharacters(project),
 		step.trace.appliedMinutes
 	);
+	const sleepMinutesByCharacter = Object.fromEntries(
+		bodyAdvance.traces.map(trace => [trace.characterId, trace.sleptMinutes])
+	);
+	const injuryAdvance = advanceInjuryStateMap(
+		injuryRuntimeForCharacters(project),
+		step.trace.appliedMinutes,
+		sleepMinutesByCharacter
+	);
 
 	return {
 		project: {
 			...project,
-			simulation: {...step.state, bodyByCharacter: bodyAdvance.states}
+			simulation: {
+				...step.state,
+				bodyByCharacter: bodyAdvance.states,
+				injuriesByCharacter: injuryAdvance.states
+			}
 		},
 		dueWork: step.dueWork,
 		trace: step.trace,
-		bodyTraces: bodyAdvance.traces
+		bodyTraces: bodyAdvance.traces,
+		injuryTraces: injuryAdvance.traces
 	};
 }
 
 /**
- * Applies one explicit physical effect without advancing time. Effects never
+ * Applies one explicit needs effect without advancing time. Effects never
  * create unknown characters and never mutate authored/editor state.
  */
 export function applyNarrativeProjectBodyEffect(
@@ -98,6 +138,31 @@ export function applyNarrativeProjectBodyEffect(
 				bodyByCharacter: {
 					...bodyByCharacter,
 					[effect.characterId]: applied.state
+				}
+			}
+		},
+		trace: applied.trace
+	};
+}
+
+export function applyNarrativeProjectInjuryEffect(
+	project: NarrativeProject,
+	effect: InjuryEffect
+): NarrativeProjectInjuryEffectResult {
+	const characterId = effect.type === 'add' ? effect.injury.characterId : effect.characterId;
+	if (!project.characters.some(character => character.id === characterId)) {
+		throw new Error(`Unknown injury-effect character: ${characterId}`);
+	}
+	const injuriesByCharacter = injuryRuntimeForCharacters(project);
+	const applied = applyInjuryEffect(injuriesByCharacter[characterId] ?? [], effect);
+	return {
+		project: {
+			...project,
+			simulation: {
+				...project.simulation,
+				injuriesByCharacter: {
+					...injuriesByCharacter,
+					[characterId]: applied.injuries
 				}
 			}
 		},
