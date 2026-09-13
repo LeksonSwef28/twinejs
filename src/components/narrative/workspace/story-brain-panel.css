@@ -1,0 +1,195 @@
+.narrative-workspace__story-brain {
+	margin-top: 14px;
+	padding: 14px;
+	border: 1px solid rgba(127, 127, 127, 0.26);
+	border-radius: 10px;
+	background: rgba(127, 127, 127, 0.025);
+}
+
+.narrative-workspace__story-brain-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
+.narrative-workspace__story-brain-header span {
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.11em;
+	opacity: 0.58;
+}
+
+.narrative-workspace__story-brain-header h2 {
+	margin: 3px 0 0;
+	font-size: 20px;
+}
+
+.narrative-workspace__story-brain-header small {
+	opacity: 0.55;
+}
+
+.narrative-workspace__story-brain-focus-picker {
+	display: grid;
+	grid-template-columns: auto minmax(260px, 1fr);
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 12px;
+}
+
+.narrative-workspace__story-brain-focus-picker label {
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.narrative-workspace__story-brain-focus-picker select {
+	width: 100%;
+	padding: 7px 8px;
+	border: 1px solid rgba(127, 127, 127, 0.38);
+	border-radius: 7px;
+	background: transparent;
+	color: inherit;
+}
+
+.narrative-workspace__story-brain-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+}
+
+.narrative-workspace__story-brain-grid > article {
+	min-width: 0;
+	padding: 12px;
+	border: 1px solid rgba(127, 127, 127, 0.18);
+	border-radius: 8px;
+	background: rgba(127, 127, 127, 0.035);
+}
+
+.narrative-workspace__story-brain-grid h3 {
+	margin: 0 0 7px;
+	font-size: 12px;
+	letter-spacing: 0.1em;
+}
+
+.narrative-workspace__story-brain-grid article > p {
+	margin: 0 0 10px;
+	opacity: 0.68;
+	line-height: 1.45;
+}
+
+.narrative-workspace__story-brain-metrics {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	gap: 5px;
+	margin-bottom: 8px;
+}
+
+.narrative-workspace__story-brain-metrics div {
+	display: grid;
+	gap: 2px;
+	padding: 6px;
+	border: 1px solid rgba(127, 127, 127, 0.15);
+	border-radius: 6px;
+	text-align: center;
+}
+
+.narrative-workspace__story-brain-metrics span {
+	overflow: hidden;
+	font-size: 9px;
+	opacity: 0.58;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.narrative-workspace__story-brain-metrics strong {
+	font-size: 17px;
+}
+
+.narrative-workspace__story-brain-impact-list,
+.narrative-workspace__story-brain-why-list {
+	display: grid;
+	gap: 6px;
+	margin: 8px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.narrative-workspace__story-brain-impact-list li,
+.narrative-workspace__story-brain-why-list > div {
+	display: grid;
+	gap: 2px;
+	padding: 7px;
+	border: 1px solid rgba(127, 127, 127, 0.14);
+	border-radius: 6px;
+}
+
+.narrative-workspace__story-brain-impact-list small {
+	opacity: 0.55;
+}
+
+.narrative-workspace__story-brain-why {
+	grid-column: 1 / -1;
+}
+
+.narrative-workspace__story-brain-why-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.narrative-workspace__story-brain-why-heading span {
+	padding: 3px 6px;
+	border: 1px solid currentColor;
+	border-radius: 999px;
+	font-size: 10px;
+	font-weight: 700;
+}
+
+.narrative-workspace__story-brain-why-list p {
+	margin: 4px 0 0;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.narrative-workspace__story-brain-why-list [data-status='met'],
+.narrative-workspace__story-brain-why-list [data-status='available'] {
+	opacity: 0.9;
+}
+
+.narrative-workspace__story-brain-why-list [data-status='unknown'] {
+	opacity: 0.62;
+}
+
+.narrative-workspace__story-brain-why-list [data-status='unmet'],
+.narrative-workspace__story-brain-why-list [data-status='blocked'] {
+	font-weight: 650;
+}
+
+.narrative-workspace__story-brain-resolution {
+	padding-top: 5px;
+	border-top: 1px dashed rgba(127, 127, 127, 0.2);
+}
+
+.narrative-workspace__story-brain-empty {
+	margin: 0;
+	padding: 12px;
+	border: 1px dashed rgba(127, 127, 127, 0.3);
+	border-radius: 8px;
+	opacity: 0.65;
+}
+
+@media (max-width: 1000px) {
+	.narrative-workspace__story-brain-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.narrative-workspace__story-brain-why {
+		grid-column: auto;
+	}
+
+	.narrative-workspace__story-brain-metrics {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
