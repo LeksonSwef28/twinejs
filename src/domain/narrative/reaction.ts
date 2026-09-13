@@ -1,8 +1,6 @@
 import {CharacterMindState, MemoryTrace} from './cognition';
 import {EntityId} from './entities';
-import {
-	NarrativeGuardDefinition
-} from './interaction';
+import {NarrativeGuardDefinition} from './interaction';
 import {
 	evaluateNarrativeGuards,
 	NarrativeConditionStatus,
@@ -98,22 +96,24 @@ export interface ReactionCandidateSetEvaluation {
 function considerationIsStructurallyValid(
 	consideration: ReactionConsiderationDefinition
 ) {
-	if (!consideration.id || !Number.isFinite(consideration.weight)) {
+	if (!consideration?.id || !Number.isFinite(consideration.weight)) {
 		return false;
 	}
 	switch (consideration.type) {
 		case 'mood-is':
-			return Boolean(consideration.mood.trim());
+			return Boolean(consideration.mood?.trim());
 		case 'relationship-at-least':
 			return (
-				Boolean(consideration.axis.trim()) && Number.isFinite(consideration.value)
+				Boolean(consideration.axis?.trim()) && Number.isFinite(consideration.value)
 			);
 		case 'knows-claim':
 			return Boolean(consideration.claimId);
 		case 'memory-tag':
-			return Boolean(consideration.tag.trim());
+			return Boolean(consideration.tag?.trim());
 		case 'story-node-state':
 			return Boolean(consideration.storyNodeId);
+		default:
+			return false;
 	}
 }
 
@@ -121,9 +121,10 @@ export function reactionCandidateSetIsStructurallyValid(
 	set: ReactionCandidateSetDefinition
 ) {
 	if (
-		!set.id ||
+		!set?.id ||
 		!set.storyNodeId ||
 		!set.reactingCharacterId ||
+		!Array.isArray(set.candidates) ||
 		set.candidates.length === 0
 	) {
 		return false;
@@ -133,9 +134,11 @@ export function reactionCandidateSetIsStructurallyValid(
 	const moveIds = new Set<string>();
 	for (const candidate of set.candidates) {
 		if (
-			!candidate.id ||
+			!candidate?.id ||
 			!candidate.moveId ||
 			!Number.isFinite(candidate.baseScore) ||
+			!Array.isArray(candidate.guards) ||
+			!Array.isArray(candidate.considerations) ||
 			candidateIds.has(candidate.id) ||
 			moveIds.has(candidate.moveId)
 		) {
@@ -146,7 +149,7 @@ export function reactionCandidateSetIsStructurallyValid(
 
 		const guardIds = new Set<string>();
 		for (const guard of candidate.guards) {
-			if (!guard.id || guardIds.has(guard.id)) {
+			if (!guard?.id || guardIds.has(guard.id)) {
 				return false;
 			}
 			guardIds.add(guard.id);
