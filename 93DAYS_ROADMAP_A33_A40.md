@@ -103,6 +103,8 @@ Initial mechanics from the game concept:
 - heavy meals temporarily restrict fast running while digestion proceeds (target concept: roughly 30 in-game minutes);
 - typed body-state effects and explainable constraints on actions.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #229: fatigue/sleep-debt progression, sleep recovery ordering, well-rested effort benefit, hunger/satiety, 30-minute heavy-meal digestion restriction, Simulation Playhead integration, runtime project/save/snapshot persistence with pre-A38 compatibility, lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A39 — Injuries / Inventory / Carrying
 
 **Goal:** make physical condition and carried equipment materially constrain play.
