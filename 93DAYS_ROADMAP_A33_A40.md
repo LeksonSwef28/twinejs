@@ -73,6 +73,8 @@ Deliverables:
 - invalid/partial runtime data fails safely without destroying authored project data;
 - tests for resume after time, cognition and world-state changes.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #209: versioned runtime snapshots, deterministic round-trip, v0 → v1 migration, invalid/foreign snapshot rejection, lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A37 — Simulation Kernel
 
 **Goal:** introduce the real Simulation Playhead and deterministic world stepping that later gameplay systems can depend on.
