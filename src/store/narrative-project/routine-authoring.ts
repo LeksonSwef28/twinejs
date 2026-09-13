@@ -2,15 +2,23 @@ import {NarrativeProjectCommand} from '../../application/narrative/commands';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {RoutineRule} from '../../domain/narrative/schedule';
 import {
-	NarrativeProjectHistoryAction,
 	NarrativeProjectHistoryState,
 	narrativeProjectHistoryReducer
 } from './reducer';
 
-type RoutineAuthoringCommand = Extract<
-	NarrativeProjectCommand,
-	{type: 'routine/add' | 'routine/update' | 'routine/remove'}
->;
+export type RoutineAuthoringCommand =
+	| {type: 'routine/add'; rule: RoutineRule}
+	| {type: 'routine/update'; rule: RoutineRule}
+	| {type: 'routine/remove'; id: string};
+
+export type NarrativeAuthoringCommand =
+	| NarrativeProjectCommand
+	| RoutineAuthoringCommand;
+
+export type NarrativeProjectAuthoringAction =
+	| {type: 'execute'; command: NarrativeAuthoringCommand}
+	| {type: 'undo'}
+	| {type: 'redo'};
 
 function dayIsValid(project: NarrativeProject, day: number) {
 	return (
@@ -143,7 +151,7 @@ function applyRoutineCommand(
 }
 
 function isRoutineCommand(
-	command: NarrativeProjectCommand
+	command: NarrativeAuthoringCommand
 ): command is RoutineAuthoringCommand {
 	return (
 		command.type === 'routine/add' ||
@@ -154,10 +162,16 @@ function isRoutineCommand(
 
 export function narrativeProjectAuthoringReducer(
 	state: NarrativeProjectHistoryState,
-	action: NarrativeProjectHistoryAction
+	action: NarrativeProjectAuthoringAction
 ): NarrativeProjectHistoryState {
-	if (action.type !== 'execute' || !isRoutineCommand(action.command)) {
+	if (action.type === 'undo' || action.type === 'redo') {
 		return narrativeProjectHistoryReducer(state, action);
+	}
+	if (!isRoutineCommand(action.command)) {
+		return narrativeProjectHistoryReducer(state, {
+			type: 'execute',
+			command: action.command
+		});
 	}
 
 	const nextProject = applyRoutineCommand(state.present, action.command);
