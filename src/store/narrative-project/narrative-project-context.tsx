@@ -3,15 +3,13 @@ import {NarrativeProjectCommand} from '../../application/narrative/commands';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {createNarrativeId} from '../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../domain/narrative/templates/93-days';
-import {
-	NarrativeProjectHistoryState,
-	narrativeProjectHistoryReducer
-} from './reducer';
+import {NarrativeProjectHistoryState} from './reducer';
 import {createLocalStorageNarrativeProjectRepository} from './repository';
 import {
 	keepCurrentRuntime,
 	replaceRuntimeProjectInHistory
 } from './runtime-history';
+import {narrativeProjectAuthoringReducer} from './routine-authoring';
 
 export type NarrativeSaveStatus = 'saved' | 'saving' | 'error';
 
@@ -83,7 +81,7 @@ export const NarrativeProjectProvider: React.FC<
 
 	const execute = React.useCallback((command: NarrativeProjectCommand) => {
 		setState(current =>
-			narrativeProjectHistoryReducer(current, {type: 'execute', command})
+			narrativeProjectAuthoringReducer(current, {type: 'execute', command})
 		);
 	}, []);
 	const replaceRuntimeProject = React.useCallback((project: NarrativeProject) => {
@@ -91,7 +89,7 @@ export const NarrativeProjectProvider: React.FC<
 	}, []);
 	const undo = React.useCallback(() => {
 		setState(current => {
-			const restored = narrativeProjectHistoryReducer(current, {type: 'undo'});
+			const restored = narrativeProjectAuthoringReducer(current, {type: 'undo'});
 			return restored === current
 				? current
 				: {
@@ -102,7 +100,7 @@ export const NarrativeProjectProvider: React.FC<
 	}, []);
 	const redo = React.useCallback(() => {
 		setState(current => {
-			const restored = narrativeProjectHistoryReducer(current, {type: 'redo'});
+			const restored = narrativeProjectAuthoringReducer(current, {type: 'redo'});
 			return restored === current
 				? current
 				: {
