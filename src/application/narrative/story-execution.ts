@@ -328,7 +328,7 @@ export function consumeNarrativeStoryWork(
 		return {
 			project: {
 				...project,
-				activeStoryExecutions,
+				activeStoryExecutions: activeExecutions,
 				runtimeOccurrences: write.history,
 				storyNodeStateOverrides: {
 					...storyNodeStateOverrides,
