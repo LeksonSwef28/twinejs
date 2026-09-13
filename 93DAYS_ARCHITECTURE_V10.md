@@ -110,6 +110,20 @@ Story Brain must not mutate authored state by itself. It may explain, diagnose a
 - automatic and condition resolution expose the currently implied outcome, while a skill-check explanation states that runtime skill value and roll are still required;
 - all A23/A24 queries are read-only and do not mutate authored or preview state.
 
+### A25 / A26 implementation status
+
+`V10-A25 Story Brain Coverage` and `V10-A26 Story Brain Bridge Finder` are implemented as derived/read-only analysis:
+
+- Coverage extends the existing Story continuity analyzer instead of duplicating causal graph logic;
+- executable Story edges and explicit Narrative Move outcome continuations keep a branch causally alive; reference edges do not;
+- Coverage reports terminal and early-terminal Story nodes, branching Outcomes without any continuation/effect, asymmetric multi-outcome Moves, and placed character frontiers whose latest authored Story material has no executable continuation;
+- a short branch is not automatically an error: an Outcome with a meaningful effect can remain narratively useful even when it has no immediate Story continuation;
+- Bridge Finder ranks only **existing authored Story material** and never generates a new scene or silently creates an edge;
+- bridge evidence is explicit and scored: reference hints, shared Characters, Claims, Item guards, location, nearby future time, authored initial Knowledge, and dormant/unplaced material;
+- already-authored executable continuations are excluded from bridge suggestions because they are not missing bridges;
+- unrelated dormant material is not suggested merely because it is available;
+- the Story Brain panel now exposes Focus, Impact, Why, Coverage and Bridges together while remaining non-mutating.
+
 ## 5. Narrative Interaction / Resolution
 
 Story interactions use one generic pipeline:
@@ -179,7 +193,7 @@ failure
 
 The domain allows later outputs such as `critical-success`, `critical-failure` or custom authored outcome identifiers without redesigning the Story graph.
 
-Failure is a valid narrative outcome, not automatically a dead end. Story Brain should later be able to diagnose a failure branch that has no meaningful consequence/continuation.
+Failure is a valid narrative outcome, not automatically a dead end. Story Brain can diagnose a failure branch that currently has no meaningful consequence/continuation without assuming that every short failure branch is invalid.
 
 ### A20 / A21 implementation status
 
@@ -302,16 +316,16 @@ Unique authored scenes remain possible. Templates exist to reduce combinatorial 
 
 ## 9. Story continuity direction
 
-Continuity analysis must use executable causal edges for statements such as "this branch ends here". Reference edges may be traversed for Focus/context but must never make an otherwise dead executable branch look alive.
+Continuity analysis uses executable causal edges for statements such as "this branch ends here". Reference edges may be traversed for Focus/context and used as Bridge hints, but must never make an otherwise dead executable branch look alive.
 
-Desired diagnostics include:
+Current diagnostics include:
 
-- isolated authored material;
-- executable branches with no continuation;
-- character/story threads that run out too early;
-- success/failure outcomes with asymmetric or missing authored consequences;
-- dormant alternatives and cross-character handoffs;
-- bridges through Claims/Knowledge, relationships, items, time/location intersections and reusable templates;
+- isolated authored material from the earlier continuity analyzer;
+- executable terminal and early-terminal Story material;
+- branching Outcomes with no Story continuation or runtime effect;
+- asymmetric multi-outcome Moves where only some outcomes have consequences;
+- placed character frontiers whose latest authored nodes have no executable continuation;
+- deterministic bridge candidates through existing Claims/Knowledge, Characters, Item guards, time/location proximity, reference hints and dormant/unplaced Story material;
 - gates explaining why a branch/move is unavailable.
 
 The runtime guard evaluator returns `met | unmet | unknown` plus an explanation trace. The current Story Brain `Why` view reuses that same evaluator instead of inventing a second condition explanation engine.
@@ -381,14 +395,18 @@ Adding an entity to Story creates a visual reference; it does not duplicate the 
 - first knowledge Outcome effect and reinforcement semantics;
 - Story Brain derived semantic graph index;
 - Story Brain Focus + Impact read-only query/UI lens;
-- Story Brain Why using the same runtime guard/condition traces.
+- Story Brain Why using the same runtime guard/condition traces;
+- Story Brain Coverage over executable continuations and branching Outcomes;
+- Story Brain deterministic Bridge Finder over existing authored material.
 
 ### v10 next vertical slices
 
-1. **V10-A25 Story Brain Coverage** — analyze success/failure outcomes and character/thread continuations for accidental early endings or consequence-free branches;
-2. **V10-A26 Story Brain Bridge Finder** — rank existing Claims/Knowledge, relationships, items, time/location intersections and dormant/unscheduled Story material as explainable continuation candidates;
-3. reusable Event/Interaction Templates and role binding after the direct authoring model proves usable;
-4. expand Outcome effects (memory, relationship, inventory, story/world state) only through typed, explainable contracts.
+1. **V10-A27 Reusable Event / Interaction Templates** — role slots and explicit bindings so one authored interaction structure can be reused safely across many concrete Characters/Claims without creating a unique implementation type per combination;
+2. **V10-A28 Character Reaction Candidates** — authored reaction candidates with explainable eligibility/scoring inputs such as relationship, mood, knowledge, memory, goals and story priority, without allowing simulation to erase author intent;
+3. expand Outcome effects (memory, relationship, inventory, story/world state) only through typed, explainable contracts;
+4. continue Story ↔ World/Time integration, split-view ergonomics, persistence projection cleanup and scale/performance gates before autonomous Living Simulation.
+
+A27/A28 require their own pre-code impact/contract gate; they should reuse the existing Move/Guard/Outcome and cognition semantics rather than introduce parallel interaction systems.
 
 Do not jump directly to autonomous Living Simulation before these authoring semantics are understandable and testable.
 
