@@ -47,6 +47,8 @@ Deliverables:
 - duplicate-execution prevention using occurrence history;
 - deterministic execution traces.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #293: due Story work remains declarative until explicitly consumed; one-shot/repeatable rules, explicit/expired misses, exact action duration, participant conflicts, interruptible/locked preemption, duplicate prevention, day-93 end bounds, in-progress save/resume, runtime-only active execution persistence, lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A43 — NPC Choice Scheduling & Action Economy
 
 **Goal:** allow NPCs to choose among authored/runtime candidates without hiding decisions inside the clock.
