@@ -13,9 +13,8 @@ import {
 	ObjectiveFactDefinition
 } from './knowledge';
 import {ReactionCandidateSetDefinition} from './reaction';
-import {
-	NarrativeRuntimeOccurrence
-} from './runtime-story';
+import {ActiveStoryExecutionState} from './runtime-execution';
+import {NarrativeRuntimeOccurrence} from './runtime-story';
 import {BehaviorProfile, RoutineRule, ScheduleException} from './schedule';
 import {
 	StoryConnectionDefinition,
@@ -77,8 +76,10 @@ export interface NarrativeProject {
 	itemPlacementOverrides: Record<string, ItemRuntimePlacement>;
 	/** A41 runtime activation/consumption state. Authored StoryNode state is never rewritten by play. */
 	storyNodeStateOverrides: Record<string, StoryNodeActivationState>;
-	/** A41 append-only provenance for outcomes that actually occurred in simulation. */
+	/** A41/A42 append-only provenance for outcomes and Story-work lifecycle results. */
 	runtimeOccurrences: NarrativeRuntimeOccurrence[];
+	/** A42 explicitly started Story work that is consuming simulation time. */
+	activeStoryExecutions: ActiveStoryExecutionState[];
 	editor: NarrativeEditorState;
 	simulation: NarrativeSimulationState;
 }
