@@ -117,4 +117,68 @@ describe('Story Brain graph index', () => {
 		expect(keys).toContain('move:persuade');
 		expect(keys).toContain('story-node:success');
 	});
+
+	test('typed Outcome effects expose affected Characters, Items and Story state to Impact', () => {
+		const effectMove: NarrativeMoveDefinition = {
+			id: 'effect-move',
+			storyNodeId: 'door',
+			kind: 'threaten',
+			label: 'Пригрозить',
+			actorCharacterId: 'player',
+			targetCharacterIds: ['guard'],
+			guards: [],
+			resolution: {type: 'automatic', outcomeId: 'effect-outcome'},
+			outcomes: [
+				{
+					id: 'effect-outcome',
+					key: 'continue',
+					label: 'Продолжить',
+					effectStoryNodeIds: [],
+					effects: [
+						{
+							id: 'relationship-effect',
+							type: 'relationship-adjust',
+							from: {type: 'move-target', targetIndex: 0},
+							to: {type: 'move-actor'},
+							axis: 'trust',
+							delta: -5
+						},
+						{
+							id: 'mood-effect',
+							type: 'character-mood-set',
+							character: {type: 'move-target', targetIndex: 0},
+							mood: 'afraid'
+						},
+						{
+							id: 'item-effect',
+							type: 'item-set-placement',
+							itemInstanceId: 'key-item',
+							placement: {
+								type: 'character',
+								character: {type: 'move-actor'}
+							}
+						},
+						{
+							id: 'story-effect',
+							type: 'story-node-set-state',
+							storyNodeId: 'success',
+							state: 'available'
+						}
+					]
+				}
+			]
+		};
+		const index = buildStoryBrainIndex(nodes, connections, [effectMove]);
+		const result = queryStoryBrainImpact(index, {kind: 'move', id: 'effect-move'});
+		const keys = result.hits.map(hit => `${hit.entity.kind}:${hit.entity.id}`);
+
+		expect(keys).toEqual(
+			expect.arrayContaining([
+				'character:player',
+				'character:guard',
+				'item:key-item',
+				'story-node:success'
+			])
+		);
+	});
 });
