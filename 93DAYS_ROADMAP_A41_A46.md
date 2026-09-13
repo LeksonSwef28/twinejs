@@ -92,6 +92,8 @@ Deliverables:
 - editor rendering hot-path audit;
 - no semantic shortcuts solely for benchmark success.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #315: a full 93-day fixture with 744 scheduled Story nodes, 743 Story connections, 96 scheduled characters and 24 locations passed deterministic complete-summer long-step versus daily-batch equivalence; 3,000-memory/80-candidate reaction ranking and dense runtime snapshot size/restore gates passed on the normal production paths; Story/schedule projection gates and the editor hot-path audit were added without benchmark-only semantic shortcuts; lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A46 — Upstream Integration & Stabilization
 
 **Goal:** reconcile the long-lived feature branch with upstream development without mixing integration churn into gameplay/domain stages.
