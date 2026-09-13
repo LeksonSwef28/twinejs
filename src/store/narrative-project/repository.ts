@@ -163,6 +163,7 @@ function hydrateCharacterKnowledge(value: unknown): CharacterKnowledgeState[] {
 			finiteNumber(raw.confidence) &&
 			knowledgeConfidenceIsValid(raw.confidence) &&
 			isRecord(raw.source) &&
+			finiteNumber(raw.timesHeard) &&
 			Number.isInteger(raw.timesHeard) &&
 			raw.timesHeard >= 0
 		);
