@@ -14,6 +14,7 @@ import {NarrativeMovePanel} from './narrative-move-panel';
 import {OutcomeEffectsPanel} from './outcome-effects-panel';
 import {ProjectLibrary} from './project-library';
 import {ReactionCandidatesPanel} from './reaction-candidates-panel';
+import {SimulationDebugPanel} from './simulation-debug-panel';
 import {StoryBrainPanel} from './story-brain-panel';
 import {StoryWorkspace} from './story-workspace';
 import {WorldTimeWorkspace} from './world-time-workspace';
@@ -38,6 +39,7 @@ export const NarrativeWorkspace: React.FC = () => {
 		useNarrativeProject();
 	const [projectLibraryOpen, setProjectLibraryOpen] = React.useState(false);
 	const [splitView, setSplitView] = React.useState(false);
+	const [simulationDebugOpen, setSimulationDebugOpen] = React.useState(false);
 	const selectedPeriod =
 		project.template.periods.find(
 			period => period.id === project.editor.selectedPeriodId
@@ -98,6 +100,14 @@ export const NarrativeWorkspace: React.FC = () => {
 					</span>
 					<button type="button" onClick={() => setProjectLibraryOpen(true)}>
 						Библиотека
+					</button>
+					<button
+						type="button"
+						aria-pressed={simulationDebugOpen}
+						className={simulationDebugOpen ? 'is-active' : undefined}
+						onClick={() => setSimulationDebugOpen(open => !open)}
+					>
+						{simulationDebugOpen ? 'Закрыть Playtest' : 'Playtest / Debug'}
 					</button>
 					<button
 						type="button"
@@ -214,6 +224,11 @@ export const NarrativeWorkspace: React.FC = () => {
 					</strong>
 				</div>
 			</div>
+
+			<SimulationDebugPanel
+				open={simulationDebugOpen}
+				onClose={() => setSimulationDebugOpen(false)}
+			/>
 
 			<CrossWorkspaceNavigator splitView={splitView} />
 			<ProjectLibrary
