@@ -57,13 +57,21 @@ export interface InteractionTemplateInstantiation {
 export function interactionTemplateIsStructurallyValid(
 	template: InteractionTemplateDefinition
 ) {
-	if (!template.id || !template.name.trim() || template.moves.length === 0) {
+	if (
+		!template.id ||
+		!template.name?.trim() ||
+		!Array.isArray(template.roles) ||
+		!Array.isArray(template.claimSlots) ||
+		!Array.isArray(template.moves) ||
+		!Array.isArray(template.tags) ||
+		template.moves.length === 0
+	) {
 		return false;
 	}
 
 	const roleIds = new Set<string>();
 	for (const role of template.roles) {
-		if (!role.id || !role.label.trim() || roleIds.has(role.id)) {
+		if (!role?.id || !role.label?.trim() || roleIds.has(role.id)) {
 			return false;
 		}
 		roleIds.add(role.id);
@@ -71,7 +79,7 @@ export function interactionTemplateIsStructurallyValid(
 
 	const claimSlotIds = new Set<string>();
 	for (const slot of template.claimSlots) {
-		if (!slot.id || !slot.label.trim() || claimSlotIds.has(slot.id)) {
+		if (!slot?.id || !slot.label?.trim() || claimSlotIds.has(slot.id)) {
 			return false;
 		}
 		claimSlotIds.add(slot.id);
@@ -79,7 +87,12 @@ export function interactionTemplateIsStructurallyValid(
 
 	const moveIds = new Set<string>();
 	for (const move of template.moves) {
-		if (!move.id || !move.label.trim() || moveIds.has(move.id)) {
+		if (
+			!move?.id ||
+			!move.label?.trim() ||
+			!Array.isArray(move.targetRoleIds) ||
+			moveIds.has(move.id)
+		) {
 			return false;
 		}
 		moveIds.add(move.id);
