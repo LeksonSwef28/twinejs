@@ -85,7 +85,17 @@ function projectWithRuntime() {
 				lastReinforcedAt: {day: 5, minuteOfDay: 700},
 				timesHeard: 2
 			}
-		]
+		],
+		bodyByCharacter: {
+			katya: {
+				characterId: 'katya',
+				fatigue: 0.8,
+				sleepDebtMinutes: 90,
+				satiety: 0.35,
+				digestionRemainingMinutes: 12,
+				sleepRemainingMinutes: 0
+			}
+		}
 	};
 	return project;
 }
@@ -106,7 +116,7 @@ function withoutRuntime(source: ReturnType<typeof projectWithRuntime>) {
 	};
 }
 
-describe('A36 runtime snapshots', () => {
+describe('A36/A38 runtime snapshots', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 	});
@@ -131,7 +141,7 @@ describe('A36 runtime snapshots', () => {
 		expect(serializeNarrativeRuntimeSnapshot(restored.project)).toBe(serialized);
 	});
 
-	test('saves and resumes time, cognition and actual world presence from localStorage', () => {
+	test('saves and resumes time, cognition, body and actual world presence from localStorage', () => {
 		const source = projectWithRuntime();
 		const repository = createLocalStorageNarrativeRuntimeSnapshotRepository(
 			source.projectId
@@ -147,6 +157,9 @@ describe('A36 runtime snapshots', () => {
 		);
 		expect(restored.project.simulation.characterKnowledge[0].claimId).toBe(
 			'claim-a'
+		);
+		expect(restored.project.simulation.bodyByCharacter.katya.sleepDebtMinutes).toBe(
+			90
 		);
 		expect(restored.project.memories[0].id).toBe('memory:katya:station');
 
@@ -170,6 +183,23 @@ describe('A36 runtime snapshots', () => {
 		expect(restored.migratedFromVersion).toBe(0);
 		expect(restored.project.simulation).toEqual(source.simulation);
 		expect(restored.project.memories).toEqual(source.memories);
+	});
+
+	test('accepts pre-A38 v1 snapshots without body state and fills an empty body map', () => {
+		const source = projectWithRuntime();
+		const current = createNarrativeRuntimeSnapshot(source);
+		const simulation = {...current.runtime.simulation} as typeof current.runtime.simulation & {
+			bodyByCharacter?: typeof current.runtime.simulation.bodyByCharacter;
+		};
+		delete simulation.bodyByCharacter;
+		const oldV1 = {
+			...current,
+			runtime: {...current.runtime, simulation}
+		};
+
+		const restored = restoreNarrativeRuntimeSnapshot(withoutRuntime(source), oldV1);
+		expect(restored.status).toBe('restored');
+		expect(restored.project.simulation.bodyByCharacter).toEqual({});
 	});
 
 	test('rejects invalid or partial runtime data without touching the project', () => {
