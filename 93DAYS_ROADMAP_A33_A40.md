@@ -46,6 +46,8 @@ Deliverables:
 - explicit handling of authored schedule context vs actual runtime presence;
 - no third top-level workspace.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #202: lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A35 — Persistence Projection Split
 
 **Goal:** stop treating authored definitions, editor UI state and live simulation state as one physical persistence blob before autonomous simulation grows.
