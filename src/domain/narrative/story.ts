@@ -25,6 +25,22 @@ export interface StoryPlacement {
 	locationId?: EntityId;
 }
 
+export type StoryOccurrenceMode = 'one-shot' | 'repeatable';
+export type StoryInterruptionPolicy = 'interruptible' | 'locked';
+
+/**
+ * Optional A42 execution semantics for an exactly scheduled Story node.
+ * Missing policy fields use conservative defaults in the runtime execution layer:
+ * one-shot, zero duration, no automatic expiry and interruptible execution.
+ */
+export interface StoryRuntimePolicyDefinition {
+	occurrenceMode?: StoryOccurrenceMode;
+	durationMinutes?: number;
+	/** When set, executing after scheduled moment + this window records a miss. */
+	missAfterMinutes?: number;
+	interruption?: StoryInterruptionPolicy;
+}
+
 export interface StoryNodeDefinition {
 	id: EntityId;
 	kind: StoryNodeKind;
@@ -34,6 +50,8 @@ export interface StoryNodeDefinition {
 	participantIds: EntityId[];
 	placement?: StoryPlacement;
 	activationState: StoryNodeActivationState;
+	/** Optional A42 runtime execution policy; authored definition, not live state. */
+	runtimePolicy?: StoryRuntimePolicyDefinition;
 }
 
 export type StoryConnectionKind =
