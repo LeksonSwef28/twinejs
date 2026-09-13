@@ -5,6 +5,11 @@ import {
 	PendingReaction,
 	RelationshipState
 } from '../../domain/narrative/cognition';
+import {InjuryState, injuryStateIsValid} from '../../domain/narrative/injury';
+import {
+	ItemRuntimePlacement,
+	itemRuntimePlacementIsValid
+} from '../../domain/narrative/items';
 import {CharacterKnowledgeState, knowledgeConfidenceIsValid} from '../../domain/narrative/knowledge';
 import {NarrativeProject, NarrativeSimulationState} from '../../domain/narrative/project';
 import {
@@ -91,6 +96,57 @@ function cloneBodyStateRecord(value: unknown): Record<string, CharacterBodyState
 			{...state}
 		])
 	) as Record<string, CharacterBodyState>;
+}
+
+function injuryStateRecordIsValid(
+	value: unknown
+): value is Record<string, InjuryState[]> {
+	return (
+		isRecord(value) &&
+		Object.entries(value).every(
+			([characterId, injuries]) =>
+				Array.isArray(injuries) &&
+				injuries.every(
+					injury =>
+						injuryStateIsValid(injury) && injury.characterId === characterId
+				)
+		)
+	);
+}
+
+function cloneInjuryStateRecord(value: unknown): Record<string, InjuryState[]> {
+	if (!injuryStateRecordIsValid(value)) {
+		return {};
+	}
+	return Object.fromEntries(
+		Object.entries(value).map(([characterId, injuries]) => [
+			characterId,
+			injuries.map(injury => ({...injury}))
+		])
+	) as Record<string, InjuryState[]>;
+}
+
+function itemPlacementRecordIsValid(
+	value: unknown
+): value is Record<string, ItemRuntimePlacement> {
+	return (
+		isRecord(value) &&
+		Object.values(value).every(itemRuntimePlacementIsValid)
+	);
+}
+
+function cloneItemPlacementRecord(
+	value: unknown
+): Record<string, ItemRuntimePlacement> {
+	if (!itemPlacementRecordIsValid(value)) {
+		return {};
+	}
+	return Object.fromEntries(
+		Object.entries(value).map(([itemInstanceId, placement]) => [
+			itemInstanceId,
+			{...placement}
+		])
+	) as Record<string, ItemRuntimePlacement>;
 }
 
 function memoryIsValid(value: unknown): value is MemoryTrace {
@@ -205,6 +261,10 @@ function runtimeProjectionIsValid(
 		value.pendingReactions.every(pendingReactionIsValid) &&
 		Array.isArray(value.mindStates) &&
 		value.mindStates.every(mindStateIsValid) &&
+		(value.injuriesByCharacter === undefined ||
+			injuryStateRecordIsValid(value.injuriesByCharacter)) &&
+		(value.itemPlacementOverrides === undefined ||
+			itemPlacementRecordIsValid(value.itemPlacementOverrides)) &&
 		simulationIsValid(value.simulation)
 	);
 }
@@ -232,6 +292,8 @@ function cloneRuntimeProjection(
 			activeMemoryIds: [...mind.activeMemoryIds],
 			pendingReactionIds: [...mind.pendingReactionIds]
 		})),
+		injuriesByCharacter: cloneInjuryStateRecord(runtime.injuriesByCharacter),
+		itemPlacementOverrides: cloneItemPlacementRecord(runtime.itemPlacementOverrides),
 		simulation: {
 			...runtime.simulation,
 			activeBehaviorProfileByCharacter: {
@@ -345,6 +407,8 @@ export function restoreNarrativeRuntimeSnapshot(
 			relationships: runtime.relationships,
 			pendingReactions: runtime.pendingReactions,
 			mindStates: runtime.mindStates,
+			injuriesByCharacter: runtime.injuriesByCharacter ?? {},
+			itemPlacementOverrides: runtime.itemPlacementOverrides ?? {},
 			simulation: runtime.simulation
 		},
 		status:
