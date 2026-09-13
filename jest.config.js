@@ -1,5 +1,16 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
+	// Keep CI from silently accepting a material coverage regression. These
+	// floors sit just below the audited 2026-09-13 baseline (80.75% statements,
+	// 64.96% branches, 71.39% functions, 80.78% lines).
+	coverageThreshold: {
+		global: {
+			branches: 64,
+			functions: 70,
+			lines: 80,
+			statements: 80
+		}
+	},
 	// Map asset and CSS imports to inert mocks.
 	moduleNameMapper: {
 		'\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
