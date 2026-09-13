@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {NarrativeProjectCommand} from '../../application/narrative/commands';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {createNarrativeId} from '../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../domain/narrative/templates/93-days';
@@ -9,13 +8,16 @@ import {
 	keepCurrentRuntime,
 	replaceRuntimeProjectInHistory
 } from './runtime-history';
-import {narrativeProjectAuthoringReducer} from './routine-authoring';
+import {
+	NarrativeAuthoringCommand,
+	narrativeProjectAuthoringReducer
+} from './routine-authoring';
 
 export type NarrativeSaveStatus = 'saved' | 'saving' | 'error';
 
 export interface NarrativeProjectContextValue {
 	project: NarrativeProject;
-	execute(command: NarrativeProjectCommand): void;
+	execute(command: NarrativeAuthoringCommand): void;
 	/**
 	 * Replaces only the current runtime aggregate from an explicit simulation
 	 * operation. Runtime updates are persisted, but never become authoring undo
@@ -79,7 +81,7 @@ export const NarrativeProjectProvider: React.FC<
 		return () => window.clearTimeout(timeout);
 	}, [repository, state.present]);
 
-	const execute = React.useCallback((command: NarrativeProjectCommand) => {
+	const execute = React.useCallback((command: NarrativeAuthoringCommand) => {
 		setState(current =>
 			narrativeProjectAuthoringReducer(current, {type: 'execute', command})
 		);
