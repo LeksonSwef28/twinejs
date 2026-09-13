@@ -8,6 +8,7 @@ import {NarrativeWorkspaceMode} from '../../../domain/narrative/project';
 import {useNarrativeProject} from '../../../store/narrative-project';
 import {NarrativeMovePanel} from './narrative-move-panel';
 import {ProjectLibrary} from './project-library';
+import {StoryBrainPanel} from './story-brain-panel';
 import {StoryWorkspace} from './story-workspace';
 import {WorldTimeWorkspace} from './world-time-workspace';
 import './narrative-workspace.css';
@@ -203,6 +204,7 @@ export const NarrativeWorkspace: React.FC = () => {
 			{workspaceMode === 'story' ? (
 				<>
 					<StoryWorkspace />
+					<StoryBrainPanel />
 					<NarrativeMovePanel />
 				</>
 			) : (
