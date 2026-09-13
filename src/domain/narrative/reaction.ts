@@ -6,6 +6,7 @@ import {
 	NarrativeConditionStatus,
 	NarrativeRuntimeEvaluationContext
 } from './interaction-runtime';
+import {memorySalienceAt, MemoryMoment} from './memory';
 import {StoryNodeActivationState} from './story';
 
 export type ReactionValence = 'positive' | 'neutral' | 'negative' | 'other';
@@ -34,6 +35,8 @@ export type ReactionConsiderationDefinition =
 			id: EntityId;
 			type: 'memory-tag';
 			tag: string;
+			/** Optional A33 gate. Omit it to retain the A28 presence-only behavior. */
+			minimumSalience?: number;
 			weight: number;
 	  }
 	| {
@@ -64,6 +67,8 @@ export interface ReactionCandidateSetDefinition {
 export interface ReactionEvaluationContext extends NarrativeRuntimeEvaluationContext {
 	mindStates: CharacterMindState[];
 	memories: MemoryTrace[];
+	/** Explicit Simulation Playhead moment used only when a consideration needs decay. */
+	memoryMoment?: MemoryMoment;
 }
 
 export type ReactionCandidateAvailability = 'available' | 'blocked' | 'unknown';
@@ -74,6 +79,10 @@ export interface ReactionConsiderationTrace {
 	weight: number;
 	appliedWeight: number;
 	summary: string;
+	/** A33 diagnostics for salience-gated memory considerations. */
+	strongestMemoryId?: EntityId;
+	strongestMemorySalience?: number;
+	minimumSalience?: number;
 }
 
 export interface ReactionCandidateEvaluation {
@@ -109,7 +118,13 @@ function considerationIsStructurallyValid(
 		case 'knows-claim':
 			return Boolean(consideration.claimId);
 		case 'memory-tag':
-			return Boolean(consideration.tag?.trim());
+			return (
+				Boolean(consideration.tag?.trim()) &&
+				(consideration.minimumSalience === undefined ||
+					(Number.isFinite(consideration.minimumSalience) &&
+						consideration.minimumSalience >= 0 &&
+						consideration.minimumSalience <= 1))
+			);
 		case 'story-node-state':
 			return Boolean(consideration.storyNodeId);
 		default:
@@ -170,6 +185,10 @@ export function reactionCandidateSetIsStructurallyValid(
 	return true;
 }
 
+function formatSalience(value: number) {
+	return value.toFixed(3);
+}
+
 function traceConsideration(
 	set: ReactionCandidateSetDefinition,
 	consideration: ReactionConsiderationDefinition,
@@ -177,6 +196,9 @@ function traceConsideration(
 ): ReactionConsiderationTrace {
 	let status: NarrativeConditionStatus = 'unknown';
 	let summary = 'Недостаточно данных.';
+	let strongestMemoryId: EntityId | undefined;
+	let strongestMemorySalience: number | undefined;
+	let minimumSalience: number | undefined;
 
 	switch (consideration.type) {
 		case 'mood-is': {
@@ -231,10 +253,41 @@ function traceConsideration(
 					memory.characterId === set.reactingCharacterId &&
 					memory.tags.includes(consideration.tag)
 			);
-			status = matchingMemories.length > 0 ? 'met' : 'unmet';
-			summary = matchingMemories.length > 0
-				? `Найдено воспоминаний с тегом «${consideration.tag}»: ${matchingMemories.length}.`
-				: `Нет воспоминаний с тегом «${consideration.tag}».`;
+			minimumSalience = consideration.minimumSalience;
+			if (matchingMemories.length === 0) {
+				status = 'unmet';
+				summary = `Нет воспоминаний с тегом «${consideration.tag}».`;
+				break;
+			}
+			if (minimumSalience === undefined) {
+				status = 'met';
+				summary = `Найдено воспоминаний с тегом «${consideration.tag}»: ${matchingMemories.length}.`;
+				break;
+			}
+			if (!context.memoryMoment) {
+				status = 'unknown';
+				summary = `Для тега «${consideration.tag}» задан порог salience ${formatSalience(
+					minimumSalience
+				)}, но момент Simulation Playhead не передан.`;
+				break;
+			}
+			const rankedMemories = matchingMemories
+				.map(memory => ({
+					memory,
+					trace: memorySalienceAt(memory, context.memoryMoment!)
+				}))
+				.sort(
+					(a, b) =>
+						b.trace.salience - a.trace.salience ||
+						a.memory.id.localeCompare(b.memory.id)
+				);
+			const strongest = rankedMemories[0];
+			strongestMemoryId = strongest.memory.id;
+			strongestMemorySalience = strongest.trace.salience;
+			status = strongest.trace.salience >= minimumSalience ? 'met' : 'unmet';
+			summary = `Memory «${strongest.memory.id}» с тегом «${consideration.tag}»: salience ${formatSalience(
+				strongest.trace.salience
+			)}; порог ${formatSalience(minimumSalience)}; совпадений ${matchingMemories.length}.`;
 			break;
 		}
 		case 'story-node-state': {
@@ -257,15 +310,19 @@ function traceConsideration(
 		status,
 		weight: consideration.weight,
 		appliedWeight: status === 'met' ? consideration.weight : 0,
-		summary
+		summary,
+		strongestMemoryId,
+		strongestMemorySalience,
+		minimumSalience
 	};
 }
 
 /**
- * Pure A28 ranking. The candidate list is authored and may contain any number
+ * Pure A28/A33 ranking. The candidate list is authored and may contain any number
  * of reactions; positive/neutral/negative are labels, not a fixed three-state
  * machine. Guards control eligibility, while considerations only explainably
- * adjust score. No candidate is executed automatically here.
+ * adjust score. A33 may derive current memory salience from an explicit Simulation
+ * Playhead moment. No candidate is executed automatically here.
  */
 export function evaluateReactionCandidateSet(
 	set: ReactionCandidateSetDefinition,
