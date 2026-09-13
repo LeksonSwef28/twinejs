@@ -13,8 +13,15 @@ import {
 	ObjectiveFactDefinition
 } from './knowledge';
 import {ReactionCandidateSetDefinition} from './reaction';
+import {
+	NarrativeRuntimeOccurrence
+} from './runtime-story';
 import {BehaviorProfile, RoutineRule, ScheduleException} from './schedule';
-import {StoryConnectionDefinition, StoryNodeDefinition} from './story';
+import {
+	StoryConnectionDefinition,
+	StoryNodeActivationState,
+	StoryNodeDefinition
+} from './story';
 import {NarrativeProjectTemplate} from './template';
 
 export const narrativeProjectSchemaVersion = 2;
@@ -68,6 +75,10 @@ export interface NarrativeProject {
 	injuriesByCharacter: Record<string, InjuryState[]>;
 	/** Runtime overlay on canonical authored ItemInstance placement. */
 	itemPlacementOverrides: Record<string, ItemRuntimePlacement>;
+	/** A41 runtime activation/consumption state. Authored StoryNode state is never rewritten by play. */
+	storyNodeStateOverrides: Record<string, StoryNodeActivationState>;
+	/** A41 append-only provenance for outcomes that actually occurred in simulation. */
+	runtimeOccurrences: NarrativeRuntimeOccurrence[];
 	editor: NarrativeEditorState;
 	simulation: NarrativeSimulationState;
 }
