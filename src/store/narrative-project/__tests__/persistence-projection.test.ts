@@ -12,7 +12,7 @@ import {createLocalStorageNarrativeProjectRepository} from '../repository';
 const hostStoryId = 'projection-split';
 const storageKey = `twine:narrative-project:v${narrativeProjectSchemaVersion}:${hostStoryId}`;
 
-describe('A35/A38 persistence projections', () => {
+describe('A35/A38/A41 persistence projections', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 	});
@@ -51,6 +51,18 @@ describe('A35/A38 persistence projections', () => {
 				relatedEntityIds: ['story-a']
 			}
 		];
+		project.storyNodeStateOverrides = {'story-a': 'completed'};
+		project.runtimeOccurrences = [
+			{
+				id: 'occurrence:move-a:done:4:600:1',
+				type: 'move-outcome',
+				storyNodeId: 'story-a',
+				moveId: 'move-a',
+				outcomeId: 'done',
+				effectIds: ['effect-story'],
+				moment: {day: 4, minuteOfDay: 600}
+			}
+		];
 
 		const repository = createLocalStorageNarrativeProjectRepository(
 			hostStoryId,
@@ -66,10 +78,14 @@ describe('A35/A38 persistence projections', () => {
 		expect(raw.authored.simulation).toBeUndefined();
 		expect(raw.authored.memories).toBeUndefined();
 		expect(raw.authored.bodyByCharacter).toBeUndefined();
+		expect(raw.authored.storyNodeStateOverrides).toBeUndefined();
+		expect(raw.authored.runtimeOccurrences).toBeUndefined();
 		expect(raw.editor.selectedDay).toBe(7);
 		expect(raw.runtime.simulation.day).toBe(4);
 		expect(raw.runtime.simulation.bodyByCharacter.player.sleepDebtMinutes).toBe(45);
 		expect(raw.runtime.memories).toHaveLength(1);
+		expect(raw.runtime.storyNodeStateOverrides).toEqual({'story-a': 'completed'});
+		expect(raw.runtime.runtimeOccurrences).toHaveLength(1);
 	});
 
 	test('loads legacy flat schema-v2 data and rewrites it into the projection envelope', () => {
@@ -96,24 +112,28 @@ describe('A35/A38 persistence projections', () => {
 		expect(isNarrativeProjectPersistenceEnvelope(rewritten)).toBe(true);
 	});
 
-	test('hydrates old schema-v2 data without body state as an empty runtime body map', () => {
+	test('hydrates old schema-v2 data without body or A41 Story runtime state as safe empty runtime values', () => {
 		const project = createNarrativeProject(
 			hostStoryId,
-			'Pre body v2',
+			'Pre body/A41 v2',
 			ninetyThreeDaysTemplate
 		);
 		const legacy = JSON.parse(JSON.stringify(project));
 		delete legacy.simulation.bodyByCharacter;
+		delete legacy.storyNodeStateOverrides;
+		delete legacy.runtimeOccurrences;
 		window.localStorage.setItem(storageKey, JSON.stringify(legacy));
 
 		const repository = createLocalStorageNarrativeProjectRepository(
 			hostStoryId,
-			'Pre body v2',
+			'Pre body/A41 v2',
 			ninetyThreeDaysTemplate
 		);
 		const loaded = repository.load();
 
 		expect(loaded.simulation.bodyByCharacter).toEqual({});
+		expect(loaded.storyNodeStateOverrides).toEqual({});
+		expect(loaded.runtimeOccurrences).toEqual([]);
 	});
 
 	test('rejects malformed runtime collections without discarding authored data', () => {
@@ -136,6 +156,10 @@ describe('A35/A38 persistence projections', () => {
 		envelope.runtime.relationships = [{fromCharacterId: 'a'}];
 		envelope.runtime.pendingReactions = [{id: 'broken-reaction'}];
 		envelope.runtime.mindStates = [{characterId: 'katya'}];
+		envelope.runtime.storyNodeStateOverrides = {
+			'authored-story': 'not-a-state'
+		};
+		envelope.runtime.runtimeOccurrences = [{id: 'broken-occurrence'}];
 		envelope.runtime.simulation = {
 			day: 0,
 			minuteOfDay: 9000,
@@ -163,6 +187,8 @@ describe('A35/A38 persistence projections', () => {
 		expect(loaded.relationships).toEqual([]);
 		expect(loaded.pendingReactions).toEqual([]);
 		expect(loaded.mindStates).toEqual([]);
+		expect(loaded.storyNodeStateOverrides).toEqual({});
+		expect(loaded.runtimeOccurrences).toEqual([]);
 		expect(loaded.simulation.day).toBe(fresh.simulation.day);
 		expect(loaded.simulation.minuteOfDay).toBe(fresh.simulation.minuteOfDay);
 		expect(loaded.simulation.activeBehaviorProfileByCharacter).toEqual({});
@@ -190,6 +216,18 @@ describe('A35/A38 persistence projections', () => {
 		const authoredBefore = JSON.stringify(envelope.authored);
 
 		envelope.runtime.memories = [];
+		envelope.runtime.storyNodeStateOverrides = {'story-stable': 'completed'};
+		envelope.runtime.runtimeOccurrences = [
+			{
+				id: 'occurrence:move:outcome:22:1234:1',
+				type: 'move-outcome',
+				storyNodeId: 'story-stable',
+				moveId: 'move',
+				outcomeId: 'outcome',
+				effectIds: [],
+				moment: {day: 22, minuteOfDay: 1234}
+			}
+		];
 		envelope.runtime.simulation = {
 			...envelope.runtime.simulation,
 			day: 22,
@@ -201,5 +239,6 @@ describe('A35/A38 persistence projections', () => {
 
 		expect(JSON.stringify(envelope.authored)).toBe(authoredBefore);
 		expect(envelope.authored.storyNodes[0].id).toBe('story-stable');
+		expect(envelope.authored.storyNodes[0].activationState).toBe('draft');
 	});
 });
