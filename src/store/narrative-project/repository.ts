@@ -5,6 +5,7 @@ import {
 	PendingReaction,
 	RelationshipState
 } from '../../domain/narrative/cognition';
+import {InjuryState, injuryStateIsValid} from '../../domain/narrative/injury';
 import {
 	NarrativeMoveDefinition,
 	narrativeMoveIsStructurallyValid
@@ -13,6 +14,10 @@ import {
 	InteractionTemplateDefinition,
 	interactionTemplateIsStructurallyValid
 } from '../../domain/narrative/interaction-template';
+import {
+	ItemRuntimePlacement,
+	itemRuntimePlacementIsValid
+} from '../../domain/narrative/items';
 import {
 	CharacterKnowledgeState,
 	knowledgeConfidenceIsValid
@@ -82,6 +87,39 @@ function hydrateBodyStateRecord(
 				: []
 		)
 	) as Record<string, CharacterBodyState>;
+}
+
+function hydrateInjuryStateRecord(value: unknown): Record<string, InjuryState[]> {
+	if (!isRecord(value)) {
+		return {};
+	}
+	return Object.fromEntries(
+		Object.entries(value).flatMap(([characterId, injuries]) => {
+			if (!Array.isArray(injuries)) {
+				return [];
+			}
+			const hydrated = injuries.filter(
+				(injury): injury is InjuryState =>
+					injuryStateIsValid(injury) && injury.characterId === characterId
+			);
+			return hydrated.length === injuries.length
+				? [[characterId, hydrated]]
+				: [];
+		})
+	) as Record<string, InjuryState[]>;
+}
+
+function hydrateItemPlacementOverrides(
+	value: unknown
+): Record<string, ItemRuntimePlacement> {
+	if (!isRecord(value)) {
+		return {};
+	}
+	return Object.fromEntries(
+		Object.entries(value).filter(([, placement]) =>
+			itemRuntimePlacementIsValid(placement)
+		)
+	) as Record<string, ItemRuntimePlacement>;
 }
 
 function hydrateMemories(value: unknown): MemoryTrace[] {
@@ -369,6 +407,10 @@ function hydrateSchemaV2(
 		relationships: hydrateRelationships(saved.relationships),
 		pendingReactions: hydratePendingReactions(saved.pendingReactions),
 		mindStates: hydrateMindStates(saved.mindStates),
+		injuriesByCharacter: hydrateInjuryStateRecord(saved.injuriesByCharacter),
+		itemPlacementOverrides: hydrateItemPlacementOverrides(
+			saved.itemPlacementOverrides
+		),
 		editor: {
 			...fresh.editor,
 			...savedEditor,
@@ -445,6 +487,8 @@ function migrateSchemaV1(
 		relationships: hydrateRelationships(legacy.relationships),
 		pendingReactions: hydratePendingReactions(legacy.pendingReactions),
 		mindStates: hydrateMindStates(legacy.mindStates),
+		injuriesByCharacter: {},
+		itemPlacementOverrides: {},
 		editor: {
 			...fresh.editor,
 			...legacyEditor,
