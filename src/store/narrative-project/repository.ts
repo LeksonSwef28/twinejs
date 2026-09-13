@@ -33,8 +33,14 @@ import {
 	reactionCandidateSetIsStructurallyValid
 } from '../../domain/narrative/reaction';
 import {
+	NarrativeRuntimeOccurrence,
+	narrativeRuntimeOccurrenceIsValid,
+	storyNodeActivationStateIsValid
+} from '../../domain/narrative/runtime-story';
+import {
 	StoryConnectionDefinition,
 	StoryEdgeMode,
+	StoryNodeActivationState,
 	storyConnectionKindCanExecute
 } from '../../domain/narrative/story';
 import {NarrativeProjectTemplate} from '../../domain/narrative/template';
@@ -120,6 +126,25 @@ function hydrateItemPlacementOverrides(
 			itemRuntimePlacementIsValid(placement)
 		)
 	) as Record<string, ItemRuntimePlacement>;
+}
+
+function hydrateStoryNodeStateOverrides(
+	value: unknown
+): Record<string, StoryNodeActivationState> {
+	if (!isRecord(value)) {
+		return {};
+	}
+	return Object.fromEntries(
+		Object.entries(value).filter(([, state]) =>
+			storyNodeActivationStateIsValid(state)
+		)
+	) as Record<string, StoryNodeActivationState>;
+}
+
+function hydrateRuntimeOccurrences(value: unknown): NarrativeRuntimeOccurrence[] {
+	return Array.isArray(value)
+		? value.filter(narrativeRuntimeOccurrenceIsValid)
+		: [];
 }
 
 function hydrateMemories(value: unknown): MemoryTrace[] {
@@ -411,6 +436,10 @@ function hydrateSchemaV2(
 		itemPlacementOverrides: hydrateItemPlacementOverrides(
 			saved.itemPlacementOverrides
 		),
+		storyNodeStateOverrides: hydrateStoryNodeStateOverrides(
+			saved.storyNodeStateOverrides
+		),
+		runtimeOccurrences: hydrateRuntimeOccurrences(saved.runtimeOccurrences),
 		editor: {
 			...fresh.editor,
 			...savedEditor,
@@ -489,6 +518,8 @@ function migrateSchemaV1(
 		mindStates: hydrateMindStates(legacy.mindStates),
 		injuriesByCharacter: {},
 		itemPlacementOverrides: {},
+		storyNodeStateOverrides: {},
+		runtimeOccurrences: [],
 		editor: {
 			...fresh.editor,
 			...legacyEditor,
