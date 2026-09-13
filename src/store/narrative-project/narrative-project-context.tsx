@@ -14,6 +14,12 @@ export type NarrativeSaveStatus = 'saved' | 'saving' | 'error';
 export interface NarrativeProjectContextValue {
 	project: NarrativeProject;
 	execute(command: NarrativeProjectCommand): void;
+	/**
+	 * Replaces only the current runtime aggregate from an explicit simulation
+	 * operation. Runtime updates are persisted, but never become authoring undo
+	 * entries and never update authored `updatedAt` by themselves.
+	 */
+	replaceRuntimeProject(project: NarrativeProject): void;
 	undo(): void;
 	redo(): void;
 	canUndo: boolean;
@@ -29,6 +35,30 @@ const NarrativeProjectContext = React.createContext<
 export interface NarrativeProjectProviderProps {
 	hostStoryId: string;
 	projectName: string;
+}
+
+/**
+ * Authoring Undo/Redo owns authored/editor snapshots only. A running playtest is
+ * an independent timeline, so restoring an authoring snapshot must keep the
+ * current runtime projection instead of time-travelling the simulation.
+ */
+function keepCurrentRuntime(
+	authoredSnapshot: NarrativeProject,
+	current: NarrativeProject
+): NarrativeProject {
+	return {
+		...authoredSnapshot,
+		memories: current.memories,
+		relationships: current.relationships,
+		pendingReactions: current.pendingReactions,
+		mindStates: current.mindStates,
+		injuriesByCharacter: current.injuriesByCharacter,
+		itemPlacementOverrides: current.itemPlacementOverrides,
+		storyNodeStateOverrides: current.storyNodeStateOverrides,
+		runtimeOccurrences: current.runtimeOccurrences,
+		activeStoryExecutions: current.activeStoryExecutions,
+		simulation: current.simulation
+	};
 }
 
 export const NarrativeProjectProvider: React.FC<
@@ -47,17 +77,18 @@ export const NarrativeProjectProvider: React.FC<
 		() => ({past: [], present: repository.load(), future: []}),
 		[repository]
 	);
-	const [state, dispatch] = React.useReducer(
-		narrativeProjectHistoryReducer,
-		initialState
-	);
+	const [state, setState] = React.useState(initialState);
 	const [saveStatus, setSaveStatus] =
 		React.useState<NarrativeSaveStatus>('saved');
 
 	React.useEffect(() => {
+		setState({past: [], present: repository.load(), future: []});
+	}, [repository]);
+
+	React.useEffect(() => {
 		setSaveStatus('saving');
-		// Pan/zoom can dispatch many lightweight editor-state updates. A slightly
-		// longer debounce avoids serializing the whole project for every mouse move.
+		// Pan/zoom and playtest stepping can dispatch many lightweight updates. A
+		// debounce avoids serializing the whole project for every small change.
 		const timeout = window.setTimeout(() => {
 			try {
 				repository.save(state.present);
@@ -70,18 +101,44 @@ export const NarrativeProjectProvider: React.FC<
 		return () => window.clearTimeout(timeout);
 	}, [repository, state.present]);
 
-	const execute = React.useCallback(
-		(command: NarrativeProjectCommand) =>
-			dispatch({type: 'execute', command}),
-		[]
-	);
-	const undo = React.useCallback(() => dispatch({type: 'undo'}), []);
-	const redo = React.useCallback(() => dispatch({type: 'redo'}), []);
+	const execute = React.useCallback((command: NarrativeProjectCommand) => {
+		setState(current =>
+			narrativeProjectHistoryReducer(current, {type: 'execute', command})
+		);
+	}, []);
+	const replaceRuntimeProject = React.useCallback((project: NarrativeProject) => {
+		setState(current =>
+			project === current.present ? current : {...current, present: project}
+		);
+	}, []);
+	const undo = React.useCallback(() => {
+		setState(current => {
+			const restored = narrativeProjectHistoryReducer(current, {type: 'undo'});
+			return restored === current
+				? current
+				: {
+						...restored,
+						present: keepCurrentRuntime(restored.present, current.present)
+				  };
+		});
+	}, []);
+	const redo = React.useCallback(() => {
+		setState(current => {
+			const restored = narrativeProjectHistoryReducer(current, {type: 'redo'});
+			return restored === current
+				? current
+				: {
+						...restored,
+						present: keepCurrentRuntime(restored.present, current.present)
+				  };
+		});
+	}, []);
 
 	const value = React.useMemo<NarrativeProjectContextValue>(
 		() => ({
 			project: state.present,
 			execute,
+			replaceRuntimeProject,
 			undo,
 			redo,
 			canUndo: state.past.length > 0,
@@ -89,7 +146,7 @@ export const NarrativeProjectProvider: React.FC<
 			saveStatus,
 			createId: createNarrativeId
 		}),
-		[state, execute, undo, redo, saveStatus]
+		[state, execute, replaceRuntimeProject, undo, redo, saveStatus]
 	);
 
 	return (
