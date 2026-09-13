@@ -15,6 +15,10 @@ import {
 } from '../../domain/narrative/injury';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {
+	advanceActiveStoryExecutions,
+	StoryExecutionCompletionTrace
+} from '../../domain/narrative/runtime-execution';
+import {
 	scheduledStoryWork,
 	SimulationScheduledWork,
 	SimulationStepTrace,
@@ -27,6 +31,8 @@ export interface NarrativeProjectSimulationStepResult {
 	trace: SimulationStepTrace;
 	bodyTraces: BodyAdvanceTrace[];
 	injuryTraces: InjuryAdvanceTrace[];
+	/** A42 only completes work that was explicitly started before the clock step. */
+	storyExecutionTraces: StoryExecutionCompletionTrace[];
 }
 
 export interface NarrativeProjectBodyEffectResult {
@@ -67,10 +73,10 @@ function injuryRuntimeForCharacters(project: NarrativeProject) {
 }
 
 /**
- * Project-level A37-A39 orchestrator. Exact authored Story placements become
- * declarative due-work, while needs and injuries advance by the minutes
- * actually applied by the Simulation Playhead. Authoring/editor data and
- * authored `updatedAt` remain untouched by runtime time flow.
+ * Project-level A37-A42 orchestrator. Exact authored Story placements become
+ * declarative due-work. The clock never starts Story work; A42 only completes
+ * executions that were explicitly started beforehand. Needs and injuries use
+ * the same applied Simulation Playhead minutes.
  */
 export function advanceNarrativeProjectSimulation(
 	project: NarrativeProject,
@@ -99,11 +105,20 @@ export function advanceNarrativeProjectSimulation(
 		step.trace.appliedMinutes,
 		sleepMinutesByCharacter
 	);
+	const storyExecutionAdvance = advanceActiveStoryExecutions(
+		project.activeStoryExecutions,
+		project.runtimeOccurrences,
+		project.storyNodeStateOverrides,
+		step.trace.to
+	);
 
 	return {
 		project: {
 			...project,
 			injuriesByCharacter: injuryAdvance.states,
+			activeStoryExecutions: storyExecutionAdvance.activeExecutions,
+			runtimeOccurrences: storyExecutionAdvance.runtimeOccurrences,
+			storyNodeStateOverrides: storyExecutionAdvance.storyNodeStateOverrides,
 			simulation: {
 				...step.state,
 				bodyByCharacter: bodyAdvance.states
@@ -112,7 +127,8 @@ export function advanceNarrativeProjectSimulation(
 		dueWork: step.dueWork,
 		trace: step.trace,
 		bodyTraces: bodyAdvance.traces,
-		injuryTraces: injuryAdvance.traces
+		injuryTraces: injuryAdvance.traces,
+		storyExecutionTraces: storyExecutionAdvance.completionTraces
 	};
 }
 
