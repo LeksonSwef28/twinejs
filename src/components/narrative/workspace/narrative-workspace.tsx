@@ -238,7 +238,7 @@ export const NarrativeWorkspace: React.FC = () => {
 							<strong>World / Time</strong>
 							<small>same view cursor, simulation unchanged</small>
 						</div>
-						<WorldTimeWorkspace splitView />
+						<WorldTimeWorkspace />
 					</div>
 				</div>
 			) : (
