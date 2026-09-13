@@ -63,7 +63,7 @@ export function evaluateNarrativePhysicalAction(
 		action === 'run' ? 'run' : action === 'fast-run' ? 'fast-run' : 'normal';
 	const bodyEvaluation = evaluateBodyAction(body, bodyAction);
 	const injuryEvaluation = evaluateInjuryAction(
-		project.simulation.injuriesByCharacter[characterId] ?? [],
+		project.injuriesByCharacter[characterId] ?? [],
 		action
 	);
 	const carryEvaluation = evaluateCarryingAction(
@@ -71,7 +71,7 @@ export function evaluateNarrativePhysicalAction(
 			characterId,
 			project.itemDefinitions,
 			project.itemInstances,
-			project.simulation.itemPlacementOverrides
+			project.itemPlacementOverrides
 		),
 		action
 	);
@@ -157,7 +157,7 @@ export function applyNarrativeItemRuntimePlacement(
 			placement.characterId,
 			project.itemDefinitions,
 			project.itemInstances,
-			project.simulation.itemPlacementOverrides
+			project.itemPlacementOverrides
 		);
 		blockers.push(...packing.blockers.map(blocker => blocker.message));
 	}
@@ -167,7 +167,7 @@ export function applyNarrativeItemRuntimePlacement(
 			placement.containerInstanceId,
 			project.itemDefinitions,
 			project.itemInstances,
-			project.simulation.itemPlacementOverrides
+			project.itemPlacementOverrides
 		);
 		blockers.push(...packing.blockers.map(blocker => blocker.message));
 	}
@@ -177,14 +177,11 @@ export function applyNarrativeItemRuntimePlacement(
 	return {
 		project: {
 			...project,
-			simulation: {
-				...project.simulation,
-				itemPlacementOverrides: applyItemRuntimePlacement(
-					project.simulation.itemPlacementOverrides,
-					itemInstanceId,
-					placement
-				)
-			}
+			itemPlacementOverrides: applyItemRuntimePlacement(
+				project.itemPlacementOverrides,
+				itemInstanceId,
+				placement
+			)
 		},
 		applied: true,
 		blockers: [],
