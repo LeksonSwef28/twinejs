@@ -183,7 +183,10 @@ describe('A36/A38/A41 runtime snapshots', () => {
 		expect(restored.project.storyNodeStateOverrides['story-authored']).toBe(
 			'completed'
 		);
-		expect(restored.project.runtimeOccurrences[0].outcomeId).toBe('outcome-a');
+		const moveOutcome = restored.project.runtimeOccurrences.find(
+			occurrence => occurrence.type === 'move-outcome'
+		);
+		expect(moveOutcome?.outcomeId).toBe('outcome-a');
 
 		repository.clear();
 		expect(repository.load(withoutRuntime(source)).status).toBe('missing');
