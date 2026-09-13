@@ -1,3 +1,4 @@
+import {createCharacterBodyState} from '../../../domain/narrative/body';
 import {narrativeProjectSchemaVersion} from '../../../domain/narrative/project';
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
@@ -11,7 +12,7 @@ import {createLocalStorageNarrativeProjectRepository} from '../repository';
 const hostStoryId = 'projection-split';
 const storageKey = `twine:narrative-project:v${narrativeProjectSchemaVersion}:${hostStoryId}`;
 
-describe('A35 persistence projections', () => {
+describe('A35/A38 persistence projections', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 	});
@@ -33,6 +34,10 @@ describe('A35 persistence projections', () => {
 		];
 		project.editor.selectedDay = 7;
 		project.simulation.day = 4;
+		project.simulation.bodyByCharacter.player = createCharacterBodyState('player', {
+			fatigue: 0.6,
+			sleepDebtMinutes: 45
+		});
 		project.memories = [
 			{
 				id: 'memory-a',
@@ -60,8 +65,10 @@ describe('A35 persistence projections', () => {
 		expect(raw.authored.editor).toBeUndefined();
 		expect(raw.authored.simulation).toBeUndefined();
 		expect(raw.authored.memories).toBeUndefined();
+		expect(raw.authored.bodyByCharacter).toBeUndefined();
 		expect(raw.editor.selectedDay).toBe(7);
 		expect(raw.runtime.simulation.day).toBe(4);
+		expect(raw.runtime.simulation.bodyByCharacter.player.sleepDebtMinutes).toBe(45);
 		expect(raw.runtime.memories).toHaveLength(1);
 	});
 
@@ -89,6 +96,26 @@ describe('A35 persistence projections', () => {
 		expect(isNarrativeProjectPersistenceEnvelope(rewritten)).toBe(true);
 	});
 
+	test('hydrates old schema-v2 data without body state as an empty runtime body map', () => {
+		const project = createNarrativeProject(
+			hostStoryId,
+			'Pre body v2',
+			ninetyThreeDaysTemplate
+		);
+		const legacy = JSON.parse(JSON.stringify(project));
+		delete legacy.simulation.bodyByCharacter;
+		window.localStorage.setItem(storageKey, JSON.stringify(legacy));
+
+		const repository = createLocalStorageNarrativeProjectRepository(
+			hostStoryId,
+			'Pre body v2',
+			ninetyThreeDaysTemplate
+		);
+		const loaded = repository.load();
+
+		expect(loaded.simulation.bodyByCharacter).toEqual({});
+	});
+
 	test('rejects malformed runtime collections without discarding authored data', () => {
 		const project = createNarrativeProject(
 			hostStoryId,
@@ -114,7 +141,8 @@ describe('A35 persistence projections', () => {
 			minuteOfDay: 9000,
 			activeBehaviorProfileByCharacter: {katya: 123},
 			actualLocationByCharacter: {katya: false},
-			characterKnowledge: [{id: 'broken-knowledge'}]
+			characterKnowledge: [{id: 'broken-knowledge'}],
+			bodyByCharacter: {katya: {characterId: 'katya', fatigue: 99}}
 		};
 		window.localStorage.setItem(storageKey, JSON.stringify(envelope));
 
@@ -140,6 +168,7 @@ describe('A35 persistence projections', () => {
 		expect(loaded.simulation.activeBehaviorProfileByCharacter).toEqual({});
 		expect(loaded.simulation.actualLocationByCharacter).toEqual({});
 		expect(loaded.simulation.characterKnowledge).toEqual([]);
+		expect(loaded.simulation.bodyByCharacter).toEqual({});
 	});
 
 	test('runtime projection changes do not alter the authored projection', () => {
@@ -164,7 +193,10 @@ describe('A35 persistence projections', () => {
 		envelope.runtime.simulation = {
 			...envelope.runtime.simulation,
 			day: 22,
-			minuteOfDay: 1234
+			minuteOfDay: 1234,
+			bodyByCharacter: {
+				player: createCharacterBodyState('player', {fatigue: 1})
+			}
 		};
 
 		expect(JSON.stringify(envelope.authored)).toBe(authoredBefore);
