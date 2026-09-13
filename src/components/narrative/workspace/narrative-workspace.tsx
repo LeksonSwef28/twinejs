@@ -6,8 +6,10 @@ import {
 } from '../../../domain/narrative/calendar';
 import {NarrativeWorkspaceMode} from '../../../domain/narrative/project';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {InteractionTemplatePanel} from './interaction-template-panel';
 import {NarrativeMovePanel} from './narrative-move-panel';
 import {ProjectLibrary} from './project-library';
+import {ReactionCandidatesPanel} from './reaction-candidates-panel';
 import {StoryBrainPanel} from './story-brain-panel';
 import {StoryWorkspace} from './story-workspace';
 import {WorldTimeWorkspace} from './world-time-workspace';
@@ -206,6 +208,8 @@ export const NarrativeWorkspace: React.FC = () => {
 					<StoryWorkspace />
 					<StoryBrainPanel />
 					<NarrativeMovePanel />
+					<InteractionTemplatePanel />
+					<ReactionCandidatesPanel />
 				</>
 			) : (
 				<WorldTimeWorkspace />
