@@ -2,8 +2,16 @@ import {
 	NarrativeMoveDefinition,
 	narrativeMoveIsStructurallyValid
 } from '../../domain/narrative/interaction';
+import {
+	InteractionTemplateDefinition,
+	interactionTemplateIsStructurallyValid
+} from '../../domain/narrative/interaction-template';
 import {NarrativeProject, narrativeProjectSchemaVersion} from '../../domain/narrative/project';
 import {createNarrativeProject} from '../../domain/narrative/project-factory';
+import {
+	ReactionCandidateSetDefinition,
+	reactionCandidateSetIsStructurallyValid
+} from '../../domain/narrative/reaction';
 import {
 	StoryConnectionDefinition,
 	StoryEdgeMode,
@@ -99,6 +107,32 @@ function hydrateNarrativeMoves(value: unknown): NarrativeMoveDefinition[] {
 	});
 }
 
+function hydrateInteractionTemplates(value: unknown): InteractionTemplateDefinition[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value.flatMap(raw => {
+		if (!raw || typeof raw !== 'object') {
+			return [];
+		}
+		const candidate = raw as InteractionTemplateDefinition;
+		return interactionTemplateIsStructurallyValid(candidate) ? [candidate] : [];
+	});
+}
+
+function hydrateReactionCandidateSets(value: unknown): ReactionCandidateSetDefinition[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value.flatMap(raw => {
+		if (!raw || typeof raw !== 'object') {
+			return [];
+		}
+		const candidate = raw as ReactionCandidateSetDefinition;
+		return reactionCandidateSetIsStructurallyValid(candidate) ? [candidate] : [];
+	});
+}
+
 /**
  * Schema v2 intentionally grows during the Authoring MVP. Hydration supplies
  * newly introduced collections so a project saved by an earlier v2 patch does
@@ -142,6 +176,8 @@ function hydrateSchemaV2(
 			: [],
 		storyConnections: hydrateStoryConnections(saved.storyConnections),
 		narrativeMoves: hydrateNarrativeMoves(saved.narrativeMoves),
+		interactionTemplates: hydrateInteractionTemplates(saved.interactionTemplates),
+		reactionCandidateSets: hydrateReactionCandidateSets(saved.reactionCandidateSets),
 		editor: {
 			...fresh.editor,
 			...savedEditor,
@@ -218,6 +254,8 @@ function migrateSchemaV1(
 		storyNodes: [],
 		storyConnections: [],
 		narrativeMoves: [],
+		interactionTemplates: [],
+		reactionCandidateSets: [],
 		memories: legacy.memories ?? [],
 		relationships: legacy.relationships ?? [],
 		pendingReactions: legacy.pendingReactions ?? [],
