@@ -1,4 +1,10 @@
 import {
+	CharacterMindState,
+	MemoryTrace,
+	PendingReaction,
+	RelationshipState
+} from '../../domain/narrative/cognition';
+import {
 	NarrativeMoveDefinition,
 	narrativeMoveIsStructurallyValid
 } from '../../domain/narrative/interaction';
@@ -6,7 +12,15 @@ import {
 	InteractionTemplateDefinition,
 	interactionTemplateIsStructurallyValid
 } from '../../domain/narrative/interaction-template';
-import {NarrativeProject, narrativeProjectSchemaVersion} from '../../domain/narrative/project';
+import {
+	CharacterKnowledgeState,
+	knowledgeConfidenceIsValid
+} from '../../domain/narrative/knowledge';
+import {
+	NarrativeProject,
+	NarrativeSimulationState,
+	narrativeProjectSchemaVersion
+} from '../../domain/narrative/project';
 import {createNarrativeProject} from '../../domain/narrative/project-factory';
 import {
 	ReactionCandidateSetDefinition,
@@ -18,6 +32,11 @@ import {
 	storyConnectionKindCanExecute
 } from '../../domain/narrative/story';
 import {NarrativeProjectTemplate} from '../../domain/narrative/template';
+import {
+	composeNarrativeProjectPersistence,
+	isNarrativeProjectPersistenceEnvelope,
+	projectNarrativePersistence
+} from './persistence-projection';
 
 export interface NarrativeProjectRepository {
 	load(): NarrativeProject;
@@ -27,6 +46,157 @@ export interface NarrativeProjectRepository {
 type PersistedStoryConnection = Omit<StoryConnectionDefinition, 'mode'> & {
 	mode?: StoryEdgeMode;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function isStringArray(value: unknown): value is string[] {
+	return Array.isArray(value) && value.every(item => typeof item === 'string');
+}
+
+function finiteNumber(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
+function hydrateStringRecord(value: unknown): Record<string, string> {
+	if (!isRecord(value)) {
+		return {};
+	}
+	return Object.fromEntries(
+		Object.entries(value).filter(([, entry]) => typeof entry === 'string')
+	) as Record<string, string>;
+}
+
+function hydrateMemories(value: unknown): MemoryTrace[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value.filter((raw): raw is MemoryTrace => {
+		if (!isRecord(raw)) {
+			return false;
+		}
+		return (
+			typeof raw.id === 'string' &&
+			typeof raw.characterId === 'string' &&
+			typeof raw.summary === 'string' &&
+			Number.isInteger(raw.createdAtDay) &&
+			finiteNumber(raw.createdAtMinute) &&
+			finiteNumber(raw.importance) &&
+			raw.importance >= 0 &&
+			raw.importance <= 1 &&
+			finiteNumber(raw.baseStrength) &&
+			raw.baseStrength >= 0 &&
+			raw.baseStrength <= 1 &&
+			isStringArray(raw.tags) &&
+			isStringArray(raw.relatedEntityIds)
+		);
+	});
+}
+
+function hydrateRelationships(value: unknown): RelationshipState[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value.filter((raw): raw is RelationshipState => {
+		if (!isRecord(raw) || !isRecord(raw.values)) {
+			return false;
+		}
+		return (
+			typeof raw.fromCharacterId === 'string' &&
+			typeof raw.toCharacterId === 'string' &&
+			Object.values(raw.values).every(finiteNumber)
+		);
+	});
+}
+
+function hydratePendingReactions(value: unknown): PendingReaction[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value.filter((raw): raw is PendingReaction => {
+		if (!isRecord(raw)) {
+			return false;
+		}
+		return (
+			typeof raw.id === 'string' &&
+			typeof raw.characterId === 'string' &&
+			typeof raw.reactionType === 'string' &&
+			finiteNumber(raw.priority) &&
+			isStringArray(raw.conditions)
+		);
+	});
+}
+
+function hydrateMindStates(value: unknown): CharacterMindState[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value.filter((raw): raw is CharacterMindState => {
+		if (!isRecord(raw)) {
+			return false;
+		}
+		return (
+			typeof raw.characterId === 'string' &&
+			(raw.mood === undefined || typeof raw.mood === 'string') &&
+			isStringArray(raw.activeMemoryIds) &&
+			isStringArray(raw.pendingReactionIds)
+		);
+	});
+}
+
+function hydrateCharacterKnowledge(value: unknown): CharacterKnowledgeState[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	const attitudes = new Set(['knows', 'believes', 'doubts', 'disbelieves']);
+	return value.filter((raw): raw is CharacterKnowledgeState => {
+		if (!isRecord(raw)) {
+			return false;
+		}
+		return (
+			typeof raw.id === 'string' &&
+			typeof raw.characterId === 'string' &&
+			typeof raw.claimId === 'string' &&
+			typeof raw.attitude === 'string' &&
+			attitudes.has(raw.attitude) &&
+			finiteNumber(raw.confidence) &&
+			knowledgeConfidenceIsValid(raw.confidence) &&
+			isRecord(raw.source) &&
+			Number.isInteger(raw.timesHeard) &&
+			raw.timesHeard >= 0
+		);
+	});
+}
+
+function hydrateSimulation(
+	value: unknown,
+	fallback: NarrativeSimulationState
+): NarrativeSimulationState {
+	if (!isRecord(value)) {
+		return fallback;
+	}
+	const day =
+		Number.isInteger(value.day) && (value.day as number) >= 1
+			? (value.day as number)
+			: fallback.day;
+	const minuteOfDay =
+		Number.isInteger(value.minuteOfDay) &&
+		(value.minuteOfDay as number) >= 0 &&
+		(value.minuteOfDay as number) < 24 * 60
+			? (value.minuteOfDay as number)
+			: fallback.minuteOfDay;
+
+	return {
+		day,
+		minuteOfDay,
+		activeBehaviorProfileByCharacter: hydrateStringRecord(
+			value.activeBehaviorProfileByCharacter
+		),
+		actualLocationByCharacter: hydrateStringRecord(value.actualLocationByCharacter),
+		characterKnowledge: hydrateCharacterKnowledge(value.characterKnowledge)
+	};
+}
 
 function looksLikeSchemaV2(value: unknown) {
 	if (!value || typeof value !== 'object') {
@@ -159,7 +329,6 @@ function hydrateSchemaV2(
 	const savedCanvas = savedEditor.storyCanvas;
 	const freshWorldTime = fresh.editor.worldTimeViewport!;
 	const savedWorldTime = savedEditor.worldTimeViewport;
-	const savedSimulation = saved.simulation ?? fresh.simulation;
 
 	return {
 		...fresh,
@@ -178,6 +347,10 @@ function hydrateSchemaV2(
 		narrativeMoves: hydrateNarrativeMoves(saved.narrativeMoves),
 		interactionTemplates: hydrateInteractionTemplates(saved.interactionTemplates),
 		reactionCandidateSets: hydrateReactionCandidateSets(saved.reactionCandidateSets),
+		memories: hydrateMemories(saved.memories),
+		relationships: hydrateRelationships(saved.relationships),
+		pendingReactions: hydratePendingReactions(saved.pendingReactions),
+		mindStates: hydrateMindStates(saved.mindStates),
 		editor: {
 			...fresh.editor,
 			...savedEditor,
@@ -196,13 +369,7 @@ function hydrateSchemaV2(
 				)
 			}
 		},
-		simulation: {
-			...fresh.simulation,
-			...savedSimulation,
-			characterKnowledge: Array.isArray(savedSimulation.characterKnowledge)
-				? savedSimulation.characterKnowledge
-				: []
-		}
+		simulation: hydrateSimulation(saved.simulation, fresh.simulation)
 	};
 }
 
@@ -256,10 +423,10 @@ function migrateSchemaV1(
 		narrativeMoves: [],
 		interactionTemplates: [],
 		reactionCandidateSets: [],
-		memories: legacy.memories ?? [],
-		relationships: legacy.relationships ?? [],
-		pendingReactions: legacy.pendingReactions ?? [],
-		mindStates: legacy.mindStates ?? [],
+		memories: hydrateMemories(legacy.memories),
+		relationships: hydrateRelationships(legacy.relationships),
+		pendingReactions: hydratePendingReactions(legacy.pendingReactions),
+		mindStates: hydrateMindStates(legacy.mindStates),
 		editor: {
 			...fresh.editor,
 			...legacyEditor,
@@ -279,8 +446,7 @@ function migrateSchemaV1(
 			}
 		},
 		simulation: {
-			...fresh.simulation,
-			...legacySimulation,
+			...hydrateSimulation(legacySimulation, fresh.simulation),
 			characterKnowledge: []
 		}
 	};
@@ -303,13 +469,23 @@ export function createLocalStorageNarrativeProjectRepository(
 			try {
 				const saved = window.localStorage.getItem(key);
 				if (saved) {
+					const parsed: unknown = JSON.parse(saved);
+					const projected = isNarrativeProjectPersistenceEnvelope(parsed)
+						? composeNarrativeProjectPersistence(parsed)
+						: parsed;
 					const hydrated = hydrateSchemaV2(
-						JSON.parse(saved),
+						projected,
 						hostStoryId,
 						projectName,
 						template
 					);
 					if (hydrated) {
+						if (!isNarrativeProjectPersistenceEnvelope(parsed)) {
+							window.localStorage.setItem(
+								key,
+								JSON.stringify(projectNarrativePersistence(hydrated))
+							);
+						}
 						return hydrated;
 					}
 				}
@@ -323,7 +499,10 @@ export function createLocalStorageNarrativeProjectRepository(
 						template
 					);
 					if (migrated) {
-						window.localStorage.setItem(key, JSON.stringify(migrated));
+						window.localStorage.setItem(
+							key,
+							JSON.stringify(projectNarrativePersistence(migrated))
+						);
 						return migrated;
 					}
 				}
@@ -335,7 +514,10 @@ export function createLocalStorageNarrativeProjectRepository(
 		},
 		save(project) {
 			if (typeof window !== 'undefined') {
-				window.localStorage.setItem(key, JSON.stringify(project));
+				window.localStorage.setItem(
+					key,
+					JSON.stringify(projectNarrativePersistence(project))
+				);
 			}
 		}
 	};
