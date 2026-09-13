@@ -63,6 +63,10 @@ function entityLabel(project: NarrativeProject, entity: StoryBrainEntityRef) {
 	}
 }
 
+function storyNodeLabel(project: NarrativeProject, storyNodeId: string) {
+	return project.storyNodes.find(node => node.id === storyNodeId)?.title ?? storyNodeId;
+}
+
 export const StoryBrainPanel: React.FC = () => {
 	const {project} = useNarrativeProject();
 	const [selectedFocus, setSelectedFocus] = React.useState('');
@@ -97,7 +101,7 @@ export const StoryBrainPanel: React.FC = () => {
 			<header className="narrative-workspace__story-brain-header">
 				<div>
 					<span>STORY BRAIN</span>
-					<h2>Focus · Impact · Why</h2>
+					<h2>Focus · Impact · Why · Coverage · Bridges</h2>
 				</div>
 				<small>read-only analysis</small>
 			</header>
@@ -222,11 +226,64 @@ export const StoryBrainPanel: React.FC = () => {
 							<small>Для этого Focus пока нет связанных Narrative Moves.</small>
 						)}
 					</article>
+
+					<article className="narrative-workspace__story-brain-coverage">
+						<h3>COVERAGE</h3>
+						<p>
+							Ищет пустые исходы, асимметрию веток и места, где исполняемая
+							 линия заканчивается раньше ожидаемого.
+						</p>
+						{result.coverage.findings.length > 0 ? (
+							<ul className="narrative-workspace__story-brain-finding-list">
+								{result.coverage.findings.slice(0, 8).map(finding => (
+									<li key={finding.id} data-severity={finding.severity}>
+										<span>{finding.severity === 'warning' ? '⚠' : '•'}</span>
+										<div>
+											<strong>{finding.summary}</strong>
+											<small>{finding.kind}</small>
+										</div>
+									</li>
+								))}
+							</ul>
+						) : (
+							<small>В выбранном контексте Coverage-проблем не найдено.</small>
+						)}
+						<small>
+							Всего диагностик по проекту: {result.coverage.projectFindingCount}.
+						</small>
+					</article>
+
+					<article className="narrative-workspace__story-brain-bridges">
+						<h3>BRIDGES</h3>
+						<p>
+							Предлагает только уже существующий материал проекта. Ничего не
+							 создаётся и не соединяется автоматически.
+						</p>
+						{result.bridges.candidates.length > 0 ? (
+							<ul className="narrative-workspace__story-brain-bridge-list">
+								{result.bridges.candidates.map(candidate => (
+									<li key={candidate.storyNodeId}>
+										<div className="narrative-workspace__story-brain-bridge-heading">
+											<strong>{storyNodeLabel(project, candidate.storyNodeId)}</strong>
+											<span>score {candidate.score}</span>
+										</div>
+										{candidate.reasons.map(reason => (
+											<small key={`${reason.kind}:${reason.summary}`}>
+												+{reason.weight} · {reason.summary}
+											</small>
+										))}
+									</li>
+								))}
+							</ul>
+						) : (
+							<small>Убедительных мостов из существующего материала пока нет.</small>
+						)}
+					</article>
 				</div>
 			) : (
 				<p className="narrative-workspace__story-brain-empty">
 					Создай или выбери Story node, Narrative Move или Claim — Brain покажет
-					 его контекст, последствия и причины доступности.
+					 его контекст, последствия, причины доступности, Coverage и Bridges.
 				</p>
 			)}
 		</section>
