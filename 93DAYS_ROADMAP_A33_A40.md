@@ -59,6 +59,8 @@ Deliverables:
 - stronger schema-v2 hydration/validation while compatibility is retained;
 - tests proving authored data is not mutated by runtime projection updates.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #206: projection envelope persistence, flat schema-v2 migration, runtime/cognition hydration validation, lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A36 — Runtime Save / Load & Migration
 
 **Goal:** make a running world safely resumable.
