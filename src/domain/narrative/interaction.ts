@@ -145,12 +145,33 @@ export interface NarrativeStoryStateEffectDefinition {
 	state: StoryNodeActivationState;
 }
 
+/**
+ * A31 memory provenance is authored relative to the current interaction so a
+ * reusable Move can keep working after role/template binding.
+ */
+export type NarrativeMemorySourceDefinition =
+	| {type: 'current-move'}
+	| {type: 'owning-story-node'}
+	| {type: 'communicated-claim'};
+
+export interface NarrativeMemoryEffectDefinition {
+	id: EntityId;
+	type: 'character-remembers';
+	character: NarrativeCharacterReferenceDefinition;
+	summary: string;
+	importance: number;
+	baseStrength: number;
+	tags: string[];
+	source: NarrativeMemorySourceDefinition;
+}
+
 export type NarrativeEffectDefinition =
 	| NarrativeKnowledgeEffectDefinition
 	| NarrativeRelationshipEffectDefinition
 	| NarrativeMoodEffectDefinition
 	| NarrativeItemPlacementEffectDefinition
-	| NarrativeStoryStateEffectDefinition;
+	| NarrativeStoryStateEffectDefinition
+	| NarrativeMemoryEffectDefinition;
 
 export interface NarrativeOutcomeDefinition {
 	id: EntityId;
@@ -369,6 +390,18 @@ function narrativeEffectIsStructurallyValid(effect: NarrativeEffectDefinition) {
 			return true;
 		case 'story-node-set-state':
 			return Boolean(effect.storyNodeId);
+		case 'character-remembers':
+			return (
+				characterReferenceIsStructurallyValid(effect.character) &&
+				Boolean(effect.summary.trim()) &&
+				Number.isFinite(effect.importance) &&
+				effect.importance >= 0 &&
+				effect.importance <= 1 &&
+				Number.isFinite(effect.baseStrength) &&
+				effect.baseStrength >= 0 &&
+				effect.baseStrength <= 1 &&
+				Array.isArray(effect.tags)
+			);
 	}
 }
 
