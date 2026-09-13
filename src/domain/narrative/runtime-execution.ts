@@ -182,14 +182,25 @@ export function createActiveStoryExecution(
 	scheduledMoment: NarrativeRuntimeMoment,
 	startedAt: NarrativeRuntimeMoment,
 	policy: NormalizedStoryRuntimePolicy,
-	existing: ActiveStoryExecutionState[]
+	existing: ActiveStoryExecutionState[],
+	history: NarrativeRuntimeOccurrence[] = []
 ) {
 	const startAbsolute = runtimeExecutionAbsoluteMinute(startedAt);
 	const completesAt = runtimeExecutionMomentFromAbsoluteMinute(
 		startAbsolute + policy.durationMinutes
 	);
 	const prefix = `execution:${workId}:${startedAt.day}:${startedAt.minuteOfDay}`;
-	const ordinal = existing.filter(execution => execution.id.startsWith(`${prefix}:`)).length + 1;
+	const priorAtMoment = history.filter(
+		occurrence =>
+			occurrence.type === 'story-work' &&
+			occurrence.workId === workId &&
+			occurrence.startedAt?.day === startedAt.day &&
+			occurrence.startedAt.minuteOfDay === startedAt.minuteOfDay
+	).length;
+	const activeAtMoment = existing.filter(execution =>
+		execution.id.startsWith(`${prefix}:`)
+	).length;
+	const ordinal = priorAtMoment + activeAtMoment + 1;
 	return {
 		id: `${prefix}:${ordinal}`,
 		workId,
