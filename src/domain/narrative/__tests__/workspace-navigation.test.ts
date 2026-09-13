@@ -45,6 +45,7 @@ function automaticMove(
 		outcomes: [
 			{
 				id: `${id}-outcome`,
+				key: 'continue',
 				label: 'Outcome',
 				effectStoryNodeIds: [],
 				effects: []
