@@ -8,9 +8,14 @@ const hostStoryId = 'recovery-story';
 const storageKey = `twine:narrative-project:v${narrativeProjectSchemaVersion}:${hostStoryId}`;
 
 function recoveryKeys() {
-	return Object.keys(window.localStorage).filter(key =>
-		key.startsWith(`twine:narrative-project:recovery:${hostStoryId}:`)
-	);
+	const keys: string[] = [];
+	for (let index = 0; index < window.localStorage.length; index++) {
+		const key = window.localStorage.key(index);
+		if (key?.startsWith(`twine:narrative-project:recovery:${hostStoryId}:`)) {
+			keys.push(key);
+		}
+	}
+	return keys;
 }
 
 describe('recoverable narrative project repository', () => {
@@ -66,8 +71,8 @@ describe('recoverable narrative project repository', () => {
 		expect(window.localStorage.getItem(result.recoveryBackupKeys[0])).toBe(damaged);
 	});
 
-	test('backs up an unrecognized current payload before a valid v1 fallback migrates', () => {
-		const damagedCurrent = JSON.stringify({schemaVersion: 999, hostStoryId});
+	test('backs up malformed current JSON before a valid v1 fallback migrates', () => {
+		const damagedCurrent = '{"schemaVersion":2,"projectId":';
 		window.localStorage.setItem(storageKey, damagedCurrent);
 
 		const legacyProject = createNarrativeProject(
@@ -99,5 +104,6 @@ describe('recoverable narrative project repository', () => {
 			damagedCurrent
 		);
 		expect(result.project.hostStoryId).toBe(hostStoryId);
+		expect(window.localStorage.getItem(storageKey)).not.toBe(damagedCurrent);
 	});
 });
