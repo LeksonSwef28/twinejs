@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {CanonicalEntityPanel} from './canonical-entity-panel';
 
 export const ProjectIdentityPanel: React.FC = () => {
 	const {project, execute} = useNarrativeProject();
@@ -20,23 +21,29 @@ export const ProjectIdentityPanel: React.FC = () => {
 	}
 
 	return (
-		<form
-			className="narrative-workspace__project-identity"
-			onSubmit={rename}
-			aria-label="Настройки проекта"
-		>
-			<label>
-				Название проекта
-				<input
-					aria-label="Название проекта"
-					value={name}
-					onChange={event => setName(event.target.value)}
-				/>
-			</label>
-			<button type="submit" disabled={!name.trim() || name.trim() === project.name}>
-				Переименовать
-			</button>
-			<small>Authoring metadata · участвует в Undo / Redo.</small>
-		</form>
+		<>
+			<form
+				className="narrative-workspace__project-identity"
+				onSubmit={rename}
+				aria-label="Настройки проекта"
+			>
+				<label>
+					Название проекта
+					<input
+						aria-label="Название проекта"
+						value={name}
+						onChange={event => setName(event.target.value)}
+					/>
+				</label>
+				<button
+					type="submit"
+					disabled={!name.trim() || name.trim() === project.name}
+				>
+					Переименовать
+				</button>
+				<small>Authoring metadata · участвует в Undo / Redo.</small>
+			</form>
+			<CanonicalEntityPanel />
+		</>
 	);
 };

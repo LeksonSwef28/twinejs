@@ -2,22 +2,22 @@ import * as React from 'react';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {createNarrativeId} from '../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../domain/narrative/templates/93-days';
+import {
+	EditorAuthoringCommand,
+	editorAuthoringReducer
+} from './editor-authoring';
 import {NarrativeProjectHistoryState} from './reducer';
 import {createLocalStorageNarrativeProjectRepository} from './repository';
 import {
 	keepCurrentRuntime,
 	replaceRuntimeProjectInHistory
 } from './runtime-history';
-import {
-	NarrativeAuthoringCommand,
-	narrativeProjectAuthoringReducer
-} from './routine-authoring';
 
 export type NarrativeSaveStatus = 'saved' | 'saving' | 'error';
 
 export interface NarrativeProjectContextValue {
 	project: NarrativeProject;
-	execute(command: NarrativeAuthoringCommand): void;
+	execute(command: EditorAuthoringCommand): void;
 	/**
 	 * Replaces only the current runtime aggregate from an explicit simulation
 	 * operation. Runtime updates are persisted, but never become authoring undo
@@ -81,9 +81,9 @@ export const NarrativeProjectProvider: React.FC<
 		return () => window.clearTimeout(timeout);
 	}, [repository, state.present]);
 
-	const execute = React.useCallback((command: NarrativeAuthoringCommand) => {
+	const execute = React.useCallback((command: EditorAuthoringCommand) => {
 		setState(current =>
-			narrativeProjectAuthoringReducer(current, {type: 'execute', command})
+			editorAuthoringReducer(current, {type: 'execute', command})
 		);
 	}, []);
 	const replaceRuntimeProject = React.useCallback((project: NarrativeProject) => {
@@ -91,7 +91,7 @@ export const NarrativeProjectProvider: React.FC<
 	}, []);
 	const undo = React.useCallback(() => {
 		setState(current => {
-			const restored = narrativeProjectAuthoringReducer(current, {type: 'undo'});
+			const restored = editorAuthoringReducer(current, {type: 'undo'});
 			return restored === current
 				? current
 				: {
@@ -102,7 +102,7 @@ export const NarrativeProjectProvider: React.FC<
 	}, []);
 	const redo = React.useCallback(() => {
 		setState(current => {
-			const restored = narrativeProjectAuthoringReducer(current, {type: 'redo'});
+			const restored = editorAuthoringReducer(current, {type: 'redo'});
 			return restored === current
 				? current
 				: {
