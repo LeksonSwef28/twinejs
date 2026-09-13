@@ -13,6 +13,12 @@ import {
 import {CharacterKnowledgeState, knowledgeConfidenceIsValid} from '../../domain/narrative/knowledge';
 import {NarrativeProject, NarrativeSimulationState} from '../../domain/narrative/project';
 import {
+	NarrativeRuntimeOccurrence,
+	narrativeRuntimeOccurrenceIsValid,
+	storyNodeActivationStateIsValid
+} from '../../domain/narrative/runtime-story';
+import {StoryNodeActivationState} from '../../domain/narrative/story';
+import {
 	NarrativeProjectRuntimeProjection,
 	projectNarrativePersistence
 } from './persistence-projection';
@@ -149,6 +155,41 @@ function cloneItemPlacementRecord(
 	) as Record<string, ItemRuntimePlacement>;
 }
 
+function storyNodeStateRecordIsValid(
+	value: unknown
+): value is Record<string, StoryNodeActivationState> {
+	return (
+		isRecord(value) &&
+		Object.values(value).every(storyNodeActivationStateIsValid)
+	);
+}
+
+function cloneStoryNodeStateRecord(
+	value: unknown
+): Record<string, StoryNodeActivationState> {
+	if (!storyNodeStateRecordIsValid(value)) {
+		return {};
+	}
+	return {...value};
+}
+
+function occurrenceHistoryIsValid(
+	value: unknown
+): value is NarrativeRuntimeOccurrence[] {
+	return Array.isArray(value) && value.every(narrativeRuntimeOccurrenceIsValid);
+}
+
+function cloneOccurrenceHistory(value: unknown): NarrativeRuntimeOccurrence[] {
+	if (!occurrenceHistoryIsValid(value)) {
+		return [];
+	}
+	return value.map(occurrence => ({
+		...occurrence,
+		effectIds: [...occurrence.effectIds],
+		moment: {...occurrence.moment}
+	}));
+}
+
 function memoryIsValid(value: unknown): value is MemoryTrace {
 	if (!isRecord(value)) {
 		return false;
@@ -265,6 +306,10 @@ function runtimeProjectionIsValid(
 			injuryStateRecordIsValid(value.injuriesByCharacter)) &&
 		(value.itemPlacementOverrides === undefined ||
 			itemPlacementRecordIsValid(value.itemPlacementOverrides)) &&
+		(value.storyNodeStateOverrides === undefined ||
+			storyNodeStateRecordIsValid(value.storyNodeStateOverrides)) &&
+		(value.runtimeOccurrences === undefined ||
+			occurrenceHistoryIsValid(value.runtimeOccurrences)) &&
 		simulationIsValid(value.simulation)
 	);
 }
@@ -294,6 +339,10 @@ function cloneRuntimeProjection(
 		})),
 		injuriesByCharacter: cloneInjuryStateRecord(runtime.injuriesByCharacter),
 		itemPlacementOverrides: cloneItemPlacementRecord(runtime.itemPlacementOverrides),
+		storyNodeStateOverrides: cloneStoryNodeStateRecord(
+			runtime.storyNodeStateOverrides
+		),
+		runtimeOccurrences: cloneOccurrenceHistory(runtime.runtimeOccurrences),
 		simulation: {
 			...runtime.simulation,
 			activeBehaviorProfileByCharacter: {
@@ -409,6 +458,8 @@ export function restoreNarrativeRuntimeSnapshot(
 			mindStates: runtime.mindStates,
 			injuriesByCharacter: runtime.injuriesByCharacter ?? {},
 			itemPlacementOverrides: runtime.itemPlacementOverrides ?? {},
+			storyNodeStateOverrides: runtime.storyNodeStateOverrides ?? {},
+			runtimeOccurrences: runtime.runtimeOccurrences ?? [],
 			simulation: runtime.simulation
 		},
 		status:
