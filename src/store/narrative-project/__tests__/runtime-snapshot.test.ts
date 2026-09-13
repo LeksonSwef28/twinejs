@@ -186,7 +186,11 @@ describe('A36/A38/A41 runtime snapshots', () => {
 		const moveOutcome = restored.project.runtimeOccurrences.find(
 			occurrence => occurrence.type === 'move-outcome'
 		);
-		expect(moveOutcome?.outcomeId).toBe('outcome-a');
+		expect(moveOutcome?.type).toBe('move-outcome');
+		if (!moveOutcome || moveOutcome.type !== 'move-outcome') {
+			throw new Error('Expected restored move-outcome occurrence.');
+		}
+		expect(moveOutcome.outcomeId).toBe('outcome-a');
 
 		repository.clear();
 		expect(repository.load(withoutRuntime(source)).status).toBe('missing');
