@@ -53,18 +53,17 @@ function recurrenceIsValid(project: NarrativeProject, rule: RoutineRule) {
 }
 
 function timeWindowIsValid(project: NarrativeProject, rule: RoutineRule) {
-	if (rule.timeWindow?.type === 'period') {
-		return project.template.periods.some(
-			period => period.id === rule.timeWindow!.periodId
-		);
+	const window = rule.timeWindow;
+	if (window?.type === 'period') {
+		return project.template.periods.some(period => period.id === window.periodId);
 	}
-	if (rule.timeWindow?.type === 'exact') {
+	if (window?.type === 'exact') {
 		return (
-			minuteIsValid(rule.timeWindow.startMinute) &&
-			minuteIsValid(rule.timeWindow.endMinute) &&
-			(rule.timeWindow.endDayOffset === undefined ||
-				rule.timeWindow.endDayOffset === 0 ||
-				rule.timeWindow.endDayOffset === 1)
+			minuteIsValid(window.startMinute) &&
+			minuteIsValid(window.endMinute) &&
+			(window.endDayOffset === undefined ||
+				window.endDayOffset === 0 ||
+				window.endDayOffset === 1)
 		);
 	}
 	if (rule.periodId) {
