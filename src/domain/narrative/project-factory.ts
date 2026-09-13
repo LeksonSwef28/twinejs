@@ -76,7 +76,9 @@ export function createNarrativeProject(
 			activeBehaviorProfileByCharacter: {},
 			actualLocationByCharacter: {},
 			characterKnowledge: [],
-			bodyByCharacter: {}
+			bodyByCharacter: {},
+			injuriesByCharacter: {},
+			itemPlacementOverrides: {}
 		}
 	};
 }
