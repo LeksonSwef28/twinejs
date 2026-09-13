@@ -56,6 +56,8 @@ export function createNarrativeProject(
 		mindStates: [],
 		injuriesByCharacter: {},
 		itemPlacementOverrides: {},
+		storyNodeStateOverrides: {},
+		runtimeOccurrences: [],
 		editor: {
 			selectedDay: 1,
 			selectedPeriodId: firstPeriod.id,
