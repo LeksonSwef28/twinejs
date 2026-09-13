@@ -68,6 +68,18 @@ function projectWithRuntime() {
 			pendingReactionIds: ['pending-1']
 		}
 	];
+	project.storyNodeStateOverrides = {['story-authored']: 'completed'};
+	project.runtimeOccurrences = [
+		{
+			id: 'occurrence:move-a:outcome-a:12:755:1',
+			type: 'move-outcome',
+			storyNodeId: 'story-authored',
+			moveId: 'move-a',
+			outcomeId: 'outcome-a',
+			effectIds: ['effect-a'],
+			moment: {day: 12, minuteOfDay: 755}
+		}
+	];
 	project.simulation = {
 		day: 12,
 		minuteOfDay: 755,
@@ -112,11 +124,13 @@ function withoutRuntime(source: ReturnType<typeof projectWithRuntime>) {
 		relationships: [],
 		pendingReactions: [],
 		mindStates: [],
+		storyNodeStateOverrides: {},
+		runtimeOccurrences: [],
 		simulation: initial.simulation
 	};
 }
 
-describe('A36/A38 runtime snapshots', () => {
+describe('A36/A38/A41 runtime snapshots', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 	});
@@ -135,13 +149,17 @@ describe('A36/A38 runtime snapshots', () => {
 		expect(restored.project.relationships).toEqual(source.relationships);
 		expect(restored.project.pendingReactions).toEqual(source.pendingReactions);
 		expect(restored.project.mindStates).toEqual(source.mindStates);
+		expect(restored.project.storyNodeStateOverrides).toEqual(
+		source.storyNodeStateOverrides
+	);
+		expect(restored.project.runtimeOccurrences).toEqual(source.runtimeOccurrences);
 		expect(restored.project.simulation).toEqual(source.simulation);
 		expect(JSON.stringify(restored.project.storyNodes)).toBe(authoredBefore);
 		expect(JSON.stringify(restored.project.editor)).toBe(editorBefore);
 		expect(serializeNarrativeRuntimeSnapshot(restored.project)).toBe(serialized);
 	});
 
-	test('saves and resumes time, cognition, body and actual world presence from localStorage', () => {
+	test('saves and resumes time, cognition, body, Story runtime and actual world presence from localStorage', () => {
 		const source = projectWithRuntime();
 		const repository = createLocalStorageNarrativeRuntimeSnapshotRepository(
 			source.projectId
@@ -162,6 +180,10 @@ describe('A36/A38 runtime snapshots', () => {
 			90
 		);
 		expect(restored.project.memories[0].id).toBe('memory:katya:station');
+		expect(restored.project.storyNodeStateOverrides['story-authored']).toBe(
+			'completed'
+		);
+		expect(restored.project.runtimeOccurrences[0].outcomeId).toBe('outcome-a');
 
 		repository.clear();
 		expect(repository.load(withoutRuntime(source)).status).toBe('missing');
@@ -203,6 +225,29 @@ describe('A36/A38 runtime snapshots', () => {
 		const restored = restoreNarrativeRuntimeSnapshot(withoutRuntime(source), oldV1);
 		expect(restored.status).toBe('restored');
 		expect(restored.project.simulation.bodyByCharacter).toEqual({});
+	});
+
+	test('accepts pre-A41 v1 snapshots without Story runtime fields', () => {
+		const source = projectWithRuntime();
+		const current = createNarrativeRuntimeSnapshot(source);
+		const runtime = {...current.runtime} as Omit<
+			typeof current.runtime,
+		'storyNodeStateOverrides' | 'runtimeOccurrences'
+		> & {
+			storyNodeStateOverrides?: typeof current.runtime.storyNodeStateOverrides;
+			runtimeOccurrences?: typeof current.runtime.runtimeOccurrences;
+		};
+		delete runtime.storyNodeStateOverrides;
+		delete runtime.runtimeOccurrences;
+
+		const restored = restoreNarrativeRuntimeSnapshot(withoutRuntime(source), {
+			...current,
+			runtime
+		});
+
+		expect(restored.status).toBe('restored');
+		expect(restored.project.storyNodeStateOverrides).toEqual({});
+		expect(restored.project.runtimeOccurrences).toEqual([]);
 	});
 
 	test('rejects invalid or partial runtime data without touching the project', () => {
