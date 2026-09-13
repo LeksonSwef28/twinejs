@@ -10,14 +10,16 @@ type RuntimeProjectionKeys =
 	| 'mindStates'
 	| 'injuriesByCharacter'
 	| 'itemPlacementOverrides'
+	| 'storyNodeStateOverrides'
+	| 'runtimeOccurrences'
 	| 'simulation';
 
 type EditorProjectionKeys = 'editor';
 
 /**
- * A35 authored persistence boundary. Runtime cognition, physical state and
- * editor navigation are deliberately absent so simulation/editor updates
- * cannot be mistaken for authored definitions when reading persisted data.
+ * A35 authored persistence boundary. Runtime cognition, physical state, Story
+ * state/history and editor navigation are deliberately absent so simulation
+ * updates cannot be mistaken for authored definitions when reading persisted data.
  */
 export type NarrativeProjectAuthoredProjection = Omit<
 	NarrativeProject,
@@ -33,6 +35,10 @@ export interface NarrativeProjectRuntimeProjection {
 	injuriesByCharacter?: NarrativeProject['injuriesByCharacter'];
 	/** Optional only so pre-A39 projection-v1 payloads remain readable. New saves always write it. */
 	itemPlacementOverrides?: NarrativeProject['itemPlacementOverrides'];
+	/** Optional only so pre-A41 projection-v1 payloads remain readable. */
+	storyNodeStateOverrides?: NarrativeProject['storyNodeStateOverrides'];
+	/** Optional only so pre-A41 projection-v1 payloads remain readable. */
+	runtimeOccurrences?: NarrativeProject['runtimeOccurrences'];
 	simulation: NarrativeSimulationState;
 }
 
@@ -60,6 +66,8 @@ export function projectNarrativePersistence(
 		mindStates,
 		injuriesByCharacter,
 		itemPlacementOverrides,
+		storyNodeStateOverrides,
+		runtimeOccurrences,
 		simulation,
 		...authored
 	} = project;
@@ -76,6 +84,8 @@ export function projectNarrativePersistence(
 			mindStates,
 			injuriesByCharacter,
 			itemPlacementOverrides,
+			storyNodeStateOverrides,
+			runtimeOccurrences,
 			simulation
 		}
 	};
@@ -100,7 +110,7 @@ export function isNarrativeProjectPersistenceEnvelope(
 /**
  * Re-composes the aggregate expected by reducer/UI. Hydration still owns
  * validation/migration; this helper only restores the physical sections to the
- * convenient in-memory shape. Missing A39 fields are safe pre-A39 data.
+ * convenient in-memory shape. Missing A39/A41 fields are safe legacy data.
  */
 export function composeNarrativeProjectPersistence(
 	envelope: NarrativeProjectPersistenceEnvelope
@@ -115,6 +125,8 @@ export function composeNarrativeProjectPersistence(
 		mindStates: envelope.runtime.mindStates,
 		injuriesByCharacter: envelope.runtime.injuriesByCharacter ?? {},
 		itemPlacementOverrides: envelope.runtime.itemPlacementOverrides ?? {},
+		storyNodeStateOverrides: envelope.runtime.storyNodeStateOverrides ?? {},
+		runtimeOccurrences: envelope.runtime.runtimeOccurrences ?? [],
 		simulation: envelope.runtime.simulation
 	};
 }
