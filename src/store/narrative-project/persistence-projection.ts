@@ -8,14 +8,16 @@ type RuntimeProjectionKeys =
 	| 'relationships'
 	| 'pendingReactions'
 	| 'mindStates'
+	| 'injuriesByCharacter'
+	| 'itemPlacementOverrides'
 	| 'simulation';
 
 type EditorProjectionKeys = 'editor';
 
 /**
- * A35 authored persistence boundary. Runtime cognition and editor navigation
- * are deliberately absent so simulation/editor updates cannot be mistaken for
- * authored definitions when reading the persisted shape.
+ * A35 authored persistence boundary. Runtime cognition, physical state and
+ * editor navigation are deliberately absent so simulation/editor updates
+ * cannot be mistaken for authored definitions when reading persisted data.
  */
 export type NarrativeProjectAuthoredProjection = Omit<
 	NarrativeProject,
@@ -27,6 +29,10 @@ export interface NarrativeProjectRuntimeProjection {
 	relationships: NarrativeProject['relationships'];
 	pendingReactions: NarrativeProject['pendingReactions'];
 	mindStates: NarrativeProject['mindStates'];
+	/** Optional only so pre-A39 projection-v1 payloads remain readable. New saves always write it. */
+	injuriesByCharacter?: NarrativeProject['injuriesByCharacter'];
+	/** Optional only so pre-A39 projection-v1 payloads remain readable. New saves always write it. */
+	itemPlacementOverrides?: NarrativeProject['itemPlacementOverrides'];
 	simulation: NarrativeSimulationState;
 }
 
@@ -52,6 +58,8 @@ export function projectNarrativePersistence(
 		relationships,
 		pendingReactions,
 		mindStates,
+		injuriesByCharacter,
+		itemPlacementOverrides,
 		simulation,
 		...authored
 	} = project;
@@ -66,6 +74,8 @@ export function projectNarrativePersistence(
 			relationships,
 			pendingReactions,
 			mindStates,
+			injuriesByCharacter,
+			itemPlacementOverrides,
 			simulation
 		}
 	};
@@ -88,9 +98,9 @@ export function isNarrativeProjectPersistenceEnvelope(
 }
 
 /**
- * Re-composes the legacy aggregate expected by the reducer/UI. Hydration still
- * owns validation/migration; this helper only restores the physical sections
- * to the in-memory shape.
+ * Re-composes the aggregate expected by reducer/UI. Hydration still owns
+ * validation/migration; this helper only restores the physical sections to the
+ * convenient in-memory shape. Missing A39 fields are safe pre-A39 data.
  */
 export function composeNarrativeProjectPersistence(
 	envelope: NarrativeProjectPersistenceEnvelope
@@ -103,6 +113,8 @@ export function composeNarrativeProjectPersistence(
 		relationships: envelope.runtime.relationships,
 		pendingReactions: envelope.runtime.pendingReactions,
 		mindStates: envelope.runtime.mindStates,
+		injuriesByCharacter: envelope.runtime.injuriesByCharacter ?? {},
+		itemPlacementOverrides: envelope.runtime.itemPlacementOverrides ?? {},
 		simulation: envelope.runtime.simulation
 	};
 }
