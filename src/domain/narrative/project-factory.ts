@@ -54,6 +54,8 @@ export function createNarrativeProject(
 		relationships: [],
 		pendingReactions: [],
 		mindStates: [],
+		injuriesByCharacter: {},
+		itemPlacementOverrides: {},
 		editor: {
 			selectedDay: 1,
 			selectedPeriodId: firstPeriod.id,
@@ -76,9 +78,7 @@ export function createNarrativeProject(
 			activeBehaviorProfileByCharacter: {},
 			actualLocationByCharacter: {},
 			characterKnowledge: [],
-			bodyByCharacter: {},
-			injuriesByCharacter: {},
-			itemPlacementOverrides: {}
+			bodyByCharacter: {}
 		}
 	};
 }
