@@ -1,5 +1,6 @@
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
+import {NarrativeProjectHistoryState} from '../reducer';
 import {createLocalStorageNarrativeProjectRepository} from '../repository';
 import {narrativeProjectAuthoringReducer} from '../routine-authoring';
 
@@ -11,7 +12,7 @@ describe('routine authoring persistence', () => {
 	});
 
 	test('saves and reloads authored routine rules without changing runtime presence', () => {
-		let state = {
+		let state: NarrativeProjectHistoryState = {
 			past: [],
 			present: createNarrativeProject(
 				hostStoryId,
