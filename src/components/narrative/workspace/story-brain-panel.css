@@ -107,16 +107,20 @@
 }
 
 .narrative-workspace__story-brain-impact-list,
-.narrative-workspace__story-brain-why-list {
+.narrative-workspace__story-brain-why-list,
+.narrative-workspace__story-brain-finding-list,
+.narrative-workspace__story-brain-bridge-list {
 	display: grid;
 	gap: 6px;
-	margin: 8px 0 0;
+	margin: 8px 0;
 	padding: 0;
 	list-style: none;
 }
 
 .narrative-workspace__story-brain-impact-list li,
-.narrative-workspace__story-brain-why-list > div {
+.narrative-workspace__story-brain-why-list > div,
+.narrative-workspace__story-brain-finding-list li,
+.narrative-workspace__story-brain-bridge-list li {
 	display: grid;
 	gap: 2px;
 	padding: 7px;
@@ -124,22 +128,26 @@
 	border-radius: 6px;
 }
 
-.narrative-workspace__story-brain-impact-list small {
-	opacity: 0.55;
+.narrative-workspace__story-brain-impact-list small,
+.narrative-workspace__story-brain-finding-list small,
+.narrative-workspace__story-brain-bridge-list small {
+	opacity: 0.58;
 }
 
 .narrative-workspace__story-brain-why {
 	grid-column: 1 / -1;
 }
 
-.narrative-workspace__story-brain-why-heading {
+.narrative-workspace__story-brain-why-heading,
+.narrative-workspace__story-brain-bridge-heading {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	gap: 8px;
 }
 
-.narrative-workspace__story-brain-why-heading span {
+.narrative-workspace__story-brain-why-heading span,
+.narrative-workspace__story-brain-bridge-heading span {
 	padding: 3px 6px;
 	border: 1px solid currentColor;
 	border-radius: 999px;
@@ -170,6 +178,29 @@
 .narrative-workspace__story-brain-resolution {
 	padding-top: 5px;
 	border-top: 1px dashed rgba(127, 127, 127, 0.2);
+}
+
+.narrative-workspace__story-brain-finding-list li {
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: start;
+}
+
+.narrative-workspace__story-brain-finding-list li > span {
+	font-size: 16px;
+	line-height: 1;
+}
+
+.narrative-workspace__story-brain-finding-list li > div {
+	display: grid;
+	gap: 2px;
+}
+
+.narrative-workspace__story-brain-finding-list [data-severity='warning'] {
+	border-style: dashed;
+}
+
+.narrative-workspace__story-brain-bridge-list li {
+	gap: 5px;
 }
 
 .narrative-workspace__story-brain-empty {
