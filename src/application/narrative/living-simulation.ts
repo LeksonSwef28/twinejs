@@ -17,6 +17,11 @@ import {
 	evaluateReactionCandidateSet,
 	ReactionCandidateSetEvaluation
 } from '../../domain/narrative/reaction';
+import {
+	appendNarrativeRuntimeOccurrence,
+	applyStoryNodeStateOverride,
+	effectiveRuntimeStoryNodes
+} from '../../domain/narrative/runtime-story';
 import {applyNarrativeItemRuntimePlacement} from './physical';
 
 export type NarrativeProjectMoveResolutionStatus =
@@ -42,6 +47,8 @@ export interface NarrativeProjectOutcomeApplicationTrace {
 	outcomeId: string;
 	effectTraces: ReturnType<typeof applyNarrativeOutcomeEffects>['traces'];
 	itemPlacementEffectIds: string[];
+	storyStateEffectIds: string[];
+	occurrenceId: string;
 }
 
 export interface NarrativeProjectMoveApplicationResult {
@@ -96,6 +103,14 @@ export function narrativeRuntimeItemInstances(project: NarrativeProject) {
 	}));
 }
 
+/** A41 read projection: authored Story definitions plus runtime state overrides. */
+export function narrativeRuntimeStoryNodes(project: NarrativeProject) {
+	return effectiveRuntimeStoryNodes(
+		project.storyNodes,
+		project.storyNodeStateOverrides
+	);
+}
+
 export function narrativeProjectRuntimeContext(
 	project: NarrativeProject
 ): NarrativeRuntimeEvaluationContext {
@@ -103,7 +118,7 @@ export function narrativeProjectRuntimeContext(
 		characterKnowledge: project.simulation.characterKnowledge,
 		itemInstances: narrativeRuntimeItemInstances(project),
 		relationships: project.relationships,
-		storyNodes: project.storyNodes,
+		storyNodes: narrativeRuntimeStoryNodes(project),
 		actualLocationByCharacter: project.simulation.actualLocationByCharacter
 	};
 }
@@ -148,9 +163,10 @@ function moveAndOutcome(
 }
 
 /**
- * Deterministic A40 resolution bridge. It evaluates eligibility against actual
- * runtime state, then selects an authored outcome. Randomness is never hidden:
- * skill checks require an explicit roll/skill input from the caller.
+ * Deterministic A40/A41 resolution bridge. It evaluates eligibility against
+ * actual runtime state, including A41 effective Story state, then selects an
+ * authored outcome. Randomness is never hidden: skill checks require explicit
+ * roll/skill input from the caller.
  */
 export function resolveNarrativeProjectMove(
 	project: NarrativeProject,
@@ -229,10 +245,9 @@ export function resolveNarrativeProjectMove(
 
 /**
  * Projects a resolved authored Outcome into the project runtime boundary.
- * Cognition stays in runtime collections and item placement becomes the A39
- * runtime overlay. Story-state effects are deliberately rejected here rather
- * than mutating authored StoryNode definitions; a future runtime Story-state
- * projection can add that effect family safely.
+ * Cognition stays in runtime collections, item placement uses the A39 overlay,
+ * Story-state effects use the A41 Story override, and each successful Outcome
+ * appends an occurrence provenance record. Authored Story/items remain untouched.
  */
 export function applyNarrativeProjectOutcome(
 	project: NarrativeProject,
@@ -240,11 +255,6 @@ export function applyNarrativeProjectOutcome(
 	outcomeId: string
 ): {project: NarrativeProject; trace: NarrativeProjectOutcomeApplicationTrace} {
 	const {move, outcome} = moveAndOutcome(project, moveId, outcomeId);
-	if (outcome.effects.some(effect => effect.type === 'story-node-set-state')) {
-		throw new Error(
-			'Runtime Story-state projection is not available; authored Story nodes will not be mutated.'
-		);
-	}
 	const application = applyNarrativeOutcomeEffects(
 		move,
 		outcome,
@@ -253,7 +263,7 @@ export function applyNarrativeProjectOutcome(
 			relationships: project.relationships,
 			mindStates: project.mindStates,
 			itemInstances: narrativeRuntimeItemInstances(project),
-			storyNodes: project.storyNodes,
+			storyNodes: narrativeRuntimeStoryNodes(project),
 			memories: project.memories
 		},
 		{
@@ -275,36 +285,65 @@ export function applyNarrativeProjectOutcome(
 		}
 	};
 	const itemPlacementEffectIds: string[] = [];
+	const storyStateEffectIds: string[] = [];
 	for (const effect of outcome.effects) {
-		if (effect.type !== 'item-set-placement') {
+		if (effect.type === 'item-set-placement') {
+			const runtimeItem = application.state.itemInstances.find(
+				item => item.id === effect.itemInstanceId
+			);
+			if (!runtimeItem) {
+				throw new Error(`Outcome lost ItemInstance ${effect.itemInstanceId}.`);
+			}
+			const placement = applyNarrativeItemRuntimePlacement(
+				next,
+				effect.itemInstanceId,
+				runtimeItem.placement
+			);
+			if (!placement.applied) {
+				throw new Error(
+					`Outcome item placement rejected: ${placement.blockers.join(' ')}`
+				);
+			}
+			next = placement.project;
+			itemPlacementEffectIds.push(effect.id);
 			continue;
 		}
-		const runtimeItem = application.state.itemInstances.find(
-			item => item.id === effect.itemInstanceId
-		);
-		if (!runtimeItem) {
-			throw new Error(`Outcome lost ItemInstance ${effect.itemInstanceId}.`);
+		if (effect.type === 'story-node-set-state') {
+			next = {
+				...next,
+				storyNodeStateOverrides: applyStoryNodeStateOverride(
+					next.storyNodeStateOverrides,
+					effect.storyNodeId,
+					effect.state
+				)
+			};
+			storyStateEffectIds.push(effect.id);
 		}
-		const placement = applyNarrativeItemRuntimePlacement(
-			next,
-			effect.itemInstanceId,
-			runtimeItem.placement
-		);
-		if (!placement.applied) {
-			throw new Error(
-				`Outcome item placement rejected: ${placement.blockers.join(' ')}`
-			);
-		}
-		next = placement.project;
-		itemPlacementEffectIds.push(effect.id);
 	}
+	const occurrenceWrite = appendNarrativeRuntimeOccurrence(
+		next.runtimeOccurrences,
+		{
+			type: 'move-outcome',
+			storyNodeId: move.storyNodeId,
+			moveId,
+			outcomeId,
+			effectIds: outcome.effects.map(effect => effect.id),
+			moment: {
+				day: project.simulation.day,
+				minuteOfDay: project.simulation.minuteOfDay
+			}
+		}
+	);
+	next = {...next, runtimeOccurrences: occurrenceWrite.history};
 	return {
 		project: next,
 		trace: {
 			moveId,
 			outcomeId,
 			effectTraces: application.traces,
-			itemPlacementEffectIds
+			itemPlacementEffectIds,
+			storyStateEffectIds,
+			occurrenceId: occurrenceWrite.occurrence.id
 		}
 	};
 }
