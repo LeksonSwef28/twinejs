@@ -14,6 +14,7 @@ import {NarrativeMovePanel} from './narrative-move-panel';
 import {OutcomeEffectsPanel} from './outcome-effects-panel';
 import {ProjectLibrary} from './project-library';
 import {ReactionCandidatesPanel} from './reaction-candidates-panel';
+import {RoutineAuthoringPanel} from './routine-authoring-panel';
 import {SimulationDebugPanel} from './simulation-debug-panel';
 import {StoryBrainPanel} from './story-brain-panel';
 import {StoryWorkspace} from './story-workspace';
@@ -262,6 +263,8 @@ export const NarrativeWorkspace: React.FC = () => {
 					{visiblePanels.showWorldTime && <WorldTimeWorkspace />}
 				</>
 			)}
+
+			{visiblePanels.showWorldTime && <RoutineAuthoringPanel />}
 
 			{visiblePanels.showStory && (
 				<>
