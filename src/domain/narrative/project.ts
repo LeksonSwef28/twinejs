@@ -2,6 +2,7 @@ import {CharacterMindState, MemoryTrace, PendingReaction, RelationshipState} fro
 import {NarrativeEditorState} from './editor';
 import {NarrativeCharacter, NarrativeLocation, NarrativeScene} from './entities';
 import {NarrativeMoveDefinition} from './interaction';
+import {InteractionTemplateDefinition} from './interaction-template';
 import {ItemDefinition, ItemInstance} from './items';
 import {
 	CharacterKnowledgeState,
@@ -9,6 +10,7 @@ import {
 	InitialKnowledgeSeed,
 	ObjectiveFactDefinition
 } from './knowledge';
+import {ReactionCandidateSetDefinition} from './reaction';
 import {BehaviorProfile, RoutineRule, ScheduleException} from './schedule';
 import {StoryConnectionDefinition, StoryNodeDefinition} from './story';
 import {NarrativeProjectTemplate} from './template';
@@ -50,6 +52,10 @@ export interface NarrativeProject {
 	storyConnections: StoryConnectionDefinition[];
 	/** Authored actions/dialogue choices owned by Story nodes. */
 	narrativeMoves: NarrativeMoveDefinition[];
+	/** Reusable role-bound authoring structures. Templates themselves never execute. */
+	interactionTemplates: InteractionTemplateDefinition[];
+	/** Authored candidate groups used by explainable reaction ranking. */
+	reactionCandidateSets: ReactionCandidateSetDefinition[];
 	memories: MemoryTrace[];
 	relationships: RelationshipState[];
 	pendingReactions: PendingReaction[];
