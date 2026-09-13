@@ -81,6 +81,11 @@ export type NarrativeKnowledgeRecipientDefinition =
 	| {type: 'character'; characterId: EntityId}
 	| {type: 'move-target'; targetIndex: number};
 
+export type NarrativeCharacterReferenceDefinition =
+	| {type: 'character'; characterId: EntityId}
+	| {type: 'move-actor'}
+	| {type: 'move-target'; targetIndex: number};
+
 export type NarrativeClaimReferenceDefinition =
 	| {type: 'claim'; claimId: EntityId}
 	| {type: 'communicated-claim'; claimId?: never};
@@ -101,7 +106,47 @@ export interface NarrativeKnowledgeEffectDefinition {
 	source: NarrativeKnowledgeEffectSourceDefinition;
 }
 
-export type NarrativeEffectDefinition = NarrativeKnowledgeEffectDefinition;
+export interface NarrativeRelationshipEffectDefinition {
+	id: EntityId;
+	type: 'relationship-adjust';
+	from: NarrativeCharacterReferenceDefinition;
+	to: NarrativeCharacterReferenceDefinition;
+	axis: string;
+	delta: number;
+}
+
+export interface NarrativeMoodEffectDefinition {
+	id: EntityId;
+	type: 'character-mood-set';
+	character: NarrativeCharacterReferenceDefinition;
+	mood: string;
+}
+
+export type NarrativeItemPlacementTargetDefinition =
+	| {type: 'unplaced'}
+	| {type: 'location'; locationId: EntityId}
+	| {type: 'character'; character: NarrativeCharacterReferenceDefinition};
+
+export interface NarrativeItemPlacementEffectDefinition {
+	id: EntityId;
+	type: 'item-set-placement';
+	itemInstanceId: EntityId;
+	placement: NarrativeItemPlacementTargetDefinition;
+}
+
+export interface NarrativeStoryStateEffectDefinition {
+	id: EntityId;
+	type: 'story-node-set-state';
+	storyNodeId: EntityId;
+	state: StoryNodeActivationState;
+}
+
+export type NarrativeEffectDefinition =
+	| NarrativeKnowledgeEffectDefinition
+	| NarrativeRelationshipEffectDefinition
+	| NarrativeMoodEffectDefinition
+	| NarrativeItemPlacementEffectDefinition
+	| NarrativeStoryStateEffectDefinition;
 
 export interface NarrativeOutcomeDefinition {
 	id: EntityId;
@@ -259,27 +304,68 @@ function skillCheckIsStructurallyValid(
 	return true;
 }
 
-function narrativeEffectIsStructurallyValid(effect: NarrativeEffectDefinition) {
-	if (!effect.id || !knowledgeConfidenceIsValid(effect.confidence)) {
-		return false;
+function characterReferenceIsStructurallyValid(
+	reference: NarrativeCharacterReferenceDefinition
+) {
+	if (reference.type === 'character') {
+		return Boolean(reference.characterId);
 	}
-	if (
-		effect.recipient.type === 'character' &&
-		!effect.recipient.characterId
-	) {
-		return false;
-	}
-	if (
-		effect.recipient.type === 'move-target' &&
-		(!Number.isInteger(effect.recipient.targetIndex) ||
-			effect.recipient.targetIndex < 0)
-	) {
-		return false;
-	}
-	if (effect.claim.type === 'claim' && !effect.claim.claimId) {
-		return false;
+	if (reference.type === 'move-target') {
+		return Number.isInteger(reference.targetIndex) && reference.targetIndex >= 0;
 	}
 	return true;
+}
+
+function narrativeEffectIsStructurallyValid(effect: NarrativeEffectDefinition) {
+	if (!effect.id) {
+		return false;
+	}
+
+	switch (effect.type) {
+		case 'character-learns-claim':
+			if (!knowledgeConfidenceIsValid(effect.confidence)) {
+				return false;
+			}
+			if (
+				effect.recipient.type === 'character' &&
+				!effect.recipient.characterId
+			) {
+				return false;
+			}
+			if (
+				effect.recipient.type === 'move-target' &&
+				(!Number.isInteger(effect.recipient.targetIndex) ||
+					effect.recipient.targetIndex < 0)
+			) {
+				return false;
+			}
+			return effect.claim.type !== 'claim' || Boolean(effect.claim.claimId);
+		case 'relationship-adjust':
+			return (
+				characterReferenceIsStructurallyValid(effect.from) &&
+				characterReferenceIsStructurallyValid(effect.to) &&
+				Boolean(effect.axis.trim()) &&
+				Number.isFinite(effect.delta)
+			);
+		case 'character-mood-set':
+			return (
+				characterReferenceIsStructurallyValid(effect.character) &&
+				Boolean(effect.mood.trim())
+			);
+		case 'item-set-placement':
+			if (!effect.itemInstanceId) {
+				return false;
+			}
+			if (effect.placement.type === 'location') {
+				return Boolean(effect.placement.locationId);
+			}
+			if (effect.placement.type === 'character') {
+				return characterReferenceIsStructurallyValid(effect.placement.character);
+			}
+			return true;
+		case 'story-node-set-state':
+			return Boolean(effect.storyNodeId);
+	}
 }
 
 /**
