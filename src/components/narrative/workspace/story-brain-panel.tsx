@@ -4,11 +4,13 @@ import {
 	storyBrainEntityCount,
 	StoryBrainQueryResult
 } from '../../../application/narrative/story-brain-query';
+import {NarrativeProject} from '../../../domain/narrative/project';
 import {
 	StoryBrainEntityKind,
 	StoryBrainEntityRef
 } from '../../../domain/narrative/story-brain';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import './story-brain-panel.css';
 
 const kindLabels: Record<StoryBrainEntityKind, string> = {
 	['story-node']: 'Story',
@@ -41,12 +43,7 @@ function parseFocus(value: string): StoryBrainEntityRef | undefined {
 	return {kind, id};
 }
 
-function entityLabel(
-	result: StoryBrainQueryResult,
-	project: ReturnType<typeof useNarrativeProject>['project'],
-	entity: StoryBrainEntityRef
-) {
-	void result;
+function entityLabel(project: NarrativeProject, entity: StoryBrainEntityRef) {
 	switch (entity.kind) {
 		case 'story-node':
 			return project.storyNodes.find(node => node.id === entity.id)?.title ?? entity.id;
@@ -70,7 +67,7 @@ export const StoryBrainPanel: React.FC = () => {
 	const {project} = useNarrativeProject();
 	const [selectedFocus, setSelectedFocus] = React.useState('');
 	const focus = React.useMemo(() => parseFocus(selectedFocus), [selectedFocus]);
-	const result = React.useMemo(
+	const result: StoryBrainQueryResult | undefined = React.useMemo(
 		() => (focus ? queryStoryBrain(project, focus) : undefined),
 		[focus, project]
 	);
@@ -97,141 +94,141 @@ export const StoryBrainPanel: React.FC = () => {
 
 	return (
 		<section className="narrative-workspace__story-brain" aria-label="Story Brain">
-		<header className="narrative-workspace__story-brain-header">
-			<div>
-				<span>STORY BRAIN</span>
-				<h2>Focus · Impact · Why</h2>
+			<header className="narrative-workspace__story-brain-header">
+				<div>
+					<span>STORY BRAIN</span>
+					<h2>Focus · Impact · Why</h2>
+				</div>
+				<small>read-only analysis</small>
+			</header>
+
+			<div className="narrative-workspace__story-brain-focus-picker">
+				<label htmlFor="story-brain-focus">Анализировать</label>
+				<select
+					id="story-brain-focus"
+					value={selectedFocus}
+					onChange={event => setSelectedFocus(event.target.value)}
+				>
+					<option value="">Выбери Story / Move / Claim</option>
+					<optgroup label="Story nodes">
+						{project.storyNodes.map(node => (
+							<option key={node.id} value={focusValue({kind: 'story-node', id: node.id})}>
+								{node.title}
+							</option>
+						))}
+					</optgroup>
+					<optgroup label="Narrative Moves">
+						{project.narrativeMoves.map(move => (
+							<option key={move.id} value={focusValue({kind: 'move', id: move.id})}>
+								{move.label}
+							</option>
+						))}
+					</optgroup>
+					<optgroup label="Claims">
+						{project.claims.map(claim => (
+							<option key={claim.id} value={focusValue({kind: 'claim', id: claim.id})}>
+								{claim.text}
+							</option>
+						))}
+					</optgroup>
+				</select>
 			</div>
-			<small>read-only analysis</small>
-		</header>
 
-		<div className="narrative-workspace__story-brain-focus-picker">
-			<label htmlFor="story-brain-focus">Анализировать</label>
-			<select
-				id="story-brain-focus"
-				value={selectedFocus}
-				onChange={event => setSelectedFocus(event.target.value)}
-			>
-				<option value="">Выбери Story / Move / Claim</option>
-				<optgroup label="Story nodes">
-					{project.storyNodes.map(node => (
-						<option key={node.id} value={focusValue({kind: 'story-node', id: node.id})}>
-							{node.title}
-						</option>
-					))}
-				</optgroup>
-				<optgroup label="Narrative Moves">
-					{project.narrativeMoves.map(move => (
-						<option key={move.id} value={focusValue({kind: 'move', id: move.id})}>
-							{move.label}
-						</option>
-					))}
-				</optgroup>
-				<optgroup label="Claims">
-					{project.claims.map(claim => (
-						<option key={claim.id} value={focusValue({kind: 'claim', id: claim.id})}>
-							{claim.text}
-						</option>
-					))}
-				</optgroup>
-			</select>
-		</div>
-
-		{result ? (
-			<div className="narrative-workspace__story-brain-grid">
-				<article>
-					<h3>FOCUS</h3>
-					<p>
-						Семантический контекст выбранного элемента. Reference-связи здесь
-						 учитываются, потому что они полезны для понимания истории.
-					</p>
-					<div className="narrative-workspace__story-brain-metrics">
-						{(Object.keys(kindLabels) as StoryBrainEntityKind[]).map(kind => (
-							<div key={kind}>
-								<span>{kindLabels[kind]}</span>
-								<strong>{storyBrainEntityCount(result.focus.entities, kind)}</strong>
-							</div>
-						))}
-					</div>
-					<small>{result.focus.relationCount} найденных связей в Focus-окне.</small>
-				</article>
-
-				<article>
-					<h3>IMPACT</h3>
-					<p>
-						Только реальные зависимости и причинные направления. Обычная
-						 reference-линия не считается последствием.
-					</p>
-					<div className="narrative-workspace__story-brain-metrics">
-						{impactCounts?.map(({kind, count}) => (
-							<div key={kind}>
-								<span>{kindLabels[kind]}</span>
-								<strong>{count}</strong>
-							</div>
-						))}
-					</div>
-					{result.impact.hits.length > 0 ? (
-						<ul className="narrative-workspace__story-brain-impact-list">
-							{result.impact.hits.slice(0, 8).map(hit => (
-								<li key={`${hit.entity.kind}:${hit.entity.id}`}>
-									<strong>{entityLabel(result, project, hit.entity)}</strong>
-									<small>
-										{kindLabels[hit.entity.kind]} · {hit.via}
-									</small>
-								</li>
-							))}
-						</ul>
-					) : (
-						<small>Нет downstream-зависимостей в текущей модели.</small>
-					)}
-				</article>
-
-				<article className="narrative-workspace__story-brain-why">
-					<h3>WHY</h3>
-					<p>
-						Доступность считается по текущему preview/runtime. Авторские Guards
-						 не изменяют состояние — Brain только объясняет их.
-					</p>
-					{result.why.moves.length > 0 ? (
-						<div className="narrative-workspace__story-brain-why-list">
-							{result.why.moves.map(move => (
-								<div key={move.moveId}>
-									<div className="narrative-workspace__story-brain-why-heading">
-										<strong>{move.label}</strong>
-										<span data-status={move.availability}>
-											{availabilityLabels[move.availability]}
-										</span>
-									</div>
-									{move.guardTraces.map(trace => (
-										<p key={trace.guardId} data-status={trace.status}>
-											{trace.status === 'met' ? '✓' : trace.status === 'unmet' ? '✕' : '?'}{' '}
-											{trace.label ? `${trace.label}: ` : ''}
-											{trace.summary}
-										</p>
-									))}
-									{move.guardTraces.length === 0 && <p>✓ Нет Eligibility Guards.</p>}
-									<p className="narrative-workspace__story-brain-resolution">
-										Resolution: {move.resolutionSummary}
-									</p>
-									{move.resolutionCondition && (
-										<p data-status={move.resolutionCondition.status}>
-											{move.resolutionCondition.summary}
-										</p>
-									)}
+			{result ? (
+				<div className="narrative-workspace__story-brain-grid">
+					<article>
+						<h3>FOCUS</h3>
+						<p>
+							Семантический контекст выбранного элемента. Reference-связи здесь
+							 учитываются, потому что они полезны для понимания истории.
+						</p>
+						<div className="narrative-workspace__story-brain-metrics">
+							{(Object.keys(kindLabels) as StoryBrainEntityKind[]).map(kind => (
+								<div key={kind}>
+									<span>{kindLabels[kind]}</span>
+									<strong>{storyBrainEntityCount(result.focus.entities, kind)}</strong>
 								</div>
 							))}
 						</div>
-					) : (
-						<small>Для этого Focus пока нет связанных Narrative Moves.</small>
-					)}
-				</article>
-			</div>
-		) : (
-			<p className="narrative-workspace__story-brain-empty">
-				Создай или выбери Story node, Narrative Move или Claim — Brain покажет
-				 его контекст, последствия и причины доступности.
-			</p>
-		)}
-	</section>
-);
+						<small>{result.focus.relationCount} найденных связей в Focus-окне.</small>
+					</article>
+
+					<article>
+						<h3>IMPACT</h3>
+						<p>
+							Только реальные зависимости и причинные направления. Обычная
+							 reference-линия не считается последствием.
+						</p>
+						<div className="narrative-workspace__story-brain-metrics">
+							{impactCounts?.map(({kind, count}) => (
+								<div key={kind}>
+									<span>{kindLabels[kind]}</span>
+									<strong>{count}</strong>
+								</div>
+							))}
+						</div>
+						{result.impact.hits.length > 0 ? (
+							<ul className="narrative-workspace__story-brain-impact-list">
+								{result.impact.hits.slice(0, 8).map(hit => (
+									<li key={`${hit.entity.kind}:${hit.entity.id}`}>
+										<strong>{entityLabel(project, hit.entity)}</strong>
+										<small>
+											{kindLabels[hit.entity.kind]} · {hit.via}
+										</small>
+									</li>
+								))}
+							</ul>
+						) : (
+							<small>Нет downstream-зависимостей в текущей модели.</small>
+						)}
+					</article>
+
+					<article className="narrative-workspace__story-brain-why">
+						<h3>WHY</h3>
+						<p>
+							Доступность считается по текущему preview/runtime. Авторские Guards
+							 не изменяют состояние — Brain только объясняет их.
+						</p>
+						{result.why.moves.length > 0 ? (
+							<div className="narrative-workspace__story-brain-why-list">
+								{result.why.moves.map(move => (
+									<div key={move.moveId}>
+										<div className="narrative-workspace__story-brain-why-heading">
+											<strong>{move.label}</strong>
+											<span data-status={move.availability}>
+												{availabilityLabels[move.availability]}
+											</span>
+										</div>
+										{move.guardTraces.map(trace => (
+											<p key={trace.guardId} data-status={trace.status}>
+												{trace.status === 'met' ? '✓' : trace.status === 'unmet' ? '✕' : '?'}{' '}
+												{trace.label ? `${trace.label}: ` : ''}
+												{trace.summary}
+											</p>
+										))}
+										{move.guardTraces.length === 0 && <p>✓ Нет Eligibility Guards.</p>}
+										<p className="narrative-workspace__story-brain-resolution">
+											Resolution: {move.resolutionSummary}
+										</p>
+										{move.resolutionCondition && (
+											<p data-status={move.resolutionCondition.status}>
+												{move.resolutionCondition.summary}
+											</p>
+										)}
+									</div>
+								))}
+							</div>
+						) : (
+							<small>Для этого Focus пока нет связанных Narrative Moves.</small>
+						)}
+					</article>
+				</div>
+			) : (
+				<p className="narrative-workspace__story-brain-empty">
+					Создай или выбери Story node, Narrative Move или Claim — Brain покажет
+					 его контекст, последствия и причины доступности.
+				</p>
+			)}
+		</section>
+	);
 };
