@@ -1,5 +1,11 @@
 import {EntityId} from './entities';
 
+export type MemorySource =
+	| {type: 'story-node'; storyNodeId: EntityId}
+	| {type: 'narrative-move'; moveId: EntityId; outcomeId?: EntityId}
+	| {type: 'claim'; claimId: EntityId}
+	| {type: 'authored'};
+
 export interface MemoryTrace {
 	id: EntityId;
 	characterId: EntityId;
@@ -10,6 +16,12 @@ export interface MemoryTrace {
 	baseStrength: number;
 	tags: string[];
 	relatedEntityIds: EntityId[];
+	/** A31 provenance. Optional only for backward compatibility with old v2 data. */
+	source?: MemorySource;
+	/** Number of later reinforcements after the original creation. */
+	reinforcementCount?: number;
+	lastReinforcedAtDay?: number;
+	lastReinforcedAtMinute?: number;
 }
 
 export interface RelationshipState {
