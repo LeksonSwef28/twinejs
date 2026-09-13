@@ -30,10 +30,6 @@ export interface NarrativeSimulationState {
 	characterKnowledge: CharacterKnowledgeState[];
 	/** Runtime needs state. It advances only with the Simulation Playhead or typed body effects. */
 	bodyByCharacter: Record<string, CharacterBodyState>;
-	/** Current injuries are runtime conditions, not an abstract HP total. */
-	injuriesByCharacter: Record<string, InjuryState[]>;
-	/** Overrides authored initial placement without mutating canonical ItemInstances. */
-	itemPlacementOverrides: Record<string, ItemRuntimePlacement>;
 }
 
 export interface NarrativeProject {
@@ -68,6 +64,10 @@ export interface NarrativeProject {
 	relationships: RelationshipState[];
 	pendingReactions: PendingReaction[];
 	mindStates: CharacterMindState[];
+	/** Current injuries are runtime conditions, not an abstract HP total. */
+	injuriesByCharacter: Record<string, InjuryState[]>;
+	/** Runtime overlay on canonical authored ItemInstance placement. */
+	itemPlacementOverrides: Record<string, ItemRuntimePlacement>;
 	editor: NarrativeEditorState;
 	simulation: NarrativeSimulationState;
 }
