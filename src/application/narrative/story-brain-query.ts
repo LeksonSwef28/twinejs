@@ -7,6 +7,12 @@ import {
 import {NarrativeMoveDefinition} from '../../domain/narrative/interaction';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {
+	evaluateReactionCandidateSet,
+	ReactionCandidateSetEvaluation,
+	reactionCandidateSetIsStructurallyValid,
+	ReactionEvaluationContext
+} from '../../domain/narrative/reaction';
+import {
 	buildStoryBrainIndex,
 	queryStoryBrainFocus,
 	queryStoryBrainImpact,
@@ -50,6 +56,7 @@ export interface StoryBrainQueryResult {
 	why: StoryBrainWhyResult;
 	coverage: StoryBrainCoverageResult;
 	bridges: StoryBridgeFinderResult;
+	reactions: ReactionCandidateSetEvaluation[];
 }
 
 function runtimeContext(project: NarrativeProject): NarrativeRuntimeEvaluationContext {
@@ -59,6 +66,14 @@ function runtimeContext(project: NarrativeProject): NarrativeRuntimeEvaluationCo
 		relationships: project.relationships,
 		storyNodes: project.storyNodes,
 		actualLocationByCharacter: project.simulation.actualLocationByCharacter
+	};
+}
+
+function reactionContext(project: NarrativeProject): ReactionEvaluationContext {
+	return {
+		...runtimeContext(project),
+		mindStates: project.mindStates,
+		memories: project.memories
 	};
 }
 
@@ -182,11 +197,37 @@ function coverageForFocus(
 	);
 }
 
+function reactionsForFocus(project: NarrativeProject, storyNodeIds: string[]) {
+	const nodeIds = new Set(storyNodeIds);
+	const movesById = new Map(project.narrativeMoves.map(move => [move.id, move]));
+	const context = reactionContext(project);
+
+	return project.reactionCandidateSets
+		.filter(set => {
+			if (
+				!nodeIds.has(set.storyNodeId) ||
+				!reactionCandidateSetIsStructurallyValid(set) ||
+				!project.characters.some(character => character.id === set.reactingCharacterId) ||
+				(set.counterpartCharacterId !== undefined &&
+					!project.characters.some(
+						character => character.id === set.counterpartCharacterId
+					))
+			) {
+				return false;
+			}
+			return set.candidates.every(candidate => {
+				const move = movesById.get(candidate.moveId);
+				return move?.storyNodeId === set.storyNodeId;
+			});
+		})
+		.map(set => evaluateReactionCandidateSet(set, context));
+}
+
 /**
  * Application-level Story Brain query. It composes the read-only authored graph
- * with the current preview/runtime state for WHY explanations. Coverage and
- * Bridge Finder also remain derived/read-only; authoring changes still require
- * an explicit command from the user.
+ * with the current preview/runtime state for WHY and reaction explanations.
+ * Coverage, Bridge Finder and reaction ranking remain derived/read-only;
+ * authoring changes still require an explicit command from the user.
  */
 export function queryStoryBrain(
 	project: NarrativeProject,
@@ -242,7 +283,8 @@ export function queryStoryBrain(
 				focus
 			)
 		},
-		bridges
+		bridges,
+		reactions: reactionsForFocus(project, storyNodeIds)
 	};
 }
 
