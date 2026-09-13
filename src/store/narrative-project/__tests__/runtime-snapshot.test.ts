@@ -188,7 +188,10 @@ describe('A36/A38 runtime snapshots', () => {
 	test('accepts pre-A38 v1 snapshots without body state and fills an empty body map', () => {
 		const source = projectWithRuntime();
 		const current = createNarrativeRuntimeSnapshot(source);
-		const simulation = {...current.runtime.simulation} as typeof current.runtime.simulation & {
+		const simulation = {...current.runtime.simulation} as Omit<
+			typeof current.runtime.simulation,
+			'bodyByCharacter'
+		> & {
 			bodyByCharacter?: typeof current.runtime.simulation.bodyByCharacter;
 		};
 		delete simulation.bodyByCharacter;
