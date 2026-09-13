@@ -6,7 +6,7 @@ export interface NarrativeRuntimeMoment {
 	minuteOfDay: number;
 }
 
-export interface NarrativeRuntimeOccurrence {
+export interface NarrativeMoveOutcomeOccurrence {
 	id: EntityId;
 	type: 'move-outcome';
 	storyNodeId: EntityId;
@@ -14,6 +14,39 @@ export interface NarrativeRuntimeOccurrence {
 	outcomeId: EntityId;
 	effectIds: EntityId[];
 	moment: NarrativeRuntimeMoment;
+}
+
+export type NarrativeStoryWorkResult = 'executed' | 'missed' | 'interrupted';
+
+export interface NarrativeStoryWorkOccurrence {
+	id: EntityId;
+	type: 'story-work';
+	workId: EntityId;
+	storyNodeId: EntityId;
+	result: NarrativeStoryWorkResult;
+	scheduledMoment: NarrativeRuntimeMoment;
+	startedAt?: NarrativeRuntimeMoment;
+	moment: NarrativeRuntimeMoment;
+	plannedDurationMinutes: number;
+	elapsedMinutes: number;
+}
+
+export type NarrativeRuntimeOccurrence =
+	| NarrativeMoveOutcomeOccurrence
+	| NarrativeStoryWorkOccurrence;
+
+function runtimeMomentIsValid(value: unknown): value is NarrativeRuntimeMoment {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return false;
+	}
+	const candidate = value as Partial<NarrativeRuntimeMoment>;
+	return (
+		Number.isInteger(candidate.day) &&
+		(candidate.day ?? 0) >= 1 &&
+		Number.isInteger(candidate.minuteOfDay) &&
+		(candidate.minuteOfDay ?? -1) >= 0 &&
+		(candidate.minuteOfDay ?? 24 * 60) < 24 * 60
+	);
 }
 
 export function storyNodeActivationStateIsValid(
@@ -36,21 +69,38 @@ export function narrativeRuntimeOccurrenceIsValid(
 		return false;
 	}
 	const candidate = value as Partial<NarrativeRuntimeOccurrence>;
-	return (
-		typeof candidate.id === 'string' &&
-		candidate.type === 'move-outcome' &&
-		typeof candidate.storyNodeId === 'string' &&
-		typeof candidate.moveId === 'string' &&
-		typeof candidate.outcomeId === 'string' &&
-		Array.isArray(candidate.effectIds) &&
-		candidate.effectIds.every(effectId => typeof effectId === 'string') &&
-		Boolean(candidate.moment && typeof candidate.moment === 'object') &&
-		Number.isInteger(candidate.moment?.day) &&
-		(candidate.moment?.day ?? 0) >= 1 &&
-		Number.isInteger(candidate.moment?.minuteOfDay) &&
-		(candidate.moment?.minuteOfDay ?? -1) >= 0 &&
-		(candidate.moment?.minuteOfDay ?? 24 * 60) < 24 * 60
-	);
+	if (
+		typeof candidate.id !== 'string' ||
+		typeof candidate.storyNodeId !== 'string' ||
+		!runtimeMomentIsValid(candidate.moment)
+	) {
+		return false;
+	}
+	if (candidate.type === 'move-outcome') {
+		return (
+			typeof candidate.moveId === 'string' &&
+			typeof candidate.outcomeId === 'string' &&
+			Array.isArray(candidate.effectIds) &&
+			candidate.effectIds.every(effectId => typeof effectId === 'string')
+		);
+	}
+	if (candidate.type === 'story-work') {
+		return (
+			typeof candidate.workId === 'string' &&
+			(candidate.result === 'executed' ||
+				candidate.result === 'missed' ||
+				candidate.result === 'interrupted') &&
+			runtimeMomentIsValid(candidate.scheduledMoment) &&
+			(candidate.startedAt === undefined || runtimeMomentIsValid(candidate.startedAt)) &&
+			typeof candidate.plannedDurationMinutes === 'number' &&
+			Number.isInteger(candidate.plannedDurationMinutes) &&
+			candidate.plannedDurationMinutes >= 0 &&
+			typeof candidate.elapsedMinutes === 'number' &&
+			Number.isInteger(candidate.elapsedMinutes) &&
+			candidate.elapsedMinutes >= 0
+		);
+	}
+	return false;
 }
 
 export function effectiveStoryNodeActivationState(
@@ -80,12 +130,26 @@ export function applyStoryNodeStateOverride(
 
 export function appendNarrativeRuntimeOccurrence(
 	history: NarrativeRuntimeOccurrence[],
-	input: Omit<NarrativeRuntimeOccurrence, 'id'>
+	input: Omit<NarrativeMoveOutcomeOccurrence, 'id'>
 ) {
 	const prefix = `occurrence:${input.moveId}:${input.outcomeId}:${input.moment.day}:${input.moment.minuteOfDay}`;
 	const ordinal =
 		history.filter(occurrence => occurrence.id.startsWith(`${prefix}:`)).length + 1;
-	const occurrence: NarrativeRuntimeOccurrence = {
+	const occurrence: NarrativeMoveOutcomeOccurrence = {
+		...input,
+		id: `${prefix}:${ordinal}`
+	};
+	return {history: [...history, occurrence], occurrence};
+}
+
+export function appendNarrativeStoryWorkOccurrence(
+	history: NarrativeRuntimeOccurrence[],
+	input: Omit<NarrativeStoryWorkOccurrence, 'id'>
+) {
+	const prefix = `story-work:${input.workId}:${input.result}:${input.moment.day}:${input.moment.minuteOfDay}`;
+	const ordinal =
+		history.filter(occurrence => occurrence.id.startsWith(`${prefix}:`)).length + 1;
+	const occurrence: NarrativeStoryWorkOccurrence = {
 		...input,
 		id: `${prefix}:${ordinal}`
 	};
