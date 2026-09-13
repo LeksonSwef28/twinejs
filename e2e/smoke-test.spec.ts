@@ -93,12 +93,13 @@ test('Opens the Living Simulation playtest controls', async ({page}) => {
 	await createStory(page, 'Playtest surface test');
 	await page.getByRole('button', {name: 'Playtest / Debug'}).click();
 
-	await expect(page.getByLabel('Living Simulation playtest')).toBeVisible();
-	await expect(page.getByLabel('Simulation Playhead controls')).toBeVisible();
+	const playtest = page.getByLabel('Living Simulation playtest');
+	await expect(playtest).toBeVisible();
+	await expect(playtest.getByLabel('Simulation Playhead controls')).toBeVisible();
 	await expect(
-		page.getByRole('button', {name: 'Play', exact: true})
+		playtest.getByRole('button', {name: 'Play', exact: true})
 	).toBeVisible();
-	await expect(page.getByRole('button', {name: '+1 мин'})).toBeVisible();
-	await expect(page.getByRole('button', {name: '+5 мин'})).toBeVisible();
-	await expect(page.getByRole('button', {name: '+30 мин'})).toBeVisible();
+	await expect(playtest.getByRole('button', {name: '+1 мин'})).toBeVisible();
+	await expect(playtest.getByRole('button', {name: '+5 мин'})).toBeVisible();
+	await expect(playtest.getByRole('button', {name: '+30 мин'})).toBeVisible();
 });
