@@ -32,7 +32,7 @@ Deliverables:
 - Failed/unknown considerations remain visible in the read-side explanation.
 - Candidate evaluation still does not execute an action automatically.
 
-**Status:** implementation landed; CI verification required before marking DONE.
+**Status: DONE.** Verified by `93 Days Branch Check` run #193: lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
 
 ## A34 — Story ↔ World/Time Integration
 
