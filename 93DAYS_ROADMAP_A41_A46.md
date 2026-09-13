@@ -77,6 +77,8 @@ Deliverables:
 - trace viewer for move resolution, effects and NPC decisions;
 - preserve STORY and WORLD/TIME as the only top-level workspaces.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #308: Play/Pause and explicit +1/+5/+30 Simulation Playhead stepping, View Cursor synchronization, runtime character/body/injury/inventory/cognition inspection, due/upcoming work, active executions, effective Story state and occurrence history, read-only Move/NPC decision trace inspection, persisted runtime updates outside authoring Undo/Redo, runtime-only projection enforcement, STORY/WORLD-TIME remaining the only top-level workspaces, lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A45 — 93-Day Scale & Performance Gates
 
 **Goal:** prove that the architecture can scale from the one-day vertical slice toward production 93-day content density.
