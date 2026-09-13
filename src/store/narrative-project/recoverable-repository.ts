@@ -41,8 +41,13 @@ function legacyStorageKey(hostStoryId: string) {
 	return `twine:narrative-project:v1:${hostStoryId}`;
 }
 
-function requiredProjectArraysExist(value: Record<string, unknown>) {
+function requiredProjectIdentityAndArraysExist(
+	value: Record<string, unknown>,
+	hostStoryId: string
+) {
 	return (
+		typeof value.projectId === 'string' &&
+		value.hostStoryId === hostStoryId &&
 		Array.isArray(value.locations) &&
 		Array.isArray(value.characters) &&
 		Array.isArray(value.storyNodes) &&
@@ -57,20 +62,18 @@ function isRecognizedCurrentPayload(value: unknown, hostStoryId: string) {
 
 	if (value.format === narrativeProjectPersistenceFormat) {
 		const authored = value.authored;
-		if (
-			value.schemaVersion !== narrativeProjectSchemaVersion ||
-			!isRecord(authored) ||
-			authored.hostStoryId !== hostStoryId
-		) {
-			return false;
-		}
-		return requiredProjectArraysExist(authored);
+		return (
+			value.schemaVersion === narrativeProjectSchemaVersion &&
+			isRecord(authored) &&
+			isRecord(value.editor) &&
+			isRecord(value.runtime) &&
+			requiredProjectIdentityAndArraysExist(authored, hostStoryId)
+		);
 	}
 
 	return (
 		value.schemaVersion === narrativeProjectSchemaVersion &&
-		value.hostStoryId === hostStoryId &&
-		requiredProjectArraysExist(value)
+		requiredProjectIdentityAndArraysExist(value, hostStoryId)
 	);
 }
 
