@@ -1,3 +1,4 @@
+import {CharacterBodyState, bodyStateIsValid} from '../../domain/narrative/body';
 import {
 	CharacterMindState,
 	MemoryTrace,
@@ -66,6 +67,28 @@ function isStringRecord(value: unknown) {
 		isRecord(value) &&
 		Object.values(value).every(entry => typeof entry === 'string')
 	);
+}
+
+function bodyStateRecordIsValid(value: unknown) {
+	return (
+		isRecord(value) &&
+		Object.entries(value).every(
+			([characterId, state]) =>
+				bodyStateIsValid(state) && state.characterId === characterId
+		)
+	);
+}
+
+function cloneBodyStateRecord(value: unknown): Record<string, CharacterBodyState> {
+	if (!bodyStateRecordIsValid(value)) {
+		return {};
+	}
+	return Object.fromEntries(
+		Object.entries(value).map(([characterId, state]) => [
+			characterId,
+			{...(state as CharacterBodyState)}
+		])
+	) as Record<string, CharacterBodyState>;
 }
 
 function memoryIsValid(value: unknown): value is MemoryTrace {
@@ -160,7 +183,8 @@ function simulationIsValid(value: unknown): value is NarrativeSimulationState {
 		isStringRecord(value.activeBehaviorProfileByCharacter) &&
 		isStringRecord(value.actualLocationByCharacter) &&
 		Array.isArray(value.characterKnowledge) &&
-		value.characterKnowledge.every(knowledgeStateIsValid)
+		value.characterKnowledge.every(knowledgeStateIsValid) &&
+		(value.bodyByCharacter === undefined || bodyStateRecordIsValid(value.bodyByCharacter))
 	);
 }
 
@@ -221,7 +245,12 @@ function cloneRuntimeProjection(
 				lastReinforcedAt: state.lastReinforcedAt
 					? {...state.lastReinforcedAt}
 					: undefined
-			}))
+			})),
+			bodyByCharacter: cloneBodyStateRecord(
+				(runtime.simulation as NarrativeSimulationState & {
+					bodyByCharacter?: Record<string, CharacterBodyState>;
+				}).bodyByCharacter
+			)
 		}
 	};
 }
