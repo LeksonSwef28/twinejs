@@ -13,6 +13,7 @@ import {MemorySaliencePanel} from './memory-salience-panel';
 import {MoveConditionsPanel} from './move-conditions-panel';
 import {NarrativeMovePanel} from './narrative-move-panel';
 import {OutcomeEffectsPanel} from './outcome-effects-panel';
+import {ProjectIdentityPanel} from './project-identity-panel';
 import {ProjectLibrary} from './project-library';
 import {ReactionCandidatesPanel} from './reaction-candidates-panel';
 import {RoutineAuthoringPanel} from './routine-authoring-panel';
@@ -128,6 +129,8 @@ export const NarrativeWorkspace: React.FC = () => {
 					</button>
 				</div>
 			</header>
+
+			<ProjectIdentityPanel />
 
 			<div
 				className="narrative-workspace__mode-bar"
