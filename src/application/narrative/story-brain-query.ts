@@ -15,6 +15,14 @@ import {
 	StoryBrainFocusResult,
 	StoryBrainImpactResult
 } from '../../domain/narrative/story-brain';
+import {
+	analyzeStoryCoverage,
+	StoryCoverageFinding
+} from '../../domain/narrative/story-analysis';
+import {
+	findStoryBridgeCandidates,
+	StoryBridgeFinderResult
+} from '../../domain/narrative/story-bridge-finder';
 
 export type StoryBrainMoveAvailability = 'available' | 'blocked' | 'unknown';
 
@@ -31,10 +39,17 @@ export interface StoryBrainWhyResult {
 	moves: StoryBrainWhyMoveResult[];
 }
 
+export interface StoryBrainCoverageResult {
+	projectFindingCount: number;
+	findings: StoryCoverageFinding[];
+}
+
 export interface StoryBrainQueryResult {
 	focus: StoryBrainFocusResult;
 	impact: StoryBrainImpactResult;
 	why: StoryBrainWhyResult;
+	coverage: StoryBrainCoverageResult;
+	bridges: StoryBridgeFinderResult;
 }
 
 function runtimeContext(project: NarrativeProject): NarrativeRuntimeEvaluationContext {
@@ -124,10 +139,54 @@ function relatedMoves(
 	return project.narrativeMoves.filter(move => relatedMoveIds.has(move.id));
 }
 
+function focusStoryNodeIds(
+	project: NarrativeProject,
+	focus: StoryBrainEntityRef,
+	focusResult: StoryBrainFocusResult,
+	moves: NarrativeMoveDefinition[]
+) {
+	const ids = new Set<string>();
+	if (focus.kind === 'story-node') {
+		ids.add(focus.id);
+	}
+	if (focus.kind === 'move') {
+		const move = project.narrativeMoves.find(candidate => candidate.id === focus.id);
+		if (move) {
+			ids.add(move.storyNodeId);
+		}
+	}
+	for (const entity of focusResult.entities) {
+		if (entity.kind === 'story-node') {
+			ids.add(entity.id);
+		}
+	}
+	for (const move of moves) {
+		ids.add(move.storyNodeId);
+	}
+	return [...ids].filter(id => project.storyNodes.some(node => node.id === id));
+}
+
+function coverageForFocus(
+	findings: StoryCoverageFinding[],
+	storyNodeIds: string[],
+	moves: NarrativeMoveDefinition[],
+	focus: StoryBrainEntityRef
+) {
+	const nodeIds = new Set(storyNodeIds);
+	const moveIds = new Set(moves.map(move => move.id));
+	return findings.filter(
+		finding =>
+			(finding.storyNodeId !== undefined && nodeIds.has(finding.storyNodeId)) ||
+			(finding.moveId !== undefined && moveIds.has(finding.moveId)) ||
+			(focus.kind === 'character' && finding.characterId === focus.id)
+	);
+}
+
 /**
  * Application-level Story Brain query. It composes the read-only authored graph
- * with the current preview/runtime state for WHY explanations. It never writes
- * to NarrativeProject.
+ * with the current preview/runtime state for WHY explanations. Coverage and
+ * Bridge Finder also remain derived/read-only; authoring changes still require
+ * an explicit command from the user.
  */
 export function queryStoryBrain(
 	project: NarrativeProject,
@@ -141,7 +200,8 @@ export function queryStoryBrain(
 	const focusResult = queryStoryBrainFocus(index, focus);
 	const impact = queryStoryBrainImpact(index, focus);
 	const context = runtimeContext(project);
-	const moves = relatedMoves(project, focus, focusResult).map(move => {
+	const related = relatedMoves(project, focus, focusResult);
+	const moves = related.map(move => {
 		const {availability, guardEvaluation} = moveAvailability(move, context);
 		return {
 			moveId: move.id,
@@ -151,11 +211,38 @@ export function queryStoryBrain(
 			...explainResolution(move, context)
 		};
 	});
+	const storyNodeIds = focusStoryNodeIds(project, focus, focusResult, related);
+	const projectCoverage = analyzeStoryCoverage(
+		project.storyNodes,
+		project.storyConnections,
+		project.narrativeMoves,
+		project.template.dayCount
+	);
+	const bridges = findStoryBridgeCandidates(
+		{
+			nodes: project.storyNodes,
+			connections: project.storyConnections,
+			moves: project.narrativeMoves,
+			initialKnowledge: project.initialKnowledge,
+			itemInstances: project.itemInstances
+		},
+		storyNodeIds
+	);
 
 	return {
 		focus: focusResult,
 		impact,
-		why: {moves}
+		why: {moves},
+		coverage: {
+			projectFindingCount: projectCoverage.findings.length,
+			findings: coverageForFocus(
+				projectCoverage.findings,
+				storyNodeIds,
+				related,
+				focus
+			)
+		},
+		bridges
 	};
 }
 
