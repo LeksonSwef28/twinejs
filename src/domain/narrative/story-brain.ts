@@ -1,4 +1,5 @@
 import {
+	NarrativeCharacterReferenceDefinition,
 	NarrativeConditionDefinition,
 	NarrativeMoveDefinition
 } from './interaction';
@@ -31,7 +32,12 @@ export type StoryBrainRelationKind =
 	| 'resolution-depends-on'
 	| 'outcome-continues-to'
 	| 'knowledge-effect-claim'
-	| 'knowledge-effect-recipient';
+	| 'knowledge-effect-recipient'
+	| 'relationship-effect-character'
+	| 'mood-effect-character'
+	| 'item-effect-item'
+	| 'item-effect-character'
+	| 'story-state-effect-node';
 
 /**
  * Impact direction is intentionally separate from visual/semantic relation.
@@ -95,6 +101,36 @@ function conditionReferences(
 		case 'characters-share-location':
 			return condition.characterIds.map(id => ({kind: 'character', id}));
 	}
+}
+
+function resolveCharacterReference(
+	move: NarrativeMoveDefinition,
+	reference: NarrativeCharacterReferenceDefinition
+): StoryBrainEntityRef | undefined {
+	switch (reference.type) {
+		case 'character':
+			return {kind: 'character', id: reference.characterId};
+		case 'move-actor':
+			return move.actorCharacterId
+				? {kind: 'character', id: move.actorCharacterId}
+				: undefined;
+		case 'move-target': {
+			const target = move.targetCharacterIds[reference.targetIndex];
+			return target ? {kind: 'character', id: target} : undefined;
+		}
+	}
+}
+
+function pushEffectRelation(
+	relations: StoryBrainRelation[],
+	moveRef: StoryBrainEntityRef,
+	to: StoryBrainEntityRef | undefined,
+	kind: StoryBrainRelationKind
+) {
+	if (!to) {
+		return;
+	}
+	relations.push({from: moveRef, to, kind, impactFlow: 'both'});
 }
 
 /**
@@ -192,35 +228,82 @@ export function buildStoryBrainIndex(
 				});
 			}
 			for (const effect of outcome.effects ?? []) {
-				if (effect.type !== 'character-learns-claim') {
-					continue;
-				}
-				if (effect.claim.type === 'claim') {
-					relations.push({
-						from: moveRef,
-						to: {kind: 'claim', id: effect.claim.claimId},
-						kind: 'knowledge-effect-claim',
-						impactFlow: 'both'
-					});
-				}
-				if (effect.recipient.type === 'character') {
-					relations.push({
-						from: moveRef,
-						to: {kind: 'character', id: effect.recipient.characterId},
-						kind: 'knowledge-effect-recipient',
-						impactFlow: 'both'
-					});
-				} else {
-					const targetCharacterId =
-						move.targetCharacterIds[effect.recipient.targetIndex];
-					if (targetCharacterId) {
-						relations.push({
-							from: moveRef,
-							to: {kind: 'character', id: targetCharacterId},
-							kind: 'knowledge-effect-recipient',
-							impactFlow: 'both'
-						});
-					}
+				switch (effect.type) {
+					case 'character-learns-claim':
+						if (effect.claim.type === 'claim') {
+							pushEffectRelation(
+								relations,
+								moveRef,
+								{kind: 'claim', id: effect.claim.claimId},
+								'knowledge-effect-claim'
+							);
+						}
+						if (effect.recipient.type === 'character') {
+							pushEffectRelation(
+								relations,
+								moveRef,
+								{kind: 'character', id: effect.recipient.characterId},
+								'knowledge-effect-recipient'
+							);
+						} else {
+							const targetCharacterId =
+								move.targetCharacterIds[effect.recipient.targetIndex];
+							pushEffectRelation(
+								relations,
+								moveRef,
+								targetCharacterId
+									? {kind: 'character', id: targetCharacterId}
+									: undefined,
+								'knowledge-effect-recipient'
+							);
+						}
+						break;
+					case 'relationship-adjust':
+						pushEffectRelation(
+							relations,
+							moveRef,
+							resolveCharacterReference(move, effect.from),
+							'relationship-effect-character'
+						);
+						pushEffectRelation(
+							relations,
+							moveRef,
+							resolveCharacterReference(move, effect.to),
+							'relationship-effect-character'
+						);
+						break;
+					case 'character-mood-set':
+						pushEffectRelation(
+							relations,
+							moveRef,
+							resolveCharacterReference(move, effect.character),
+							'mood-effect-character'
+						);
+						break;
+					case 'item-set-placement':
+						pushEffectRelation(
+							relations,
+							moveRef,
+							{kind: 'item', id: effect.itemInstanceId},
+							'item-effect-item'
+						);
+						if (effect.placement.type === 'character') {
+							pushEffectRelation(
+								relations,
+								moveRef,
+								resolveCharacterReference(move, effect.placement.character),
+								'item-effect-character'
+							);
+						}
+						break;
+					case 'story-node-set-state':
+						pushEffectRelation(
+							relations,
+							moveRef,
+							{kind: 'story-node', id: effect.storyNodeId},
+							'story-state-effect-node'
+						);
+						break;
 				}
 			}
 		}
