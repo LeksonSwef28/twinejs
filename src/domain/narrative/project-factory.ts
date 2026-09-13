@@ -48,6 +48,8 @@ export function createNarrativeProject(
 		storyNodes: [],
 		storyConnections: [],
 		narrativeMoves: [],
+		interactionTemplates: [],
+		reactionCandidateSets: [],
 		memories: [],
 		relationships: [],
 		pendingReactions: [],
