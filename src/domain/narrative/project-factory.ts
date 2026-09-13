@@ -75,7 +75,8 @@ export function createNarrativeProject(
 			minuteOfDay: firstPeriod.startMinute,
 			activeBehaviorProfileByCharacter: {},
 			actualLocationByCharacter: {},
-			characterKnowledge: []
+			characterKnowledge: [],
+			bodyByCharacter: {}
 		}
 	};
 }
