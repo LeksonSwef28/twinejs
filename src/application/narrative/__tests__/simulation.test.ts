@@ -1,8 +1,12 @@
+import {createHeavyMealBodyEffect, evaluateBodyAction} from '../../../domain/narrative/body';
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
-import {advanceNarrativeProjectSimulation} from '../simulation';
+import {
+	advanceNarrativeProjectSimulation,
+	applyNarrativeProjectBodyEffect
+} from '../simulation';
 
-describe('A37 project simulation orchestration', () => {
+describe('A37/A38 project simulation orchestration', () => {
 	test('advances runtime while leaving authored and editor state untouched', () => {
 		const project = createNarrativeProject(
 			'story-simulation',
@@ -68,5 +72,65 @@ describe('A37 project simulation orchestration', () => {
 		]);
 		expect(project.storyNodes[0].activationState).toBe('available');
 		expect(result.project.storyNodes[0].activationState).toBe('available');
+	});
+
+	test('advances body state on the exact minutes applied by the playhead', () => {
+		const project = createNarrativeProject(
+			'body-simulation',
+			'Body simulation',
+			ninetyThreeDaysTemplate
+		);
+		project.characters = [
+			{
+				id: 'player',
+				name: 'Player',
+				cognitionTier: 'full',
+				defaultBehaviorProfileId: 'player-default'
+			}
+		];
+
+		const afterMeal = applyNarrativeProjectBodyEffect(
+			project,
+			createHeavyMealBodyEffect('meal', 'player')
+		).project;
+		expect(
+			evaluateBodyAction(afterMeal.simulation.bodyByCharacter.player, 'fast-run')
+				.allowed
+		).toBe(false);
+
+		const after29 = advanceNarrativeProjectSimulation(afterMeal, 29);
+		expect(after29.bodyTraces).toHaveLength(1);
+		expect(
+			after29.project.simulation.bodyByCharacter.player
+				.digestionRemainingMinutes
+		).toBe(1);
+
+		const after30 = advanceNarrativeProjectSimulation(after29.project, 1);
+		expect(
+			evaluateBodyAction(after30.project.simulation.bodyByCharacter.player, 'fast-run')
+				.allowed
+		).toBe(true);
+	});
+
+	test('does not advance body beyond the project-end clamp', () => {
+		const project = createNarrativeProject(
+			'body-end-clamp',
+			'Body end clamp',
+			ninetyThreeDaysTemplate
+		);
+		project.characters = [
+			{
+				id: 'player',
+				name: 'Player',
+				cognitionTier: 'full',
+				defaultBehaviorProfileId: 'player-default'
+			}
+		];
+		project.simulation.day = ninetyThreeDaysTemplate.dayCount;
+		project.simulation.minuteOfDay = 24 * 60 - 2;
+
+		const result = advanceNarrativeProjectSimulation(project, 60);
+		expect(result.trace.appliedMinutes).toBe(1);
+		expect(result.bodyTraces[0].elapsedMinutes).toBe(1);
 	});
 });
