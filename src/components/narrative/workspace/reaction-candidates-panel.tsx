@@ -24,6 +24,7 @@ interface CandidateDraft {
 	considerationMode: ConsiderationMode;
 	considerationValue: string;
 	threshold: number;
+	memoryMinimumSalience: string;
 	weight: number;
 }
 
@@ -36,8 +37,17 @@ function newDraft(key: string): CandidateDraft {
 		considerationMode: 'none',
 		considerationValue: '',
 		threshold: 0,
+		memoryMinimumSalience: '',
 		weight: 1
 	};
+}
+
+function memoryThresholdIsValid(draft: CandidateDraft) {
+	if (draft.considerationMode !== 'memory' || !draft.memoryMinimumSalience.trim()) {
+		return true;
+	}
+	const value = Number(draft.memoryMinimumSalience);
+	return Number.isFinite(value) && value >= 0 && value <= 1;
 }
 
 export const ReactionCandidatesPanel: React.FC = () => {
@@ -58,7 +68,11 @@ export const ReactionCandidatesPanel: React.FC = () => {
 			storyNodes: project.storyNodes,
 			actualLocationByCharacter: project.simulation.actualLocationByCharacter,
 			mindStates: project.mindStates,
-			memories: project.memories
+			memories: project.memories,
+			memoryMoment: {
+				day: project.simulation.day,
+				minuteOfDay: project.simulation.minuteOfDay
+			}
 		};
 		return project.reactionCandidateSets
 			.filter(set => set.storyNodeId === selectedStoryNodeId)
@@ -124,17 +138,23 @@ export const ReactionCandidatesPanel: React.FC = () => {
 							}
 					  ]
 					: [];
-			case 'memory':
-				return draft.considerationValue.trim()
-					? [
-							{
-								id,
-								type: 'memory-tag',
-								tag: draft.considerationValue.trim(),
-								weight: draft.weight
-							}
-					  ]
-					: [];
+			case 'memory': {
+				if (!draft.considerationValue.trim() || !memoryThresholdIsValid(draft)) {
+					return [];
+				}
+				const minimumSalience = draft.memoryMinimumSalience.trim()
+					? Number(draft.memoryMinimumSalience)
+					: undefined;
+				return [
+					{
+						id,
+						type: 'memory-tag',
+						tag: draft.considerationValue.trim(),
+						minimumSalience,
+						weight: draft.weight
+					}
+				];
+			}
 		}
 	}
 
@@ -143,7 +163,7 @@ export const ReactionCandidatesPanel: React.FC = () => {
 		if (
 			!selectedStoryNodeId ||
 			!reactingCharacterId ||
-			drafts.some(draft => !draft.moveId)
+			drafts.some(draft => !draft.moveId || !memoryThresholdIsValid(draft))
 		) {
 			return;
 		}
@@ -277,7 +297,7 @@ export const ReactionCandidatesPanel: React.FC = () => {
 							<option value="relationship">Relationship threshold</option>
 							<option value="mood">Mood</option>
 							<option value="claim">Knows Claim</option>
-							<option value="memory">Memory tag</option>
+							<option value="memory">Memory tag / salience</option>
 						</select>
 						{draft.considerationMode === 'claim' ? (
 							<select
@@ -326,6 +346,22 @@ export const ReactionCandidatesPanel: React.FC = () => {
 								}
 							/>
 						)}
+						{draft.considerationMode === 'memory' && (
+							<input
+								aria-label={`Минимальная salience памяти ${index + 1}`}
+								type="number"
+								min="0"
+								max="1"
+								step="0.05"
+								value={draft.memoryMinimumSalience}
+								placeholder="Без порога = достаточно наличия памяти"
+								onChange={event =>
+									updateDraft(draft.key, {
+										memoryMinimumSalience: event.target.value
+									})
+								}
+							/>
+						)}
 						{draft.considerationMode !== 'none' && (
 							<input
 								aria-label={`Вес consideration ${index + 1}`}
@@ -365,7 +401,11 @@ export const ReactionCandidatesPanel: React.FC = () => {
 				</button>
 				<button
 					type="submit"
-					disabled={!reactingCharacterId || movesForStoryNode.length === 0}
+					disabled={
+					!reactingCharacterId ||
+					movesForStoryNode.length === 0 ||
+					drafts.some(draft => !memoryThresholdIsValid(draft))
+				}
 				>
 					Сохранить набор реакций
 				</button>
@@ -402,17 +442,16 @@ export const ReactionCandidatesPanel: React.FC = () => {
 									{candidate.valence} · {availabilityLabels[candidate.availability]} ·
 									 score {candidate.score}
 								</small>
-								{candidate.considerationTraces
-									.filter(trace => trace.status !== 'unmet')
-									.slice(0, 3)
-									.map(trace => (
-										<small key={trace.considerationId}>
-											{trace.status === 'met'
-												? `${trace.appliedWeight >= 0 ? '+' : ''}${trace.appliedWeight}`
+								{candidate.considerationTraces.slice(0, 3).map(trace => (
+									<small key={trace.considerationId}>
+										{trace.status === 'met'
+											? `${trace.appliedWeight >= 0 ? '+' : ''}${trace.appliedWeight}`
+											: trace.status === 'unmet'
+												? '0'
 												: '?'}{' '}
-											· {trace.summary}
-										</small>
-									))}
+										· {trace.summary}
+									</small>
+								))}
 							</div>
 						))}
 					</div>
