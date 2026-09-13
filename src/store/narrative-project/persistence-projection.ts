@@ -12,14 +12,15 @@ type RuntimeProjectionKeys =
 	| 'itemPlacementOverrides'
 	| 'storyNodeStateOverrides'
 	| 'runtimeOccurrences'
+	| 'activeStoryExecutions'
 	| 'simulation';
 
 type EditorProjectionKeys = 'editor';
 
 /**
  * A35 authored persistence boundary. Runtime cognition, physical state, Story
- * state/history and editor navigation are deliberately absent so simulation
- * updates cannot be mistaken for authored definitions when reading persisted data.
+ * state/history/execution and editor navigation are deliberately absent so
+ * simulation updates cannot be mistaken for authored definitions.
  */
 export type NarrativeProjectAuthoredProjection = Omit<
 	NarrativeProject,
@@ -31,14 +32,16 @@ export interface NarrativeProjectRuntimeProjection {
 	relationships: NarrativeProject['relationships'];
 	pendingReactions: NarrativeProject['pendingReactions'];
 	mindStates: NarrativeProject['mindStates'];
-	/** Optional only so pre-A39 projection-v1 payloads remain readable. New saves always write it. */
+	/** Optional only so pre-A39 projection-v1 payloads remain readable. */
 	injuriesByCharacter?: NarrativeProject['injuriesByCharacter'];
-	/** Optional only so pre-A39 projection-v1 payloads remain readable. New saves always write it. */
+	/** Optional only so pre-A39 projection-v1 payloads remain readable. */
 	itemPlacementOverrides?: NarrativeProject['itemPlacementOverrides'];
 	/** Optional only so pre-A41 projection-v1 payloads remain readable. */
 	storyNodeStateOverrides?: NarrativeProject['storyNodeStateOverrides'];
 	/** Optional only so pre-A41 projection-v1 payloads remain readable. */
 	runtimeOccurrences?: NarrativeProject['runtimeOccurrences'];
+	/** Optional only so pre-A42 projection-v1 payloads remain readable. */
+	activeStoryExecutions?: NarrativeProject['activeStoryExecutions'];
 	simulation: NarrativeSimulationState;
 }
 
@@ -50,10 +53,6 @@ export interface NarrativeProjectPersistenceEnvelope {
 	runtime: NarrativeProjectRuntimeProjection;
 }
 
-/**
- * Projects the convenient in-memory aggregate into explicit physical
- * persistence sections. This function is pure and does not mutate the project.
- */
 export function projectNarrativePersistence(
 	project: NarrativeProject
 ): NarrativeProjectPersistenceEnvelope {
@@ -68,6 +67,7 @@ export function projectNarrativePersistence(
 		itemPlacementOverrides,
 		storyNodeStateOverrides,
 		runtimeOccurrences,
+		activeStoryExecutions,
 		simulation,
 		...authored
 	} = project;
@@ -86,6 +86,7 @@ export function projectNarrativePersistence(
 			itemPlacementOverrides,
 			storyNodeStateOverrides,
 			runtimeOccurrences,
+			activeStoryExecutions,
 			simulation
 		}
 	};
@@ -107,11 +108,6 @@ export function isNarrativeProjectPersistenceEnvelope(
 	);
 }
 
-/**
- * Re-composes the aggregate expected by reducer/UI. Hydration still owns
- * validation/migration; this helper only restores the physical sections to the
- * convenient in-memory shape. Missing A39/A41 fields are safe legacy data.
- */
 export function composeNarrativeProjectPersistence(
 	envelope: NarrativeProjectPersistenceEnvelope
 ): NarrativeProject {
@@ -127,6 +123,7 @@ export function composeNarrativeProjectPersistence(
 		itemPlacementOverrides: envelope.runtime.itemPlacementOverrides ?? {},
 		storyNodeStateOverrides: envelope.runtime.storyNodeStateOverrides ?? {},
 		runtimeOccurrences: envelope.runtime.runtimeOccurrences ?? [],
+		activeStoryExecutions: envelope.runtime.activeStoryExecutions ?? [],
 		simulation: envelope.runtime.simulation
 	};
 }
