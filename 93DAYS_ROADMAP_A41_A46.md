@@ -31,6 +31,8 @@ Deliverables:
 
 A41 does **not** automatically execute due Story work. The A37 clock continues to return declarative due-work only.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #272: runtime Story activation overrides, effective Story reads for guards/reactions, safe `story-node-set-state` application, deterministic Move/Outcome occurrence provenance, project persistence and runtime snapshots with pre-A41 compatibility, authored Story isolation, lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A42 — Runtime Action / Occurrence Execution Semantics
 
 **Goal:** define when due work or chosen actions become actual runtime occurrences.
