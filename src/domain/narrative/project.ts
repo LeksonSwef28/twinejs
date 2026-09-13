@@ -1,3 +1,4 @@
+import {CharacterBodyState} from './body';
 import {CharacterMindState, MemoryTrace, PendingReaction, RelationshipState} from './cognition';
 import {NarrativeEditorState} from './editor';
 import {NarrativeCharacter, NarrativeLocation, NarrativeScene} from './entities';
@@ -26,6 +27,8 @@ export interface NarrativeSimulationState {
 	actualLocationByCharacter: Record<string, string | undefined>;
 	/** Runtime beliefs/knowledge. Objective facts and claims remain authored definitions. */
 	characterKnowledge: CharacterKnowledgeState[];
+	/** Runtime physical state. It advances only with the Simulation Playhead or typed body effects. */
+	bodyByCharacter: Record<string, CharacterBodyState>;
 }
 
 export interface NarrativeProject {
