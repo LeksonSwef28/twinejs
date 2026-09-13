@@ -46,6 +46,8 @@ These distinctions must not collapse:
 - `Claim Truth != Speaker Intent != Listener Belief`
 - `Eligibility != Resolution != Outcome != Effect`
 - `Move unavailable != Skill Check failed`
+- `InteractionTemplate != Concrete NarrativeMove != Runtime Occurrence`
+- `ReactionCandidate != PendingReaction != Selected/Executed Action`
 - `Scene != Event`
 - `Routine / Schedule Intent != Behavior Override != Actual Presence`
 - `NarrativeProjectDefinition != SimulationState != EditorState`
@@ -81,8 +83,6 @@ This separation is a prerequisite for reliable Story Brain analysis and Skill Ch
 - legacy `condition-true` / `condition-false` edges migrate to `executable` only when both ports are present;
 - malformed persisted executable edges are downgraded to `reference` during hydration.
 
-This closes the ambiguity that previously existed between decorative Story links and executable narrative logic.
-
 ## 4. Story Brain / Narrative Reasoning
 
 Story Brain is a **read-only authoring intelligence layer**, not an NPC brain and not an automatic story writer.
@@ -108,21 +108,18 @@ Story Brain must not mutate authored state by itself. It may explain, diagnose a
 - WHY reuses the existing runtime guard/condition evaluator rather than inventing a parallel explanation engine;
 - move availability is explained as `available | blocked | unknown`, with per-guard traces;
 - automatic and condition resolution expose the currently implied outcome, while a skill-check explanation states that runtime skill value and roll are still required;
-- all A23/A24 queries are read-only and do not mutate authored or preview state.
+- all Story Brain queries are read-only and do not mutate authored or preview state.
 
 ### A25 / A26 implementation status
 
-`V10-A25 Story Brain Coverage` and `V10-A26 Story Brain Bridge Finder` are implemented as derived/read-only analysis:
+`V10-A25 Story Brain Coverage` and `V10-A26 Bridge Finder` are implemented:
 
-- Coverage extends the existing Story continuity analyzer instead of duplicating causal graph logic;
-- executable Story edges and explicit Narrative Move outcome continuations keep a branch causally alive; reference edges do not;
-- Coverage reports terminal and early-terminal Story nodes, branching Outcomes without any continuation/effect, asymmetric multi-outcome Moves, and placed character frontiers whose latest authored Story material has no executable continuation;
-- a short branch is not automatically an error: an Outcome with a meaningful effect can remain narratively useful even when it has no immediate Story continuation;
-- Bridge Finder ranks only **existing authored Story material** and never generates a new scene or silently creates an edge;
-- bridge evidence is explicit and scored: reference hints, shared Characters, Claims, Item guards, location, nearby future time, authored initial Knowledge, and dormant/unplaced material;
-- already-authored executable continuations are excluded from bridge suggestions because they are not missing bridges;
-- unrelated dormant material is not suggested merely because it is available;
-- the Story Brain panel now exposes Focus, Impact, Why, Coverage and Bridges together while remaining non-mutating.
+- Coverage extends the existing continuity analyzer rather than creating a second graph authority;
+- reference edges cannot keep an executable branch alive;
+- empty/asymmetric branching Outcomes and early character frontiers are diagnosed;
+- Bridge Finder ranks only already-authored material and explains every score contribution;
+- bridge signals currently include Characters, Claims/initial Knowledge, Item guards, location/time proximity, reference hints and dormant/unplaced Story material;
+- direct executable continuations are excluded from bridge candidates because they are already continuations.
 
 ## 5. Narrative Interaction / Resolution
 
@@ -184,14 +181,7 @@ A check contains at minimum:
 - authored outcomes;
 - retry policy when relevant.
 
-Default outputs:
-
-```text
-success
-failure
-```
-
-The domain allows later outputs such as `critical-success`, `critical-failure` or custom authored outcome identifiers without redesigning the Story graph.
+Default outputs are `success` and `failure`, while the domain remains extensible to critical/custom outcomes.
 
 Failure is a valid narrative outcome, not automatically a dead end. Story Brain can diagnose a failure branch that currently has no meaningful consequence/continuation without assuming that every short failure branch is invalid.
 
@@ -223,15 +213,7 @@ CharacterKnowledge
 MemoryTrace
 ```
 
-Communication also has speaker intent. Example intent families include:
-
-```text
-honest
-deceptive
-mistaken
-uncertain
-withholding
-```
+Communication also has speaker intent such as honest, deceptive, mistaken, uncertain or withholding.
 
 Therefore:
 
@@ -244,79 +226,103 @@ Each `CharacterKnowledgeState` belongs to one `characterId` and one `claimId`; t
 
 ### Authored initial knowledge versus runtime knowledge
 
-Initial character cognition is authored through `InitialKnowledgeSeed`:
+Initial character cognition is authored through `InitialKnowledgeSeed` and only becomes live `CharacterKnowledgeState` through explicit preview/simulation initialization. Creating or editing a seed must not silently mutate a simulation that is already running.
 
-```text
-InitialKnowledgeSeed
-    characterId
-    claimId
-    attitude
-    confidence
-    source
-        ↓ explicit preview/simulation initialization
-CharacterKnowledgeState
-```
-
-The seed is part of authoring data. `CharacterKnowledgeState` is live runtime/preview state. Creating or editing a seed must not silently mutate a simulation that is already running.
-
-The same Claim may have independent seeds/states for any number of characters. Adding a new Character never requires a schema change. No seed/state for `(characterId, claimId)` means no represented knowledge of that Claim.
+The same Claim may have independent seeds/states for any number of characters. Adding a new Character never requires a schema change.
 
 ## 7. Outcomes and effects
 
 An outcome chooses the narrative result of a resolved move. Outcomes may continue into different executable Story branches.
 
-Effects may change runtime/world state such as:
-
-- Claim/Knowledge/Memory;
-- relationship or mood;
-- inventory;
-- goals/behavior override;
-- desired route/location;
-- Story state;
-- world facts when an actual world event makes a new fact true.
+Effects may change runtime/world state such as Claim/Knowledge/Memory, relationships/mood, inventory, goals/behavior override, desired route/location, Story state, or world facts when an actual world event makes a new fact true.
 
 An Outcome is not itself an Effect: one outcome may apply several effects and then continue to another Story node.
 
 ### Knowledge effect foundation
 
-The current foundation introduces an authored `character-learns-claim` Outcome effect. It can target:
+The current foundation introduces an authored `character-learns-claim` Outcome effect. It can target a fixed canonical Character or a target slot on the current Narrative Move, and may refer to a fixed Claim or the Claim communicated by the current Move.
 
-- a fixed canonical Character; or
-- a target slot on the current Narrative Move.
-
-It can refer to:
-
-- a fixed Claim; or
-- the Claim communicated by the current Narrative Move.
-
-Its provenance can currently be authored, observed, inferred, or derived from the current move actor (`told`). Applying the effect at runtime creates or reinforces the per-character `CharacterKnowledgeState`, including source, confidence, `timesHeard`, `learnedAt` and `lastReinforcedAt` where applicable.
-
-Authoring an Outcome effect does **not** apply that effect to the preview. Effects are applied only when a runtime/preview resolver actually selects the Outcome.
+Applying the effect at runtime creates or reinforces the per-character `CharacterKnowledgeState`, including provenance, confidence, `timesHeard`, `learnedAt` and `lastReinforcedAt` where applicable. Authoring an Outcome effect does **not** apply it to preview state.
 
 ## 8. Reusable interactions and scale
 
-The project targets many characters and many events. It must not require a unique implementation type for every concrete pair of characters.
+The project targets many characters and events. It must not require a unique implementation type for every concrete pair of characters.
 
-Reusable Event/Interaction Templates should support role slots and bindings:
+Reusable Event/Interaction Templates use semantic role/claim slots and explicit bindings:
 
 ```text
 Template: Share a rumor
   speaker role
   listener role
-  claim role/input
-  authored moves/resolution/effects
-
-Concrete binding:
+  claim slot
+          ↓ bind
+Concrete use
   speaker = Character A
   listener = Character B
   claim = Claim 42
+          ↓ materialize
+ordinary NarrativeMove records
 ```
 
-Unique authored scenes remain possible. Templates exist to reduce combinatorial authoring cost, not to force all scenes to become generic.
+### A27 implementation status
 
-## 9. Story continuity direction
+`V10-A27 Reusable Interaction Template Foundation` is implemented with these boundaries:
 
-Continuity analysis uses executable causal edges for statements such as "this branch ends here". Reference edges may be traversed for Focus/context and used as Bridge hints, but must never make an otherwise dead executable branch look alive.
+- `InteractionTemplateDefinition` contains reusable role slots, Claim slots and reusable Move shells;
+- `InteractionTemplateBinding` explicitly binds those slots to canonical project entities;
+- instantiation fails closed when required bindings are missing;
+- a template never executes directly and does not introduce a second Guard/Resolution/Outcome language;
+- instantiation materializes ordinary `NarrativeMoveDefinition` records which then use the existing interaction pipeline;
+- a built-in “Поделиться утверждением” starter template proves the generic binding flow in the Story UI;
+- schema-v2 persistence can safely hydrate authored project template definitions and rejects malformed definitions.
+
+This slice intentionally does **not** yet claim a full arbitrary template designer. The current UI binds/instantiates templates; richer custom-template editing is an authoring-polish follow-up.
+
+## 9. Character reaction candidates
+
+A reaction is not a fixed positive/neutral/negative state machine. The author may define any number of candidate Moves. Valence is descriptive metadata; eligibility and score remain separate.
+
+Conceptually:
+
+```text
+Authored Reaction Candidate Set
+  candidate A -> Move A
+  candidate B -> Move B
+  candidate C -> Move C
+  ... any count
+        ↓
+Guards -> available / blocked / unknown
+        ↓
+Considerations -> explainable score adjustments
+        ↓
+Ranked candidates
+        ↓
+selection/execution is a later explicit runtime/author decision
+```
+
+### A28 implementation status
+
+`V10-A28 Character Reaction Candidate Foundation` is implemented:
+
+- candidate sets belong to a Story context and a generic `reactingCharacterId`;
+- candidates point to ordinary Narrative Moves rather than duplicating action content;
+- existing Guards determine `available | blocked | unknown`;
+- considerations currently support mood, relationship values, CharacterKnowledge/Claims, Memory tags and Story state;
+- every matched consideration contributes an explicit signed weight and explanation trace;
+- ranking is deterministic and read-only; available candidates rank before unknown/blocked candidates, then by score;
+- Story Brain query can derive reaction evaluations for the focused Story context;
+- a Story-side inspection panel exposes authored reaction sets without executing them;
+- schema-v2 persistence hydrates candidate sets safely and rejects malformed definitions.
+
+Traits, goals, fatigue/needs and story-priority scoring are **not fabricated** before canonical domain state exists for them. They remain planned extensions to the same consideration contract.
+
+Authored `ReactionCandidateDefinition` is distinct from existing `PendingReaction`: the former is reusable authoring input; the latter remains runtime-ish pending state. Neither is the same as a selected/executed action.
+
+The current slice provides the model, evaluator, persistence and read-side inspection. Full in-app editing of arbitrary Reaction Candidate Sets remains a follow-up authoring slice; the system does not pretend that persistence alone is an editor.
+
+## 10. Story continuity direction
+
+Continuity analysis uses executable causal edges for statements such as “this branch ends here”. Reference edges may be traversed for Focus/context and used as Bridge hints, but must never make an otherwise dead executable branch look alive.
 
 Current diagnostics include:
 
@@ -328,9 +334,9 @@ Current diagnostics include:
 - deterministic bridge candidates through existing Claims/Knowledge, Characters, Item guards, time/location proximity, reference hints and dormant/unplaced Story material;
 - gates explaining why a branch/move is unavailable.
 
-The runtime guard evaluator returns `met | unmet | unknown` plus an explanation trace. The current Story Brain `Why` view reuses that same evaluator instead of inventing a second condition explanation engine.
+The runtime guard evaluator returns `met | unmet | unknown` plus an explanation trace. Story Brain `Why` and reaction eligibility reuse that evaluator instead of inventing parallel condition engines.
 
-## 10. Behavior and simulation direction
+## 11. Behavior and simulation direction
 
 Living Simulation remains after the Authoring MVP.
 
@@ -342,7 +348,7 @@ TIME
 → PRESENCE
 → AVAILABLE EVENTS / MOVES
 → CHARACTER GOALS
-→ AVAILABLE ACTIONS
+→ AVAILABLE ACTIONS / REACTION CANDIDATES
 → ELIGIBILITY / HARD CONDITIONS
 → RESOLUTION / UTILITY / DECISION
 → ACTION / EVENT
@@ -354,13 +360,13 @@ TIME
 
 Night increases sleep pressure; it does not force sleep. Authored events, work, danger, goals, traits or explicit commands may override routine behavior.
 
-Whenever a route/behavior changes, runtime should retain structured reasons for explainability.
+Whenever a route/behavior/action selection changes, runtime should retain structured reasons for explainability.
 
-## 11. Project Library
+## 12. Project Library
 
 The shared Project Library remains available from both workspaces and is not a third workspace.
 
-Canonical entity families include:
+Canonical authored families now include:
 
 - Characters;
 - Locations;
@@ -368,14 +374,13 @@ Canonical entity families include:
 - Objective Facts;
 - Claims / reusable statement definitions;
 - authored initial per-character Claim knowledge;
-- Event / Interaction Templates later;
+- Interaction Template definitions;
+- Reaction Candidate Set definitions;
 - reusable skill definitions/check authoring inputs later.
-
-The current Library can seed the same Claim independently for any Character with attitude, confidence and provenance. These are authored baseline records, visibly separate from live preview knowledge.
 
 Adding an entity to Story creates a visual reference; it does not duplicate the canonical entity.
 
-## 12. Near-term implementation order
+## 13. Near-term implementation order
 
 ### Authoring foundation implemented / underway
 
@@ -393,30 +398,30 @@ Adding an entity to Story creates a visual reference; it does not duplicate the 
 - authored initial CharacterKnowledge baseline;
 - runtime guard evaluation with explanation traces;
 - first knowledge Outcome effect and reinforcement semantics;
-- Story Brain derived semantic graph index;
-- Story Brain Focus + Impact read-only query/UI lens;
-- Story Brain Why using the same runtime guard/condition traces;
-- Story Brain Coverage over executable continuations and branching Outcomes;
-- Story Brain deterministic Bridge Finder over existing authored material.
+- Story Brain Focus + Impact + Why;
+- Story Brain Coverage + deterministic Bridge Finder;
+- reusable Interaction Template model/binding/materialization foundation;
+- explainable Character Reaction Candidate model/evaluator/read-side inspection.
 
 ### v10 next vertical slices
 
-1. **V10-A27 Reusable Event / Interaction Templates** — role slots and explicit bindings so one authored interaction structure can be reused safely across many concrete Characters/Claims without creating a unique implementation type per combination;
-2. **V10-A28 Character Reaction Candidates** — authored reaction candidates with explainable eligibility/scoring inputs such as relationship, mood, knowledge, memory, goals and story priority, without allowing simulation to erase author intent;
-3. expand Outcome effects (memory, relationship, inventory, story/world state) only through typed, explainable contracts;
-4. continue Story ↔ World/Time integration, split-view ergonomics, persistence projection cleanup and scale/performance gates before autonomous Living Simulation.
+1. **V10-A29 Typed Outcome Effects** — expand Effects beyond knowledge into relationship, mood, inventory and Story-state changes through typed, pure, explainable contracts;
+2. **V10-A30 Template / Reaction Authoring Polish** — add explicit project commands and focused editors for custom template definitions and Reaction Candidate Sets, including atomic undo-friendly authoring operations;
+3. continue Story ↔ World/Time semantic navigation and Split View ergonomics;
+4. persistence projection cleanup and scale/performance gates before autonomous Living Simulation.
 
-A27/A28 require their own pre-code impact/contract gate; they should reuse the existing Move/Guard/Outcome and cognition semantics rather than introduce parallel interaction systems.
+A29/A30 must preserve the existing distinction between authored definitions and runtime state. Do not make candidate ranking automatically execute an action.
 
-Do not jump directly to autonomous Living Simulation before these authoring semantics are understandable and testable.
+## 14. Persistence
 
-## 13. Persistence
+Schema v2 remains the active persisted format during Authoring MVP evolution. Hydration supplies/normalizes newly introduced collections so earlier v2 projects do not disappear merely because a new authoring concept was added.
 
-Schema v2 remains the active persisted format during Authoring MVP evolution.
-Hydration supplies/normalizes newly introduced collections and fields so earlier v2 projects do not disappear. In particular:
+Current compatibility rules include:
 
 - missing `initialKnowledge` hydrates to `[]`;
 - older Narrative Move Outcomes without `effects` hydrate with `effects: []`;
-- malformed newly introduced authored records are rejected rather than being silently promoted into runtime behavior.
+- missing `interactionTemplates` hydrates to `[]`;
+- missing `reactionCandidateSets` hydrates to `[]`;
+- malformed template/reaction definitions are filtered rather than silently promoted into executable behavior.
 
 `NarrativeProjectRepository` remains the persistence boundary. A later storage split may physically separate authored project definition, editor state and preview simulation state, but UI/domain code should not depend directly on localStorage.
