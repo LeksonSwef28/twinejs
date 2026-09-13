@@ -1,8 +1,9 @@
-import {CharacterMindState, RelationshipState} from './cognition';
+import {CharacterMindState, MemorySource, MemoryTrace, RelationshipState} from './cognition';
 import {EntityId} from './entities';
 import {
 	NarrativeCharacterReferenceDefinition,
 	NarrativeEffectDefinition,
+	NarrativeMemoryEffectDefinition,
 	NarrativeMoveDefinition,
 	NarrativeOutcomeDefinition
 } from './interaction';
@@ -12,6 +13,7 @@ import {
 } from './interaction-runtime';
 import {ItemInstance, ItemPlacement} from './items';
 import {CharacterKnowledgeState} from './knowledge';
+import {createOrReinforceMemory} from './memory';
 import {StoryNodeDefinition} from './story';
 
 export interface NarrativeOutcomeRuntimeState {
@@ -20,6 +22,8 @@ export interface NarrativeOutcomeRuntimeState {
 	mindStates: CharacterMindState[];
 	itemInstances: ItemInstance[];
 	storyNodes: StoryNodeDefinition[];
+	/** Optional only so pre-A31 callers remain source-compatible. */
+	memories?: MemoryTrace[];
 }
 
 export interface NarrativeOutcomeEffectTrace {
@@ -72,8 +76,39 @@ function resolveItemPlacement(
 	}
 }
 
+function resolveMemorySource(
+	move: NarrativeMoveDefinition,
+	outcome: NarrativeOutcomeDefinition,
+	effect: NarrativeMemoryEffectDefinition
+): {source: MemorySource; relatedEntityIds: EntityId[]} {
+	switch (effect.source.type) {
+		case 'current-move':
+			return {
+				source: {type: 'narrative-move', moveId: move.id, outcomeId: outcome.id},
+				relatedEntityIds: [
+					move.id,
+					move.storyNodeId,
+					...(move.communicatedClaimId ? [move.communicatedClaimId] : [])
+				]
+			};
+		case 'owning-story-node':
+			return {
+				source: {type: 'story-node', storyNodeId: move.storyNodeId},
+				relatedEntityIds: [move.storyNodeId]
+			};
+		case 'communicated-claim':
+			if (!move.communicatedClaimId) {
+				throw new Error('Memory effect requires a communicated Claim on the move.');
+			}
+			return {
+				source: {type: 'claim', claimId: move.communicatedClaimId},
+				relatedEntityIds: [move.communicatedClaimId, move.storyNodeId]
+			};
+	}
+}
+
 /**
- * A29 runtime projection for typed Outcome effects. It is intentionally pure:
+ * A29/A31 runtime projection for typed Outcome effects. It is intentionally pure:
  * authored Move/Outcome definitions are never mutated and random/selection
  * decisions happen before this function is called.
  */
@@ -91,7 +126,12 @@ export function applyNarrativeOutcomeEffects(
 		})),
 		mindStates: input.mindStates.map(mind => ({...mind})),
 		itemInstances: input.itemInstances.map(item => ({...item, placement: {...item.placement}})),
-		storyNodes: input.storyNodes.map(node => ({...node}))
+		storyNodes: input.storyNodes.map(node => ({...node})),
+		memories: (input.memories ?? []).map(memory => ({
+			...memory,
+			tags: [...memory.tags],
+			relatedEntityIds: [...memory.relatedEntityIds]
+		}))
 	};
 	const traces: NarrativeOutcomeEffectTrace[] = [];
 
@@ -215,6 +255,34 @@ export function applyNarrativeOutcomeEffects(
 					effectId: effect.id,
 					type: effect.type,
 					summary: `Story ${effect.storyNodeId}: ${previousState} → ${effect.state}.`
+				});
+				break;
+			}
+			case 'character-remembers': {
+				if (!context.moment) {
+					throw new Error('Memory Outcome effect requires an exact runtime moment.');
+				}
+				const characterId = resolveCharacterReference(move, effect.character);
+				const provenance = resolveMemorySource(move, outcome, effect);
+				const memoryId = `${effect.id}:${characterId}`;
+				const write = createOrReinforceMemory(state.memories ?? [], {
+					id: memoryId,
+					characterId,
+					summary: effect.summary,
+					importance: effect.importance,
+					baseStrength: effect.baseStrength,
+					tags: effect.tags,
+					relatedEntityIds: provenance.relatedEntityIds,
+					source: provenance.source,
+					moment: context.moment
+				});
+				state = {...state, memories: write.memories};
+				traces.push({
+					effectId: effect.id,
+					type: effect.type,
+					summary: write.created
+						? `Character ${characterId} сформировал Memory ${memoryId}.`
+						: `Memory ${memoryId} усилена; reinforcement ${write.memory.reinforcementCount ?? 0}.`
 				});
 				break;
 			}
