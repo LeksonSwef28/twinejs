@@ -6,11 +6,17 @@ import {
 import {CognitionTier} from '../../domain/narrative/entities';
 import {
 	CommunicationIntent,
+	NarrativeEffectDefinition,
 	NarrativeGuardDefinition,
+	NarrativeMoveDefinition,
 	NarrativeMoveKind,
 	NarrativeOutcomeDefinition,
 	NarrativeResolutionDefinition
 } from '../../domain/narrative/interaction';
+import {
+	InteractionTemplateBinding,
+	InteractionTemplateDefinition
+} from '../../domain/narrative/interaction-template';
 import {ItemPlacement} from '../../domain/narrative/items';
 import {
 	ClaimTruthStance,
@@ -18,6 +24,7 @@ import {
 	KnowledgeSource
 } from '../../domain/narrative/knowledge';
 import {NarrativeWorkspaceMode} from '../../domain/narrative/project';
+import {ReactionCandidateSetDefinition} from '../../domain/narrative/reaction';
 import {
 	StoryConnectionKind,
 	StoryEdgeMode,
@@ -90,7 +97,24 @@ export type NarrativeProjectCommand =
 			resolution?: NarrativeResolutionDefinition;
 			outcomes?: NarrativeOutcomeDefinition[];
 	  }
+	| {type: 'move/addMany'; moves: NarrativeMoveDefinition[]}
+	| {
+			type: 'move/addEffect';
+			moveId: string;
+			outcomeId: string;
+			effect: NarrativeEffectDefinition;
+	  }
 	| {type: 'move/remove'; id: string}
+	| {type: 'template/add'; template: InteractionTemplateDefinition}
+	| {type: 'template/remove'; id: string}
+	| {
+			type: 'template/instantiate';
+			templateId: string;
+			binding: InteractionTemplateBinding;
+			instanceId: string;
+	  }
+	| {type: 'reaction/addSet'; set: ReactionCandidateSetDefinition}
+	| {type: 'reaction/removeSet'; id: string}
 	| {type: 'editor/selectDay'; day: number}
 	| {type: 'editor/selectPeriod'; periodId: string}
 	| {type: 'editor/selectMoment'; day: number; minuteOfDay: number}
