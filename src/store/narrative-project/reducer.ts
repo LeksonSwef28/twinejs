@@ -169,6 +169,11 @@ function narrativeEffectReferencesExist(
 			return true;
 		case 'story-node-set-state':
 			return project.storyNodes.some(node => node.id === effect.storyNodeId);
+		case 'character-remembers':
+			return (
+				characterReferenceReferencesExist(project, move, effect.character) &&
+				(effect.source.type !== 'communicated-claim' || Boolean(move.communicatedClaimId))
+			);
 	}
 }
 

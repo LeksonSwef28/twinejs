@@ -7,9 +7,14 @@ type EffectMode =
 	| 'relationship-adjust'
 	| 'character-mood-set'
 	| 'item-set-placement'
-	| 'story-node-set-state';
+	| 'story-node-set-state'
+	| 'character-remembers';
 
 type ItemDestination = 'unplaced' | 'character' | 'location';
+type MemorySourceMode =
+	| 'current-move'
+	| 'owning-story-node'
+	| 'communicated-claim';
 
 const storyStates: StoryNodeActivationState[] = [
 	'draft',
@@ -36,6 +41,12 @@ export const OutcomeEffectsPanel: React.FC = () => {
 	const [itemDestinationId, setItemDestinationId] = React.useState('');
 	const [storyNodeId, setStoryNodeId] = React.useState('');
 	const [storyState, setStoryState] = React.useState<StoryNodeActivationState>('available');
+	const [memoryCharacterId, setMemoryCharacterId] = React.useState('');
+	const [memorySummary, setMemorySummary] = React.useState('');
+	const [memoryImportance, setMemoryImportance] = React.useState(0.7);
+	const [memoryBaseStrength, setMemoryBaseStrength] = React.useState(0.7);
+	const [memoryTags, setMemoryTags] = React.useState('');
+	const [memorySource, setMemorySource] = React.useState<MemorySourceMode>('current-move');
 	const [message, setMessage] = React.useState('');
 
 	const move = project.narrativeMoves.find(candidate => candidate.id === moveId);
@@ -129,6 +140,39 @@ export const OutcomeEffectsPanel: React.FC = () => {
 					state: storyState
 				};
 				break;
+			case 'character-remembers': {
+				if (
+					!memoryCharacterId ||
+					!memorySummary.trim() ||
+					!Number.isFinite(memoryImportance) ||
+					memoryImportance < 0 ||
+					memoryImportance > 1 ||
+					!Number.isFinite(memoryBaseStrength) ||
+					memoryBaseStrength < 0 ||
+					memoryBaseStrength > 1 ||
+					(memorySource === 'communicated-claim' && !move.communicatedClaimId)
+				) {
+					return;
+				}
+				effect = {
+					id: createId('memory-effect'),
+					type: 'character-remembers',
+					character: {type: 'character', characterId: memoryCharacterId},
+					summary: memorySummary.trim(),
+					importance: memoryImportance,
+					baseStrength: memoryBaseStrength,
+					tags: [
+						...new Set(
+							memoryTags
+								.split(',')
+								.map(tag => tag.trim())
+								.filter(Boolean)
+						)
+					],
+					source: {type: memorySource}
+				};
+				break;
+			}
 		}
 
 		execute({type: 'move/addEffect', moveId: move.id, outcomeId: outcome.id, effect});
@@ -140,7 +184,7 @@ export const OutcomeEffectsPanel: React.FC = () => {
 			<h2>Outcome Effects</h2>
 			<p>
 				Последствия типизированы отдельно от Outcome: отношение, настроение,
-				 предмет и Story state. Редактирование здесь не меняет текущий preview.
+				 предмет, Story state и память. Редактирование здесь не меняет текущий preview.
 			</p>
 			<form className="narrative-workspace__compact-form" onSubmit={addEffect}>
 				<select aria-label="Narrative Move для эффекта" value={moveId} onChange={event => setMoveId(event.target.value)}>
@@ -159,6 +203,7 @@ export const OutcomeEffectsPanel: React.FC = () => {
 					<option value="character-mood-set">Изменить настроение</option>
 					<option value="item-set-placement">Переместить предмет</option>
 					<option value="story-node-set-state">Изменить Story state</option>
+					<option value="character-remembers">Создать / усилить воспоминание</option>
 				</select>
 
 				{effectMode === 'relationship-adjust' && (
@@ -220,6 +265,30 @@ export const OutcomeEffectsPanel: React.FC = () => {
 						</select>
 						<select aria-label="Новый Story state" value={storyState} onChange={event => setStoryState(event.target.value as StoryNodeActivationState)}>
 							{storyStates.map(state => <option key={state} value={state}>{state}</option>)}
+						</select>
+					</>
+				)}
+
+				{effectMode === 'character-remembers' && (
+					<>
+						<select aria-label="Персонаж для воспоминания" value={memoryCharacterId} onChange={event => setMemoryCharacterId(event.target.value)}>
+							<option value="">Кто запомнит</option>
+							{project.characters.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
+						</select>
+						<input aria-label="Содержание воспоминания" value={memorySummary} onChange={event => setMemorySummary(event.target.value)} placeholder="Что персонаж запомнит" />
+						<label>
+							Важность памяти 0–1
+							<input aria-label="Важность воспоминания" type="number" min={0} max={1} step={0.05} value={memoryImportance} onChange={event => setMemoryImportance(Number(event.target.value))} />
+						</label>
+						<label>
+							Начальная сила 0–1
+							<input aria-label="Сила воспоминания" type="number" min={0} max={1} step={0.05} value={memoryBaseStrength} onChange={event => setMemoryBaseStrength(Number(event.target.value))} />
+						</label>
+						<input aria-label="Теги воспоминания" value={memoryTags} onChange={event => setMemoryTags(event.target.value)} placeholder="страх, семья, обещание" />
+						<select aria-label="Источник воспоминания" value={memorySource} onChange={event => setMemorySource(event.target.value as MemorySourceMode)}>
+							<option value="current-move">Текущий Move / Outcome</option>
+							<option value="owning-story-node">Story node</option>
+							<option value="communicated-claim" disabled={!move?.communicatedClaimId}>Переданный Claim</option>
 						</select>
 					</>
 				)}
