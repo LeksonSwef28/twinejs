@@ -1,0 +1,361 @@
+import {
+	CharacterMindState,
+	MemoryTrace,
+	PendingReaction,
+	RelationshipState
+} from '../../domain/narrative/cognition';
+import {CharacterKnowledgeState, knowledgeConfidenceIsValid} from '../../domain/narrative/knowledge';
+import {NarrativeProject, NarrativeSimulationState} from '../../domain/narrative/project';
+import {
+	NarrativeProjectRuntimeProjection,
+	projectNarrativePersistence
+} from './persistence-projection';
+
+export const narrativeRuntimeSnapshotFormat = 'narrative-runtime-snapshot';
+export const narrativeRuntimeSnapshotVersion = 1 as const;
+
+export interface NarrativeRuntimeSnapshotV1 {
+	format: typeof narrativeRuntimeSnapshotFormat;
+	version: typeof narrativeRuntimeSnapshotVersion;
+	projectId: string;
+	hostStoryId: string;
+	runtime: NarrativeProjectRuntimeProjection;
+}
+
+interface NarrativeRuntimeSnapshotV0 {
+	format: typeof narrativeRuntimeSnapshotFormat;
+	version: 0;
+	projectId: string;
+	hostStoryId: string;
+	state: NarrativeProjectRuntimeProjection;
+}
+
+export type NarrativeRuntimeRestoreStatus =
+	| 'restored'
+	| 'migrated'
+	| 'rejected'
+	| 'missing';
+
+export interface NarrativeRuntimeRestoreResult {
+	project: NarrativeProject;
+	status: NarrativeRuntimeRestoreStatus;
+	migratedFromVersion?: number;
+	reason?: string;
+}
+
+export interface NarrativeRuntimeSnapshotRepository {
+	save(project: NarrativeProject): void;
+	load(project: NarrativeProject): NarrativeRuntimeRestoreResult;
+	clear(): void;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function finiteNumber(value: unknown): value is number {
+	return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+	return Array.isArray(value) && value.every(item => typeof item === 'string');
+}
+
+function isStringRecord(value: unknown) {
+	return (
+		isRecord(value) &&
+		Object.values(value).every(entry => typeof entry === 'string')
+	);
+}
+
+function memoryIsValid(value: unknown): value is MemoryTrace {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		typeof value.id === 'string' &&
+		typeof value.characterId === 'string' &&
+		typeof value.summary === 'string' &&
+		finiteNumber(value.createdAtDay) &&
+		Number.isInteger(value.createdAtDay) &&
+		finiteNumber(value.createdAtMinute) &&
+		finiteNumber(value.importance) &&
+		value.importance >= 0 &&
+		value.importance <= 1 &&
+		finiteNumber(value.baseStrength) &&
+		value.baseStrength >= 0 &&
+		value.baseStrength <= 1 &&
+		isStringArray(value.tags) &&
+		isStringArray(value.relatedEntityIds) &&
+		(value.source === undefined ||
+			(isRecord(value.source) && typeof value.source.type === 'string'))
+	);
+}
+
+function relationshipIsValid(value: unknown): value is RelationshipState {
+	return (
+		isRecord(value) &&
+		typeof value.fromCharacterId === 'string' &&
+		typeof value.toCharacterId === 'string' &&
+		isRecord(value.values) &&
+		Object.values(value.values).every(finiteNumber)
+	);
+}
+
+function pendingReactionIsValid(value: unknown): value is PendingReaction {
+	return (
+		isRecord(value) &&
+		typeof value.id === 'string' &&
+		typeof value.characterId === 'string' &&
+		typeof value.reactionType === 'string' &&
+		finiteNumber(value.priority) &&
+		isStringArray(value.conditions)
+	);
+}
+
+function mindStateIsValid(value: unknown): value is CharacterMindState {
+	return (
+		isRecord(value) &&
+		typeof value.characterId === 'string' &&
+		(value.mood === undefined || typeof value.mood === 'string') &&
+		isStringArray(value.activeMemoryIds) &&
+		isStringArray(value.pendingReactionIds)
+	);
+}
+
+function knowledgeStateIsValid(value: unknown): value is CharacterKnowledgeState {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		typeof value.id === 'string' &&
+		typeof value.characterId === 'string' &&
+		typeof value.claimId === 'string' &&
+		(value.attitude === 'knows' ||
+			value.attitude === 'believes' ||
+			value.attitude === 'doubts' ||
+			value.attitude === 'disbelieves') &&
+		finiteNumber(value.confidence) &&
+		knowledgeConfidenceIsValid(value.confidence) &&
+		isRecord(value.source) &&
+		typeof value.source.type === 'string' &&
+		finiteNumber(value.timesHeard) &&
+		Number.isInteger(value.timesHeard) &&
+		value.timesHeard >= 0
+	);
+}
+
+function simulationIsValid(value: unknown): value is NarrativeSimulationState {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		finiteNumber(value.day) &&
+		Number.isInteger(value.day) &&
+		value.day >= 1 &&
+		finiteNumber(value.minuteOfDay) &&
+		Number.isInteger(value.minuteOfDay) &&
+		value.minuteOfDay >= 0 &&
+		value.minuteOfDay < 24 * 60 &&
+		isStringRecord(value.activeBehaviorProfileByCharacter) &&
+		isStringRecord(value.actualLocationByCharacter) &&
+		Array.isArray(value.characterKnowledge) &&
+		value.characterKnowledge.every(knowledgeStateIsValid)
+	);
+}
+
+function runtimeProjectionIsValid(
+	value: unknown
+): value is NarrativeProjectRuntimeProjection {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		Array.isArray(value.memories) &&
+		value.memories.every(memoryIsValid) &&
+		Array.isArray(value.relationships) &&
+		value.relationships.every(relationshipIsValid) &&
+		Array.isArray(value.pendingReactions) &&
+		value.pendingReactions.every(pendingReactionIsValid) &&
+		Array.isArray(value.mindStates) &&
+		value.mindStates.every(mindStateIsValid) &&
+		simulationIsValid(value.simulation)
+	);
+}
+
+function cloneRuntimeProjection(
+	runtime: NarrativeProjectRuntimeProjection
+): NarrativeProjectRuntimeProjection {
+	return {
+		memories: runtime.memories.map(memory => ({
+			...memory,
+			tags: [...memory.tags],
+			relatedEntityIds: [...memory.relatedEntityIds],
+			source: memory.source ? {...memory.source} : undefined
+		})),
+		relationships: runtime.relationships.map(relationship => ({
+			...relationship,
+			values: {...relationship.values}
+		})),
+		pendingReactions: runtime.pendingReactions.map(reaction => ({
+			...reaction,
+			conditions: [...reaction.conditions]
+		})),
+		mindStates: runtime.mindStates.map(mind => ({
+			...mind,
+			activeMemoryIds: [...mind.activeMemoryIds],
+			pendingReactionIds: [...mind.pendingReactionIds]
+		})),
+		simulation: {
+			...runtime.simulation,
+			activeBehaviorProfileByCharacter: {
+				...runtime.simulation.activeBehaviorProfileByCharacter
+			},
+			actualLocationByCharacter: {
+				...runtime.simulation.actualLocationByCharacter
+			},
+			characterKnowledge: runtime.simulation.characterKnowledge.map(state => ({
+				...state,
+				source: {...state.source},
+				learnedAt: state.learnedAt ? {...state.learnedAt} : undefined,
+				lastReinforcedAt: state.lastReinforcedAt
+					? {...state.lastReinforcedAt}
+					: undefined
+			}))
+		}
+	};
+}
+
+export function createNarrativeRuntimeSnapshot(
+	project: NarrativeProject
+): NarrativeRuntimeSnapshotV1 {
+	return {
+		format: narrativeRuntimeSnapshotFormat,
+		version: narrativeRuntimeSnapshotVersion,
+		projectId: project.projectId,
+		hostStoryId: project.hostStoryId,
+		runtime: cloneRuntimeProjection(projectNarrativePersistence(project).runtime)
+	};
+}
+
+export function serializeNarrativeRuntimeSnapshot(project: NarrativeProject) {
+	return JSON.stringify(createNarrativeRuntimeSnapshot(project));
+}
+
+function normalizeRuntimeSnapshot(value: unknown): {
+	snapshot?: NarrativeRuntimeSnapshotV1;
+	migratedFromVersion?: number;
+	reason?: string;
+} {
+	if (!isRecord(value) || value.format !== narrativeRuntimeSnapshotFormat) {
+		return {reason: 'invalid-format'};
+	}
+	if (value.version === narrativeRuntimeSnapshotVersion) {
+		if (
+			typeof value.projectId !== 'string' ||
+			typeof value.hostStoryId !== 'string' ||
+			!runtimeProjectionIsValid(value.runtime)
+		) {
+			return {reason: 'invalid-runtime'};
+		}
+		return {
+			snapshot: {
+				format: narrativeRuntimeSnapshotFormat,
+				version: narrativeRuntimeSnapshotVersion,
+				projectId: value.projectId,
+				hostStoryId: value.hostStoryId,
+				runtime: cloneRuntimeProjection(value.runtime)
+			}
+		};
+	}
+	if (value.version === 0) {
+		const legacy = value as unknown as NarrativeRuntimeSnapshotV0;
+		if (
+			typeof legacy.projectId !== 'string' ||
+			typeof legacy.hostStoryId !== 'string' ||
+			!runtimeProjectionIsValid(legacy.state)
+		) {
+			return {reason: 'invalid-runtime'};
+		}
+		return {
+			migratedFromVersion: 0,
+			snapshot: {
+				format: narrativeRuntimeSnapshotFormat,
+				version: narrativeRuntimeSnapshotVersion,
+				projectId: legacy.projectId,
+				hostStoryId: legacy.hostStoryId,
+				runtime: cloneRuntimeProjection(legacy.state)
+			}
+		};
+	}
+	return {reason: 'unsupported-version'};
+}
+
+export function restoreNarrativeRuntimeSnapshot(
+	project: NarrativeProject,
+	value: unknown
+): NarrativeRuntimeRestoreResult {
+	const normalized = normalizeRuntimeSnapshot(value);
+	if (!normalized.snapshot) {
+		return {project, status: 'rejected', reason: normalized.reason};
+	}
+	if (
+		normalized.snapshot.projectId !== project.projectId ||
+		normalized.snapshot.hostStoryId !== project.hostStoryId
+	) {
+		return {project, status: 'rejected', reason: 'identity-mismatch'};
+	}
+
+	const runtime = cloneRuntimeProjection(normalized.snapshot.runtime);
+	return {
+		project: {
+			...project,
+			memories: runtime.memories,
+			relationships: runtime.relationships,
+			pendingReactions: runtime.pendingReactions,
+			mindStates: runtime.mindStates,
+			simulation: runtime.simulation
+		},
+		status:
+			normalized.migratedFromVersion === undefined ? 'restored' : 'migrated',
+		migratedFromVersion: normalized.migratedFromVersion
+	};
+}
+
+export function restoreNarrativeRuntimeSnapshotJson(
+	project: NarrativeProject,
+	serialized: string
+): NarrativeRuntimeRestoreResult {
+	try {
+		return restoreNarrativeRuntimeSnapshot(project, JSON.parse(serialized));
+	} catch {
+		return {project, status: 'rejected', reason: 'invalid-json'};
+	}
+}
+
+export function createLocalStorageNarrativeRuntimeSnapshotRepository(
+	projectId: string
+): NarrativeRuntimeSnapshotRepository {
+	const key = `twine:narrative-runtime:v${narrativeRuntimeSnapshotVersion}:${projectId}`;
+	return {
+		save(project) {
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem(key, serializeNarrativeRuntimeSnapshot(project));
+			}
+		},
+		load(project) {
+			if (typeof window === 'undefined') {
+				return {project, status: 'missing'};
+			}
+			const saved = window.localStorage.getItem(key);
+			return saved
+				? restoreNarrativeRuntimeSnapshotJson(project, saved)
+				: {project, status: 'missing'};
+		},
+		clear() {
+			if (typeof window !== 'undefined') {
+				window.localStorage.removeItem(key);
+			}
+		}
+	};
+}
