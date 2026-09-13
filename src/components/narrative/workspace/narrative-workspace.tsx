@@ -8,6 +8,7 @@ import {NarrativeWorkspaceMode} from '../../../domain/narrative/project';
 import {useNarrativeProject} from '../../../store/narrative-project';
 import {InteractionTemplatePanel} from './interaction-template-panel';
 import {NarrativeMovePanel} from './narrative-move-panel';
+import {OutcomeEffectsPanel} from './outcome-effects-panel';
 import {ProjectLibrary} from './project-library';
 import {ReactionCandidatesPanel} from './reaction-candidates-panel';
 import {StoryBrainPanel} from './story-brain-panel';
@@ -208,6 +209,7 @@ export const NarrativeWorkspace: React.FC = () => {
 					<StoryWorkspace />
 					<StoryBrainPanel />
 					<NarrativeMovePanel />
+					<OutcomeEffectsPanel />
 					<InteractionTemplatePanel />
 					<ReactionCandidatesPanel />
 				</>
