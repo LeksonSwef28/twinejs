@@ -47,8 +47,8 @@ function recurrenceIsValid(project: NarrativeProject, rule: RoutineRule) {
 function timeWindowIsValid(project: NarrativeProject, rule: RoutineRule) {
 	if (rule.timeWindow?.type === 'period') {
 		return project.template.periods.some(
-			period => period.id === rule.timeWindow?.type && false
-		) || project.template.periods.some(period => period.id === rule.timeWindow!.periodId);
+			period => period.id === rule.timeWindow!.periodId
+		);
 	}
 	if (rule.timeWindow?.type === 'exact') {
 		return (
