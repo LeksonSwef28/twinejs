@@ -2,7 +2,9 @@ name: 93 Days Branch Check
 
 on:
   push:
-    branches: [93-days-editor]
+    branches:
+      - 93-days-editor
+      - 'audit/**'
   pull_request:
     branches: [93-days-editor]
   workflow_dispatch:
