@@ -1,10 +1,10 @@
+import {minutesPerDay} from '../../../domain/narrative/calendar';
 import {MemoryTrace} from '../../../domain/narrative/cognition';
 import {
 	evaluateReactionCandidateSet,
 	ReactionCandidateSetDefinition
 } from '../../../domain/narrative/reaction';
 import {scheduledStoryWork} from '../../../domain/narrative/simulation-kernel';
-import {minutesPerDay} from '../../../domain/narrative/calendar';
 import {routineWindowForDay} from '../../../domain/narrative/world-time';
 import {
 	restoreNarrativeRuntimeSnapshotJson,
@@ -16,11 +16,27 @@ import {
 	scaleFixtureCharacterCount,
 	scaleFixtureDayCount,
 	scaleFixtureStorySlotsPerDay
-} from './scale-fixture';
+} from '../test-fixtures/scale-fixture';
 
 jest.setTimeout(15000);
 
 const generousCiBudgetMs = 3000;
+
+function utf8ByteLength(value: string) {
+	let bytes = 0;
+	for (const character of value) {
+		const codePoint = character.codePointAt(0) ?? 0;
+		bytes +=
+			codePoint <= 0x7f
+				? 1
+				: codePoint <= 0x7ff
+					? 2
+					: codePoint <= 0xffff
+						? 3
+						: 4;
+	}
+	return bytes;
+}
 
 function scaleMemories(count: number): MemoryTrace[] {
 	return Array.from({length: count}, (_, index) => ({
@@ -165,7 +181,7 @@ describe('A45 93-day scale and performance gates', () => {
 		}));
 
 		const serialized = serializeNarrativeRuntimeSnapshot(project);
-		const sizeBytes = new TextEncoder().encode(serialized).length;
+		const sizeBytes = utf8ByteLength(serialized);
 		const started = Date.now();
 		const restored = restoreNarrativeRuntimeSnapshotJson(project, serialized);
 		const elapsed = Date.now() - started;
