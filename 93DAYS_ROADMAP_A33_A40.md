@@ -137,6 +137,8 @@ The slice must demonstrate, end-to-end:
 
 A40 is not “full autonomous NPC AI”. It is the first integrated Living Simulation proof that the editor/runtime architecture can support the intended 93-day game.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #258: one deterministic in-game day crosses scheduled Story work without conflating it with actual presence, resolves an authored Narrative Move into runtime knowledge/relationship/mood/memory/item-placement effects, keeps item-in-container ownership visible to guards, carries memory salience into a later reaction score, combines body/injury/carrying action constraints, round-trips the resulting runtime through the snapshot boundary, advances needs/injury state to the next day, keeps authored Story/items/editor unchanged, requires explicit skill-check inputs, and explicitly refuses Story-state effects rather than mutating authored Story nodes. Lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## Execution rule
 
 Work strictly in order unless a blocking defect forces a small prerequisite fix:
