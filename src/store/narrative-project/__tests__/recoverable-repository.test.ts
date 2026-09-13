@@ -71,6 +71,33 @@ describe('recoverable narrative project repository', () => {
 		expect(window.localStorage.getItem(result.recoveryBackupKeys[0])).toBe(damaged);
 	});
 
+	test('treats an incomplete projection envelope as recovery data', () => {
+		const project = createNarrativeProject(
+			hostStoryId,
+			'Incomplete envelope',
+			ninetyThreeDaysTemplate
+		);
+		const incompleteEnvelope = {
+			...projectNarrativePersistence(project),
+			runtime: undefined
+		};
+		const raw = JSON.stringify(incompleteEnvelope);
+		window.localStorage.setItem(storageKey, raw);
+
+		const repository = createRecoverableLocalStorageNarrativeProjectRepository(
+			hostStoryId,
+			'Incomplete envelope',
+			ninetyThreeDaysTemplate
+		);
+		const result = repository.loadResult();
+
+		expect(result.status).toBe('recovery');
+		expect(result.recoveryBackupKeys).toHaveLength(1);
+		expect(window.localStorage.getItem(result.recoveryBackupKeys[0])).toBe(raw);
+		expect(() => repository.save(result.project)).toThrow(/blocked/i);
+		expect(window.localStorage.getItem(storageKey)).toBe(raw);
+	});
+
 	test('backs up malformed current JSON before a valid v1 fallback migrates', () => {
 		const damagedCurrent = '{"schemaVersion":2,"projectId":';
 		window.localStorage.setItem(storageKey, damagedCurrent);
