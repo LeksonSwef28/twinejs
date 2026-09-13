@@ -25,6 +25,7 @@ import {
 } from '../../domain/narrative/knowledge';
 import {NarrativeWorkspaceMode} from '../../domain/narrative/project';
 import {ReactionCandidateSetDefinition} from '../../domain/narrative/reaction';
+import {RoutineRule} from '../../domain/narrative/schedule';
 import {
 	StoryConnectionKind,
 	StoryEdgeMode,
@@ -36,6 +37,9 @@ export type NarrativeProjectCommand =
 	| {type: 'project/rename'; name: string}
 	| {type: 'location/add'; id: string; name: string}
 	| {type: 'character/add'; id: string; profileId: string; name: string; cognitionTier: CognitionTier}
+	| {type: 'routine/add'; rule: RoutineRule}
+	| {type: 'routine/update'; rule: RoutineRule}
+	| {type: 'routine/remove'; id: string}
 	| {type: 'item/addDefinition'; id: string; name: string}
 	| {
 			type: 'item/addInstance';
