@@ -2,9 +2,10 @@ import {CharacterBodyState} from './body';
 import {CharacterMindState, MemoryTrace, PendingReaction, RelationshipState} from './cognition';
 import {NarrativeEditorState} from './editor';
 import {NarrativeCharacter, NarrativeLocation, NarrativeScene} from './entities';
+import {InjuryState} from './injury';
 import {NarrativeMoveDefinition} from './interaction';
 import {InteractionTemplateDefinition} from './interaction-template';
-import {ItemDefinition, ItemInstance} from './items';
+import {ItemDefinition, ItemInstance, ItemRuntimePlacement} from './items';
 import {
 	CharacterKnowledgeState,
 	ClaimDefinition,
@@ -27,8 +28,12 @@ export interface NarrativeSimulationState {
 	actualLocationByCharacter: Record<string, string | undefined>;
 	/** Runtime beliefs/knowledge. Objective facts and claims remain authored definitions. */
 	characterKnowledge: CharacterKnowledgeState[];
-	/** Runtime physical state. It advances only with the Simulation Playhead or typed body effects. */
+	/** Runtime needs state. It advances only with the Simulation Playhead or typed body effects. */
 	bodyByCharacter: Record<string, CharacterBodyState>;
+	/** Current injuries are runtime conditions, not an abstract HP total. */
+	injuriesByCharacter: Record<string, InjuryState[]>;
+	/** Overrides authored initial placement without mutating canonical ItemInstances. */
+	itemPlacementOverrides: Record<string, ItemRuntimePlacement>;
 }
 
 export interface NarrativeProject {
