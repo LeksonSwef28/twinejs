@@ -215,14 +215,17 @@ export const NarrativeWorkspace: React.FC = () => {
 				</div>
 			</div>
 
-			<CrossWorkspaceNavigator />
+			<CrossWorkspaceNavigator splitView={splitView} />
 			<ProjectLibrary
 				open={projectLibraryOpen}
 				onClose={() => setProjectLibraryOpen(false)}
 			/>
 
 			{splitView ? (
-				<div className="narrative-workspace__split-view" aria-label="Split View Story и World Time">
+				<div
+					className="narrative-workspace__split-view"
+					aria-label="Split View Story и World Time"
+				>
 					<div className="narrative-workspace__split-pane is-story">
 						<div className="narrative-workspace__split-pane-heading">
 							<strong>Story</strong>
@@ -235,7 +238,7 @@ export const NarrativeWorkspace: React.FC = () => {
 							<strong>World / Time</strong>
 							<small>same view cursor, simulation unchanged</small>
 						</div>
-						<WorldTimeWorkspace />
+						<WorldTimeWorkspace splitView />
 					</div>
 				</div>
 			) : (
