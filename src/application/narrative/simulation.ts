@@ -53,9 +53,10 @@ function bodyRuntimeForCharacters(project: NarrativeProject) {
 
 function injuryRuntimeForCharacters(project: NarrativeProject) {
 	const result = Object.fromEntries(
-		Object.entries(project.simulation.injuriesByCharacter).map(
-			([characterId, injuries]) => [characterId, [...injuries]]
-		)
+		Object.entries(project.injuriesByCharacter).map(([characterId, injuries]) => [
+			characterId,
+			[...injuries]
+		])
 	);
 	for (const character of [...project.characters].sort((a, b) =>
 		a.id.localeCompare(b.id)
@@ -102,10 +103,10 @@ export function advanceNarrativeProjectSimulation(
 	return {
 		project: {
 			...project,
+			injuriesByCharacter: injuryAdvance.states,
 			simulation: {
 				...step.state,
-				bodyByCharacter: bodyAdvance.states,
-				injuriesByCharacter: injuryAdvance.states
+				bodyByCharacter: bodyAdvance.states
 			}
 		},
 		dueWork: step.dueWork,
@@ -158,12 +159,9 @@ export function applyNarrativeProjectInjuryEffect(
 	return {
 		project: {
 			...project,
-			simulation: {
-				...project.simulation,
-				injuriesByCharacter: {
-					...injuriesByCharacter,
-					[characterId]: applied.injuries
-				}
+			injuriesByCharacter: {
+				...injuriesByCharacter,
+				[characterId]: applied.injuries
 			}
 		},
 		trace: applied.trace
