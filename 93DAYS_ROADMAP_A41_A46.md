@@ -63,6 +63,8 @@ Deliverables:
 - explainable selection traces;
 - no unrestricted autonomous writing.
 
+**Status: DONE.** Verified by `93 Days Branch Check` run #298: explicit decision opportunities, ReactionCandidate and PendingReaction bridging, priority/score/stable-id selection, optional explicit random draw only for exact ties, action-minute budgets, schedule-intent conflict/temporary interruption rules, active Story execution conflicts, explicit skill-check input, PendingReaction consumption only after resolved execution, declarative due-work while NPC action time passes, explainable candidate blockers/traces, lint, web build, Electron build, tests, Vite smoke and Electron smoke all passed.
+
 ## A44 — Living Simulation Playtest / Debug Surface
 
 **Goal:** make the Living Simulation observable and controllable from the product UI.
