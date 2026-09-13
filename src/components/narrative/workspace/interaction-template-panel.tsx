@@ -1,7 +1,26 @@
 import * as React from 'react';
-import {instantiateInteractionTemplate} from '../../../domain/narrative/interaction-template';
+import {NarrativeMoveKind} from '../../../domain/narrative/interaction';
+import {InteractionTemplateDefinition} from '../../../domain/narrative/interaction-template';
 import {starterInteractionTemplates} from '../../../domain/narrative/standard-interaction-templates';
 import {useNarrativeProject} from '../../../store/narrative-project';
+
+const moveKinds: NarrativeMoveKind[] = [
+	'ask',
+	'inform',
+	'persuade',
+	'deceive',
+	'threaten',
+	'accuse',
+	'investigate',
+	'observe',
+	'joke',
+	'flirt',
+	'refuse',
+	'give-item',
+	'take-item',
+	'leave',
+	'custom'
+];
 
 export const InteractionTemplatePanel: React.FC = () => {
 	const {project, execute, createId} = useNarrativeProject();
@@ -21,6 +40,10 @@ export const InteractionTemplatePanel: React.FC = () => {
 	>({});
 	const [claimBySlot, setClaimBySlot] = React.useState<Record<string, string>>({});
 	const [message, setMessage] = React.useState('');
+	const [customName, setCustomName] = React.useState('');
+	const [customMoveLabel, setCustomMoveLabel] = React.useState('');
+	const [customMoveKind, setCustomMoveKind] = React.useState<NarrativeMoveKind>('inform');
+	const [customUsesClaim, setCustomUsesClaim] = React.useState(true);
 	const template = templates.find(candidate => candidate.id === templateId);
 
 	React.useEffect(() => {
@@ -40,48 +63,79 @@ export const InteractionTemplatePanel: React.FC = () => {
 		if (!template || !storyNodeId) {
 			return;
 		}
+		execute({
+			type: 'template/instantiate',
+			templateId: template.id,
+			binding: {storyNodeId, characterByRole, claimBySlot},
+			instanceId: createId('interaction-instance')
+		});
+		setMessage(
+			`Шаблон отправлен как одна authoring-команда: ${template.moves.length} Move(s), один Undo.`
+		);
+	}
 
-		try {
-			const result = instantiateInteractionTemplate(
-				template,
-				{
-					storyNodeId,
-					characterByRole,
-					claimBySlot
-				},
-				createId('interaction-instance')
-			);
-
-			for (const move of result.moves) {
-				execute({
-					type: 'move/add',
-					id: move.id,
-					storyNodeId: move.storyNodeId,
-					kind: move.kind,
-					label: move.label,
-					actorCharacterId: move.actorCharacterId,
-					targetCharacterIds: move.targetCharacterIds,
-					communicatedClaimId: move.communicatedClaimId,
-					communicationIntent: move.communicationIntent,
-					guards: move.guards,
-					resolution: move.resolution,
-					outcomes: move.outcomes
-				});
-			}
-			setMessage(`Создано Narrative Moves: ${result.moves.length}.`);
-		} catch (error) {
-			setMessage(error instanceof Error ? error.message : 'Не удалось применить шаблон.');
+	function addCustomTemplate(event: React.FormEvent) {
+		event.preventDefault();
+		const name = customName.trim();
+		const moveLabel = customMoveLabel.trim();
+		if (!name || !moveLabel) {
+			return;
 		}
+		const id = createId('interaction-template');
+		const customTemplate: InteractionTemplateDefinition = {
+			id,
+			name,
+			description: 'Пользовательский reusable Interaction Template.',
+			roles: [
+				{id: 'speaker', label: 'Актор'},
+				{id: 'listener', label: 'Цель'}
+			],
+			claimSlots: customUsesClaim
+				? [{id: 'claim', label: 'Claim', required: true}]
+				: [],
+			moves: [
+				{
+					id: 'move',
+					kind: customMoveKind,
+					label: moveLabel,
+					actorRoleId: 'speaker',
+					targetRoleIds: ['listener'],
+					communicatedClaimSlotId: customUsesClaim ? 'claim' : undefined,
+					communicationIntent: customUsesClaim ? 'honest' : undefined
+				}
+			],
+			tags: ['custom']
+		};
+		execute({type: 'template/add', template: customTemplate});
+		setTemplateId(id);
+		setCustomName('');
+		setCustomMoveLabel('');
 	}
 
 	return (
 		<section className="narrative-workspace__move-editor" aria-label="Interaction Templates">
 			<h2>Interaction Templates</h2>
 			<p>
-				Один шаблон можно привязать к любым персонажам и Claim. После привязки
-				 создаются обычные Narrative Moves — отдельной runtime-механики нет.
+				Один reusable шаблон привязывается к конкретным ролям и затем атомарно
+				 материализуется в обычные Narrative Moves. Runtime шаблонов не знает.
 			</p>
+
+			<form className="narrative-workspace__compact-form" onSubmit={addCustomTemplate}>
+				<strong>Новый пользовательский шаблон</strong>
+				<input aria-label="Название interaction template" value={customName} onChange={event => setCustomName(event.target.value)} placeholder="Например: Попросить услугу" />
+				<input aria-label="Текст move шаблона" value={customMoveLabel} onChange={event => setCustomMoveLabel(event.target.value)} placeholder="Например: Попросить помочь" />
+				<select aria-label="Тип move шаблона" value={customMoveKind} onChange={event => setCustomMoveKind(event.target.value as NarrativeMoveKind)}>
+					{moveKinds.map(kind => <option key={kind} value={kind}>{kind}</option>)}
+				</select>
+				<label>
+					<input type="checkbox" checked={customUsesClaim} onChange={event => setCustomUsesClaim(event.target.checked)} />{' '}
+					Шаблон использует обязательный Claim
+				</label>
+				<button type="submit">Сохранить шаблон</button>
+			</form>
+
 			<form className="narrative-workspace__compact-form" onSubmit={instantiate}>
+				<strong>Применить шаблон</strong>
 				<select
 					aria-label="Interaction template"
 					value={templateId}
@@ -158,6 +212,18 @@ export const InteractionTemplatePanel: React.FC = () => {
 				</button>
 				{message && <small>{message}</small>}
 			</form>
+
+			{project.interactionTemplates.length > 0 && (
+				<div className="narrative-workspace__reaction-set">
+					<strong>Пользовательские шаблоны</strong>
+					{project.interactionTemplates.map(candidate => (
+						<div key={candidate.id}>
+							<span>{candidate.name}</span>
+							<button type="button" onClick={() => execute({type: 'template/remove', id: candidate.id})}>Удалить</button>
+						</div>
+					))}
+				</div>
+			)}
 		</section>
 	);
 };
