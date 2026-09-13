@@ -69,7 +69,9 @@ function isStringRecord(value: unknown) {
 	);
 }
 
-function bodyStateRecordIsValid(value: unknown) {
+function bodyStateRecordIsValid(
+	value: unknown
+): value is Record<string, CharacterBodyState> {
 	return (
 		isRecord(value) &&
 		Object.entries(value).every(
@@ -86,7 +88,7 @@ function cloneBodyStateRecord(value: unknown): Record<string, CharacterBodyState
 	return Object.fromEntries(
 		Object.entries(value).map(([characterId, state]) => [
 			characterId,
-			{...(state as CharacterBodyState)}
+			{...state}
 		])
 	) as Record<string, CharacterBodyState>;
 }
