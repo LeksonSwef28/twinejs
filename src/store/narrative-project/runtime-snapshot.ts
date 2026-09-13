@@ -13,6 +13,10 @@ import {
 import {CharacterKnowledgeState, knowledgeConfidenceIsValid} from '../../domain/narrative/knowledge';
 import {NarrativeProject, NarrativeSimulationState} from '../../domain/narrative/project';
 import {
+	ActiveStoryExecutionState,
+	activeStoryExecutionIsValid
+} from '../../domain/narrative/runtime-execution';
+import {
 	NarrativeRuntimeOccurrence,
 	narrativeRuntimeOccurrenceIsValid,
 	storyNodeActivationStateIsValid
@@ -183,10 +187,38 @@ function cloneOccurrenceHistory(value: unknown): NarrativeRuntimeOccurrence[] {
 	if (!occurrenceHistoryIsValid(value)) {
 		return [];
 	}
-	return value.map(occurrence => ({
-		...occurrence,
-		effectIds: [...occurrence.effectIds],
-		moment: {...occurrence.moment}
+	return value.map(occurrence =>
+		occurrence.type === 'move-outcome'
+			? {
+					...occurrence,
+					effectIds: [...occurrence.effectIds],
+					moment: {...occurrence.moment}
+			  }
+			: {
+					...occurrence,
+					scheduledMoment: {...occurrence.scheduledMoment},
+					startedAt: occurrence.startedAt ? {...occurrence.startedAt} : undefined,
+					moment: {...occurrence.moment}
+			  }
+	);
+}
+
+function activeStoryExecutionsAreValid(
+	value: unknown
+): value is ActiveStoryExecutionState[] {
+	return Array.isArray(value) && value.every(activeStoryExecutionIsValid);
+}
+
+function cloneActiveStoryExecutions(value: unknown): ActiveStoryExecutionState[] {
+	if (!activeStoryExecutionsAreValid(value)) {
+		return [];
+	}
+	return value.map(execution => ({
+		...execution,
+		participantIds: [...execution.participantIds],
+		scheduledMoment: {...execution.scheduledMoment},
+		startedAt: {...execution.startedAt},
+		completesAt: {...execution.completesAt}
 	}));
 }
 
@@ -310,6 +342,8 @@ function runtimeProjectionIsValid(
 			storyNodeStateRecordIsValid(value.storyNodeStateOverrides)) &&
 		(value.runtimeOccurrences === undefined ||
 			occurrenceHistoryIsValid(value.runtimeOccurrences)) &&
+		(value.activeStoryExecutions === undefined ||
+			activeStoryExecutionsAreValid(value.activeStoryExecutions)) &&
 		simulationIsValid(value.simulation)
 	);
 }
@@ -343,6 +377,9 @@ function cloneRuntimeProjection(
 			runtime.storyNodeStateOverrides
 		),
 		runtimeOccurrences: cloneOccurrenceHistory(runtime.runtimeOccurrences),
+		activeStoryExecutions: cloneActiveStoryExecutions(
+			runtime.activeStoryExecutions
+		),
 		simulation: {
 			...runtime.simulation,
 			activeBehaviorProfileByCharacter: {
@@ -460,6 +497,7 @@ export function restoreNarrativeRuntimeSnapshot(
 			itemPlacementOverrides: runtime.itemPlacementOverrides ?? {},
 			storyNodeStateOverrides: runtime.storyNodeStateOverrides ?? {},
 			runtimeOccurrences: runtime.runtimeOccurrences ?? [],
+			activeStoryExecutions: runtime.activeStoryExecutions ?? [],
 			simulation: runtime.simulation
 		},
 		status:
@@ -502,6 +540,5 @@ export function createLocalStorageNarrativeRuntimeSnapshotRepository(
 			if (typeof window !== 'undefined') {
 				window.localStorage.removeItem(key);
 			}
-		}
 	};
 }
