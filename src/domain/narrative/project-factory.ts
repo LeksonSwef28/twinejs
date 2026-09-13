@@ -58,6 +58,7 @@ export function createNarrativeProject(
 		itemPlacementOverrides: {},
 		storyNodeStateOverrides: {},
 		runtimeOccurrences: [],
+		activeStoryExecutions: [],
 		editor: {
 			selectedDay: 1,
 			selectedPeriodId: firstPeriod.id,
