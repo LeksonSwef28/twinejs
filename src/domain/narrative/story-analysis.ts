@@ -1,3 +1,4 @@
+import {NarrativeMoveDefinition} from './interaction';
 import {
 	StoryConnectionDefinition,
 	StoryNodeDefinition,
@@ -19,6 +20,35 @@ export interface StoryContinuityAnalysis {
 	terminalNodeIds: string[];
 	unscheduledNodeIds: string[];
 	earlyTerminalNodeIds: string[];
+}
+
+export type StoryCoverageFindingKind =
+	| 'terminal-story-node'
+	| 'early-terminal-story-node'
+	| 'outcome-without-consequence'
+	| 'asymmetric-outcomes'
+	| 'character-frontier';
+
+export type StoryCoverageSeverity = 'info' | 'warning';
+
+export interface StoryCoverageFinding {
+	id: string;
+	kind: StoryCoverageFindingKind;
+	severity: StoryCoverageSeverity;
+	summary: string;
+	storyNodeId?: string;
+	moveId?: string;
+	outcomeId?: string;
+	characterId?: string;
+}
+
+export interface StoryCoverageAnalysis {
+	findings: StoryCoverageFinding[];
+	terminalNodeIds: string[];
+	earlyTerminalNodeIds: string[];
+	outcomeWithoutConsequenceIds: string[];
+	asymmetricMoveIds: string[];
+	characterFrontierIds: string[];
 }
 
 function continuityConnections(connections: StoryConnectionDefinition[]) {
@@ -121,5 +151,193 @@ export function analyzeStoryContinuity(
 		terminalNodeIds,
 		unscheduledNodeIds,
 		earlyTerminalNodeIds
+	};
+}
+
+function outcomeHasMeaningfulConsequence(
+	outcome: NarrativeMoveDefinition['outcomes'][number]
+) {
+	return (
+		outcome.effectStoryNodeIds.length > 0 || (outcome.effects?.length ?? 0) > 0
+	);
+}
+
+function moveHasBranchingResolution(move: NarrativeMoveDefinition) {
+	return move.resolution.type !== 'automatic' || move.outcomes.length > 1;
+}
+
+function nodeCharacters(
+	node: StoryNodeDefinition,
+	moves: NarrativeMoveDefinition[]
+) {
+	const characters = new Set<string>();
+	if (node.primaryCharacterId) {
+		characters.add(node.primaryCharacterId);
+	}
+	for (const participantId of node.participantIds) {
+		characters.add(participantId);
+	}
+	for (const move of moves) {
+		if (move.storyNodeId !== node.id) {
+			continue;
+		}
+		if (move.actorCharacterId) {
+			characters.add(move.actorCharacterId);
+		}
+		for (const targetId of move.targetCharacterIds) {
+			characters.add(targetId);
+		}
+	}
+	return characters;
+}
+
+/**
+ * A25 Coverage extends the existing continuity model instead of creating a
+ * second graph analyzer. Executable Story edges and explicit Move outcome
+ * continuations are causal; reference edges never keep a branch alive.
+ */
+export function analyzeStoryCoverage(
+	nodes: StoryNodeDefinition[],
+	connections: StoryConnectionDefinition[],
+	moves: NarrativeMoveDefinition[],
+	dayCount: number
+): StoryCoverageAnalysis {
+	const causalConnections = continuityConnections(connections);
+	const outgoingByNode = new Map<string, Set<string>>();
+	for (const node of nodes) {
+		outgoingByNode.set(node.id, new Set());
+	}
+	for (const connection of causalConnections) {
+		outgoingByNode
+			.get(connection.sourceNodeId)
+			?.add(connection.targetNodeId);
+	}
+	for (const move of moves) {
+		const outgoing = outgoingByNode.get(move.storyNodeId);
+		if (!outgoing) {
+			continue;
+		}
+		for (const outcome of move.outcomes) {
+			for (const targetNodeId of outcome.effectStoryNodeIds) {
+				outgoing.add(targetNodeId);
+			}
+		}
+	}
+
+	const findings: StoryCoverageFinding[] = [];
+	const terminalNodeIds = nodes
+		.filter(node => (outgoingByNode.get(node.id)?.size ?? 0) === 0)
+		.map(node => node.id);
+	const terminalSet = new Set(terminalNodeIds);
+	const earlyTerminalNodeIds = nodes
+		.filter(
+			node =>
+				terminalSet.has(node.id) &&
+				node.placement?.day !== undefined &&
+				node.placement.day < dayCount
+		)
+		.map(node => node.id);
+	const earlyTerminalSet = new Set(earlyTerminalNodeIds);
+
+	for (const node of nodes) {
+		if (!terminalSet.has(node.id)) {
+			continue;
+		}
+		findings.push({
+			id: `coverage:terminal:${node.id}`,
+			kind: earlyTerminalSet.has(node.id)
+				? 'early-terminal-story-node'
+				: 'terminal-story-node',
+			severity: earlyTerminalSet.has(node.id) ? 'warning' : 'info',
+			storyNodeId: node.id,
+			summary: earlyTerminalSet.has(node.id)
+				? `Ветка заканчивается на «${node.title}» раньше конца 93-дневного окна.`
+				: `«${node.title}» — текущий конец исполняемой ветки.`
+		});
+	}
+
+	const outcomeWithoutConsequenceIds: string[] = [];
+	const asymmetricMoveIds: string[] = [];
+	for (const move of moves) {
+		if (!moveHasBranchingResolution(move)) {
+			continue;
+		}
+		const meaningful = move.outcomes.map(outcome => ({
+			outcome,
+			meaningful: outcomeHasMeaningfulConsequence(outcome)
+		}));
+		for (const entry of meaningful) {
+			if (entry.meaningful) {
+				continue;
+			}
+			outcomeWithoutConsequenceIds.push(entry.outcome.id);
+			findings.push({
+				id: `coverage:empty-outcome:${move.id}:${entry.outcome.id}`,
+				kind: 'outcome-without-consequence',
+				severity: 'warning',
+				storyNodeId: move.storyNodeId,
+				moveId: move.id,
+				outcomeId: entry.outcome.id,
+				summary: `Исход «${entry.outcome.label}» у «${move.label}» не продолжает Story и не применяет ни одного эффекта.`
+			});
+		}
+
+		const meaningfulCount = meaningful.filter(entry => entry.meaningful).length;
+		if (meaningfulCount > 0 && meaningfulCount < meaningful.length) {
+			asymmetricMoveIds.push(move.id);
+			findings.push({
+				id: `coverage:asymmetric:${move.id}`,
+				kind: 'asymmetric-outcomes',
+				severity: 'warning',
+				storyNodeId: move.storyNodeId,
+				moveId: move.id,
+				summary: `У «${move.label}» часть исходов имеет последствия, а часть пока остаётся пустой.`
+			});
+		}
+	}
+
+	const nodesByCharacter = new Map<string, StoryNodeDefinition[]>();
+	for (const node of nodes) {
+		for (const characterId of nodeCharacters(node, moves)) {
+			const list = nodesByCharacter.get(characterId) ?? [];
+			list.push(node);
+			nodesByCharacter.set(characterId, list);
+		}
+	}
+
+	const characterFrontierIds: string[] = [];
+	for (const [characterId, characterNodes] of nodesByCharacter) {
+		const placed = characterNodes.filter(
+			node => node.placement?.day !== undefined
+		);
+		if (placed.length < 2) {
+			continue;
+		}
+		const latestDay = Math.max(...placed.map(node => node.placement!.day!));
+		if (latestDay >= dayCount) {
+			continue;
+		}
+		const latestNodes = placed.filter(node => node.placement?.day === latestDay);
+		if (!latestNodes.every(node => terminalSet.has(node.id))) {
+			continue;
+		}
+		characterFrontierIds.push(characterId);
+		findings.push({
+			id: `coverage:character-frontier:${characterId}`,
+			kind: 'character-frontier',
+			severity: 'warning',
+			characterId,
+			storyNodeId: latestNodes[0]?.id,
+			summary: `Линия персонажа заканчивается около Day ${latestDay}: у последних размещённых Story-узлов нет исполняемого продолжения.`
+		});
+	}
+
+	return {
+		findings,
+		terminalNodeIds,
+		earlyTerminalNodeIds,
+		outcomeWithoutConsequenceIds,
+		asymmetricMoveIds,
+		characterFrontierIds
 	};
 }
