@@ -5,6 +5,7 @@ import {
 	StoryOccurrenceMode
 } from '../../../domain/narrative/story';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {StoryConnectionsPanel} from './story-connections-panel';
 
 const storyKindLabels: Record<StoryNodeKind, string> = {
 	beat: 'Сюжетный бит',
@@ -268,6 +269,7 @@ export const StoryMetadataPanel: React.FC = () => {
 					</form>
 				</>
 			)}
+			<StoryConnectionsPanel />
 		</section>
 	);
 };
