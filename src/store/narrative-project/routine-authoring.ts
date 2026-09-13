@@ -2,6 +2,10 @@ import {NarrativeProjectCommand} from '../../application/narrative/commands';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {RoutineRule} from '../../domain/narrative/schedule';
 import {
+	StoryNodeKind,
+	StoryRuntimePolicyDefinition
+} from '../../domain/narrative/story';
+import {
 	NarrativeProjectHistoryState,
 	narrativeProjectHistoryReducer
 } from './reducer';
@@ -11,9 +15,21 @@ export type RoutineAuthoringCommand =
 	| {type: 'routine/update'; rule: RoutineRule}
 	| {type: 'routine/remove'; id: string};
 
+export interface StoryMetadataAuthoringCommand {
+	type: 'story/updateAuthoring';
+	id: string;
+	kind: StoryNodeKind;
+	title: string;
+	description?: string;
+	primaryCharacterId?: string;
+	participantIds: string[];
+	runtimePolicy?: StoryRuntimePolicyDefinition;
+}
+
 export type NarrativeAuthoringCommand =
 	| NarrativeProjectCommand
-	| RoutineAuthoringCommand;
+	| RoutineAuthoringCommand
+	| StoryMetadataAuthoringCommand;
 
 export type NarrativeProjectAuthoringAction =
 	| {type: 'execute'; command: NarrativeAuthoringCommand}
@@ -105,6 +121,45 @@ export function routineRuleIsAuthoringValid(
 	);
 }
 
+function runtimePolicyIsAuthoringValid(
+	policy: StoryRuntimePolicyDefinition | undefined
+) {
+	if (!policy) {
+		return true;
+	}
+	const validOptionalMinutes = (value: number | undefined) =>
+		value === undefined || (Number.isInteger(value) && value >= 0);
+	return (
+		validOptionalMinutes(policy.durationMinutes) &&
+		validOptionalMinutes(policy.missAfterMinutes)
+	);
+}
+
+function storyMetadataCommandIsAuthoringValid(
+	project: NarrativeProject,
+	command: StoryMetadataAuthoringCommand
+) {
+	if (
+		!project.storyNodes.some(node => node.id === command.id) ||
+		!command.title.trim() ||
+		!runtimePolicyIsAuthoringValid(command.runtimePolicy)
+	) {
+		return false;
+	}
+	if (
+		command.primaryCharacterId &&
+		!project.characters.some(character => character.id === command.primaryCharacterId)
+	) {
+		return false;
+	}
+	if (new Set(command.participantIds).size !== command.participantIds.length) {
+		return false;
+	}
+	return command.participantIds.every(id =>
+		project.characters.some(character => character.id === id)
+	);
+}
+
 function touched(project: NarrativeProject): NarrativeProject {
 	return {...project, updatedAt: new Date().toISOString()};
 }
@@ -149,6 +204,31 @@ function applyRoutineCommand(
 	}
 }
 
+function applyStoryMetadataCommand(
+	project: NarrativeProject,
+	command: StoryMetadataAuthoringCommand
+): NarrativeProject {
+	if (!storyMetadataCommandIsAuthoringValid(project, command)) {
+		return project;
+	}
+	return touched({
+		...project,
+		storyNodes: project.storyNodes.map(node =>
+			node.id === command.id
+				? {
+						...node,
+						kind: command.kind,
+						title: command.title.trim(),
+						description: command.description?.trim() || undefined,
+						primaryCharacterId: command.primaryCharacterId || undefined,
+						participantIds: [...command.participantIds],
+						runtimePolicy: command.runtimePolicy
+				  }
+				: node
+		)
+	});
+}
+
 function isRoutineCommand(
 	command: NarrativeAuthoringCommand
 ): command is RoutineAuthoringCommand {
@@ -159,6 +239,12 @@ function isRoutineCommand(
 	);
 }
 
+function isStoryMetadataCommand(
+	command: NarrativeAuthoringCommand
+): command is StoryMetadataAuthoringCommand {
+	return command.type === 'story/updateAuthoring';
+}
+
 export function narrativeProjectAuthoringReducer(
 	state: NarrativeProjectHistoryState,
 	action: NarrativeProjectAuthoringAction
@@ -166,14 +252,16 @@ export function narrativeProjectAuthoringReducer(
 	if (action.type === 'undo' || action.type === 'redo') {
 		return narrativeProjectHistoryReducer(state, action);
 	}
-	if (!isRoutineCommand(action.command)) {
+	if (!isRoutineCommand(action.command) && !isStoryMetadataCommand(action.command)) {
 		return narrativeProjectHistoryReducer(state, {
 			type: 'execute',
 			command: action.command
 		});
 	}
 
-	const nextProject = applyRoutineCommand(state.present, action.command);
+	const nextProject = isRoutineCommand(action.command)
+		? applyRoutineCommand(state.present, action.command)
+		: applyStoryMetadataCommand(state.present, action.command);
 	if (nextProject === state.present) {
 		return state;
 	}
