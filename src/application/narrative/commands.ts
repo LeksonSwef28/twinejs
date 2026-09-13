@@ -11,6 +11,7 @@ import {
 	NarrativeOutcomeDefinition,
 	NarrativeResolutionDefinition
 } from '../../domain/narrative/interaction';
+import {InteractionTemplateDefinition} from '../../domain/narrative/interaction-template';
 import {ItemPlacement} from '../../domain/narrative/items';
 import {
 	ClaimTruthStance,
@@ -18,6 +19,7 @@ import {
 	KnowledgeSource
 } from '../../domain/narrative/knowledge';
 import {NarrativeWorkspaceMode} from '../../domain/narrative/project';
+import {ReactionCandidateSetDefinition} from '../../domain/narrative/reaction';
 import {
 	StoryConnectionKind,
 	StoryEdgeMode,
@@ -91,6 +93,10 @@ export type NarrativeProjectCommand =
 			outcomes?: NarrativeOutcomeDefinition[];
 	  }
 	| {type: 'move/remove'; id: string}
+	| {type: 'interactionTemplate/add'; template: InteractionTemplateDefinition}
+	| {type: 'interactionTemplate/remove'; id: string}
+	| {type: 'reaction/set'; set: ReactionCandidateSetDefinition}
+	| {type: 'reaction/remove'; id: string}
 	| {type: 'editor/selectDay'; day: number}
 	| {type: 'editor/selectPeriod'; periodId: string}
 	| {type: 'editor/selectMoment'; day: number; minuteOfDay: number}
