@@ -41,7 +41,7 @@ Deliverables:
 
 ## A48 — Validation & Story Brain 2.0
 
-**Status:** IN PROGRESS. Broken authored-reference diagnostics, Reaction Candidate Set validation, project-wide visibility, Story-side jump-to-source, conservative isolated/unreachable Story diagnostics and RoutineRule overlap diagnostics are merged. This branch extends actionable diagnostics into WORLD/TIME by centering schedule conflicts on their authored overlap interval without moving the Simulation Playhead.
+**Status:** DONE (2026-09-14). A48 now covers project-wide authored-reference validation, Reaction Candidate Set references, isolated/unreachable Story structure, outcome/failure consequence coverage, RoutineRule overlap detection, contradictory and preview-unknown Guards, missing Story participants, partial/invalid exact placements, Story ↔ WORLD/TIME presence/location consistency with ScheduleException priority, suspicious authored schedule gaps, and actionable jump-to-source navigation across both canonical workspaces. The final closure passed the full branch gate; Story Brain remains read-only and navigation never advances the Simulation Playhead.
 
 **Goal:** turn architectural correctness checks into useful author-facing diagnostics.
 
