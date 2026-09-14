@@ -29,16 +29,14 @@ interface PayloadInspection {
 	validJson: boolean;
 }
 
+type PayloadKind = 'current' | 'v2' | 'v1';
+
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
-function currentStorageKey(hostStoryId: string) {
-	return `twine:narrative-project:v${narrativeProjectSchemaVersion}:${hostStoryId}`;
-}
-
-function legacyStorageKey(hostStoryId: string) {
-	return `twine:narrative-project:v1:${hostStoryId}`;
+function storageKey(hostStoryId: string, version: number) {
+	return `twine:narrative-project:v${version}:${hostStoryId}`;
 }
 
 function requiredProjectIdentityAndArraysExist(
@@ -55,29 +53,31 @@ function requiredProjectIdentityAndArraysExist(
 	);
 }
 
-function isRecognizedCurrentPayload(value: unknown, hostStoryId: string) {
+function isRecognizedProjectPayload(
+	value: unknown,
+	hostStoryId: string,
+	schemaVersion: number
+) {
 	if (!isRecord(value)) {
 		return false;
 	}
-
 	if (value.format === narrativeProjectPersistenceFormat) {
 		const authored = value.authored;
 		return (
-			value.schemaVersion === narrativeProjectSchemaVersion &&
+			value.schemaVersion === schemaVersion &&
 			isRecord(authored) &&
 			isRecord(value.editor) &&
 			isRecord(value.runtime) &&
 			requiredProjectIdentityAndArraysExist(authored, hostStoryId)
 		);
 	}
-
 	return (
-		value.schemaVersion === narrativeProjectSchemaVersion &&
+		value.schemaVersion === schemaVersion &&
 		requiredProjectIdentityAndArraysExist(value, hostStoryId)
 	);
 }
 
-function isRecognizedLegacyPayload(value: unknown, hostStoryId: string) {
+function isRecognizedV1Payload(value: unknown, hostStoryId: string) {
 	if (!isRecord(value)) {
 		return false;
 	}
@@ -92,7 +92,7 @@ function isRecognizedLegacyPayload(value: unknown, hostStoryId: string) {
 function inspectPayload(
 	raw: string | null,
 	hostStoryId: string,
-	kind: 'current' | 'legacy'
+	kind: PayloadKind
 ): PayloadInspection {
 	if (raw === null) {
 		return {recognized: false, validJson: false};
@@ -102,8 +102,14 @@ function inspectPayload(
 		return {
 			recognized:
 				kind === 'current'
-					? isRecognizedCurrentPayload(parsed, hostStoryId)
-					: isRecognizedLegacyPayload(parsed, hostStoryId),
+					? isRecognizedProjectPayload(
+							parsed,
+							hostStoryId,
+							narrativeProjectSchemaVersion
+						)
+					: kind === 'v2'
+						? isRecognizedProjectPayload(parsed, hostStoryId, 2)
+						: isRecognizedV1Payload(parsed, hostStoryId),
 			validJson: true
 		};
 	} catch {
@@ -111,11 +117,7 @@ function inspectPayload(
 	}
 }
 
-function backupRawPayload(
-	hostStoryId: string,
-	kind: 'current' | 'legacy',
-	raw: string
-) {
+function backupRawPayload(hostStoryId: string, kind: PayloadKind, raw: string) {
 	const key = `twine:narrative-project:recovery:${hostStoryId}:${kind}:${Date.now()}`;
 	try {
 		window.localStorage.setItem(key, raw);
@@ -127,10 +129,9 @@ function backupRawPayload(
 
 /**
  * Protects author data from the "failed load -> fresh project -> autosave"
- * failure mode. Unknown or damaged payloads are copied aside before the normal
- * repository attempts hydration. When no recognized fallback exists, writes
- * remain blocked until the editor explicitly acknowledges starting from the
- * fresh project returned by the normal repository.
+ * failure mode. v3 is the current format; recognized v2 and v1 slots remain
+ * readable migration sources. Unknown or damaged payloads are copied aside,
+ * while any recognized older source keeps the project loadable and writable.
  */
 export function createRecoverableLocalStorageNarrativeProjectRepository(
 	hostStoryId: string,
@@ -158,51 +159,36 @@ export function createRecoverableLocalStorageNarrativeProjectRepository(
 			return cachedResult;
 		}
 
-		const currentKey = currentStorageKey(hostStoryId);
-		const legacyKey = legacyStorageKey(hostStoryId);
-		const currentRaw = window.localStorage.getItem(currentKey);
-		const legacyRaw = window.localStorage.getItem(legacyKey);
-		const current = inspectPayload(currentRaw, hostStoryId, 'current');
-		const legacy = inspectPayload(legacyRaw, hostStoryId, 'legacy');
+		const sources = [
+			{
+				kind: 'current' as const,
+				key: storageKey(hostStoryId, narrativeProjectSchemaVersion)
+			},
+			{kind: 'v2' as const, key: storageKey(hostStoryId, 2)},
+			{kind: 'v1' as const, key: storageKey(hostStoryId, 1)}
+		].map(source => {
+			const raw = window.localStorage.getItem(source.key);
+			return {
+				...source,
+				raw,
+				inspection: inspectPayload(raw, hostStoryId, source.kind)
+			};
+		});
 		const recoveryBackupKeys: string[] = [];
 
-		if (currentRaw !== null && !current.recognized) {
-			const backupKey = backupRawPayload(hostStoryId, 'current', currentRaw);
-			if (backupKey) {
-				recoveryBackupKeys.push(backupKey);
-			}
-		}
-		if (!current.recognized && legacyRaw !== null && !legacy.recognized) {
-			const backupKey = backupRawPayload(hostStoryId, 'legacy', legacyRaw);
-			if (backupKey) {
-				recoveryBackupKeys.push(backupKey);
+		for (const source of sources) {
+			if (source.raw !== null && !source.inspection.recognized) {
+				const backupKey = backupRawPayload(hostStoryId, source.kind, source.raw);
+				if (backupKey) {
+					recoveryBackupKeys.push(backupKey);
+				}
 			}
 		}
 
-		// The legacy loader lives inside one try/catch with current JSON parsing.
-		// A malformed current JSON string would otherwise prevent a valid v1
-		// fallback from being reached at all. It is safe to clear only after the
-		// raw value has been copied to a recovery key.
-		let malformedCurrentClearedForLegacy = false;
-		if (
-			currentRaw !== null &&
-			!current.validJson &&
-			legacy.recognized &&
-			recoveryBackupKeys.length > 0
-		) {
-			try {
-				window.localStorage.removeItem(currentKey);
-				malformedCurrentClearedForLegacy = true;
-			} catch {
-				malformedCurrentClearedForLegacy = false;
-			}
-		}
-
-		const hasStoredPayload = currentRaw !== null || legacyRaw !== null;
-		const legacyIsReachable =
-			legacy.recognized &&
-			(currentRaw === null || current.validJson || malformedCurrentClearedForLegacy);
-		const hasRecognizedSource = current.recognized || legacyIsReachable;
+		const hasStoredPayload = sources.some(source => source.raw !== null);
+		const hasRecognizedSource = sources.some(
+			source => source.inspection.recognized
+		);
 		const status: NarrativeProjectLoadStatus = !hasStoredPayload
 			? 'new'
 			: hasRecognizedSource
