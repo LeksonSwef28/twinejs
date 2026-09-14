@@ -269,7 +269,7 @@ export const OutcomeEffectsPanel: React.FC = () => {
 				</select>
 
 
-				{effectMode === 'character-learns-claim' && (
+				{effectMode === 'character-learns-claim' && move && (
 					<>
 						<select
 							aria-label="Получатель знания"
