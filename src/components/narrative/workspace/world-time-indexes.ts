@@ -25,7 +25,7 @@ function appendToIndex<T>(index: Map<string, T[]>, key: string, value: T) {
 export function buildWorldTimeLocationIndexes(
 	routineRules: RoutineRule[],
 	characters: NarrativeCharacter[],
-	actualLocationByCharacter: Record<string, string>,
+	actualLocationByCharacter: Record<string, string | undefined>,
 	visibleStoryNodes: StoryNodeDefinition[]
 ): WorldTimeLocationIndexes {
 	const routineRulesByLocation = new Map<string, RoutineRule[]>();
