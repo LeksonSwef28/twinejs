@@ -25,6 +25,27 @@ describe('validateNarrativeProjectReferences', () => {
 		expect(validateNarrativeProjectReferences(project()).findings).toEqual([]);
 	});
 
+	it('reports a missing Character default behavior profile', () => {
+		const value = project();
+		value.characters = [
+			{
+				id: 'character-1',
+				name: 'Лена',
+				cognitionTier: 'full',
+				defaultBehaviorProfileId: 'missing-profile'
+			}
+		];
+
+		expect(validateNarrativeProjectReferences(value).findings).toEqual([
+			expect.objectContaining({
+				ownerKind: 'character',
+				ownerId: 'character-1',
+				targetKind: 'behavior-profile',
+				targetId: 'missing-profile'
+			})
+		]);
+	});
+
 	it('reports broken canonical references across authored project data', () => {
 		const value = project();
 		value.characters = [
