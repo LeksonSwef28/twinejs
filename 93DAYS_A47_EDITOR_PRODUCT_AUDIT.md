@@ -89,20 +89,15 @@ The editor also received safeguards that were not part of the original authoring
 
 ## A47 cleanup closed after the audit
 
-The two originally identified non-destructive UX tails are now closed:
+The non-destructive UX tails found during the audit are now closed:
 
 - the Story left rail points authors to the existing Objective Facts / Claims / Initial Knowledge models in Project Library instead of calling cognition a future layer;
-- `OutcomeEffectsPanel` exposes `character-learns-claim` alongside the other typed Outcome effects, including fixed-character or Move-target recipients, fixed or communicated Claims, attitude, confidence and source.
+- `OutcomeEffectsPanel` exposes `character-learns-claim` alongside the other typed Outcome effects, including fixed-character or Move-target recipients, fixed or communicated Claims, attitude, confidence and source;
+- relationship endpoints, mood targets, character item placement and memory targets now share one Move-aware character-reference control that can author a fixed Character, `move-actor` or any valid `move-target`.
 
-The original Narrative Move shortcut remains useful for the common "target learns the communicated Claim" case, while the general Outcome picker now exposes every current effect type without requiring JSON/code.
+The original Narrative Move shortcut remains useful for the common "target learns the communicated Claim" case, while the general Outcome picker now exposes every current effect type and every current `NarrativeCharacterReferenceDefinition` variant without requiring JSON/code.
 
-## Remaining A47 cleanup / explicitly deferred work
-
-### P1 — dynamic character-reference modes are not yet exposed for every typed effect
-
-The domain model allows `NarrativeCharacterReferenceDefinition` to address a fixed Character, the current `move-actor`, or a `move-target`. The general Outcome UI currently uses fixed Characters for relationship endpoints, mood targets, character item placement and memory targets. Therefore every effect **type** is now reachable through UI, but not every authored character-reference **variant** is reachable yet.
-
-**Disposition:** one focused authoring-closure slice should add reusable fixed/Move-actor/Move-target reference controls to the affected effect editors. This is a real UI-authoring gap under the product rule and should be closed before A47 is called fully complete.
+## Explicitly deferred work
 
 ### P2 — destructive canonical-entity deletion remains intentionally conservative
 
@@ -119,6 +114,7 @@ Canonical metadata can now be edited, but broad delete workflows are not exposed
 - Body/injury/carrying runtime state does not require a general authoring CRUD panel merely because it exists in preview.
 - A47 does not require creating game content, economy, jobs, city AI or a three-day playable game.
 - A52 export/compiler portability is a separate milestone and is not reclassified as an A47 authoring failure.
+- richer Interaction Template role-slot authoring belongs to A49 by roadmap rather than being pulled backward into A47.
 
 ## Transition to A48
 
@@ -130,4 +126,4 @@ The next A48 visibility gap found by this audit is that `projectFindingCount` is
 
 ## Status
 
-**A47: CORE NON-DESTRUCTIVE LOOPS CLOSED; ONE DYNAMIC-REFERENCE AUTHORING GAP REMAINS.** All current Outcome effect types are reachable from the UI, but several effects still need Move-actor / Move-target address variants exposed. Broad destructive canonical-entity deletion remains deliberately deferred behind A48 reference diagnostics/repair UX.
+**A47: DONE pending this branch's green CI/merge.** The non-destructive authoring loops and current authored effect/reference variants are available through UI without JSON/code. Broad destructive canonical-entity deletion remains deliberately deferred behind A48 reference diagnostics/repair UX rather than being misclassified as ordinary A47 CRUD.

@@ -3,6 +3,10 @@ import {NarrativeEffectDefinition} from '../../../domain/narrative/interaction';
 import {KnowledgeAttitude} from '../../../domain/narrative/knowledge';
 import {StoryNodeActivationState} from '../../../domain/narrative/story';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {
+	CharacterReferenceSelect,
+	characterReferenceValueToDefinition
+} from './character-reference-select';
 
 type EffectMode =
 	| 'character-learns-claim'
@@ -54,18 +58,19 @@ export const OutcomeEffectsPanel: React.FC = () => {
 	const [knowledgeConfidence, setKnowledgeConfidence] = React.useState(0.75);
 	const [knowledgeSource, setKnowledgeSource] =
 		React.useState<KnowledgeSourceMode>('authored');
-	const [fromCharacterId, setFromCharacterId] = React.useState('');
-	const [toCharacterId, setToCharacterId] = React.useState('');
+	const [fromCharacterReference, setFromCharacterReference] = React.useState('');
+	const [toCharacterReference, setToCharacterReference] = React.useState('');
 	const [relationshipAxis, setRelationshipAxis] = React.useState('trust');
 	const [relationshipDelta, setRelationshipDelta] = React.useState(1);
-	const [moodCharacterId, setMoodCharacterId] = React.useState('');
+	const [moodCharacterReference, setMoodCharacterReference] = React.useState('');
 	const [mood, setMood] = React.useState('');
 	const [itemInstanceId, setItemInstanceId] = React.useState('');
 	const [itemDestination, setItemDestination] = React.useState<ItemDestination>('unplaced');
-	const [itemDestinationId, setItemDestinationId] = React.useState('');
+	const [itemLocationId, setItemLocationId] = React.useState('');
+	const [itemCharacterReference, setItemCharacterReference] = React.useState('');
 	const [storyNodeId, setStoryNodeId] = React.useState('');
 	const [storyState, setStoryState] = React.useState<StoryNodeActivationState>('available');
-	const [memoryCharacterId, setMemoryCharacterId] = React.useState('');
+	const [memoryCharacterReference, setMemoryCharacterReference] = React.useState('');
 	const [memorySummary, setMemorySummary] = React.useState('');
 	const [memoryImportance, setMemoryImportance] = React.useState(0.7);
 	const [memoryBaseStrength, setMemoryBaseStrength] = React.useState(0.7);
@@ -133,43 +138,47 @@ export const OutcomeEffectsPanel: React.FC = () => {
 					source: {type: knowledgeSource}
 				};
 				break;
-			case 'relationship-adjust':
-				if (
-					!fromCharacterId ||
-					!toCharacterId ||
-					!relationshipAxis.trim() ||
-					!Number.isFinite(relationshipDelta)
-				) {
+			case 'relationship-adjust': {
+				const from = characterReferenceValueToDefinition(fromCharacterReference, move);
+				const to = characterReferenceValueToDefinition(toCharacterReference, move);
+				if (!from || !to || !relationshipAxis.trim() || !Number.isFinite(relationshipDelta)) {
 					return;
 				}
 				effect = {
 					id: createId('relationship-effect'),
 					type: 'relationship-adjust',
-					from: {type: 'character', characterId: fromCharacterId},
-					to: {type: 'character', characterId: toCharacterId},
+					from,
+					to,
 					axis: relationshipAxis.trim(),
 					delta: relationshipDelta
 				};
 				break;
-			case 'character-mood-set':
-				if (!moodCharacterId || !mood.trim()) {
+			}
+			case 'character-mood-set': {
+				const character = characterReferenceValueToDefinition(moodCharacterReference, move);
+				if (!character || !mood.trim()) {
 					return;
 				}
 				effect = {
 					id: createId('mood-effect'),
 					type: 'character-mood-set',
-					character: {type: 'character', characterId: moodCharacterId},
+					character,
 					mood: mood.trim()
 				};
 				break;
-			case 'item-set-placement':
+			}
+			case 'item-set-placement': {
+				const characterPlacement =
+					itemDestination === 'character'
+						? characterReferenceValueToDefinition(itemCharacterReference, move)
+						: undefined;
 				if (!itemInstanceId) {
 					return;
 				}
-				if (itemDestination === 'character' && !itemDestinationId) {
+				if (itemDestination === 'character' && !characterPlacement) {
 					return;
 				}
-				if (itemDestination === 'location' && !itemDestinationId) {
+				if (itemDestination === 'location' && !itemLocationId) {
 					return;
 				}
 				effect = {
@@ -180,16 +189,11 @@ export const OutcomeEffectsPanel: React.FC = () => {
 						itemDestination === 'unplaced'
 							? {type: 'unplaced'}
 							: itemDestination === 'location'
-								? {type: 'location', locationId: itemDestinationId}
-								: {
-										type: 'character',
-										character: {
-											type: 'character',
-											characterId: itemDestinationId
-										}
-								  }
+								? {type: 'location', locationId: itemLocationId}
+								: {type: 'character', character: characterPlacement!}
 				};
 				break;
+			}
 			case 'story-node-set-state':
 				if (!storyNodeId) {
 					return;
@@ -202,8 +206,9 @@ export const OutcomeEffectsPanel: React.FC = () => {
 				};
 				break;
 			case 'character-remembers': {
+				const character = characterReferenceValueToDefinition(memoryCharacterReference, move);
 				if (
-					!memoryCharacterId ||
+					!character ||
 					!memorySummary.trim() ||
 					!Number.isFinite(memoryImportance) ||
 					memoryImportance < 0 ||
@@ -218,7 +223,7 @@ export const OutcomeEffectsPanel: React.FC = () => {
 				effect = {
 					id: createId('memory-effect'),
 					type: 'character-remembers',
-					character: {type: 'character', characterId: memoryCharacterId},
+					character,
 					summary: memorySummary.trim(),
 					importance: memoryImportance,
 					baseStrength: memoryBaseStrength,
@@ -383,14 +388,20 @@ export const OutcomeEffectsPanel: React.FC = () => {
 
 				{effectMode === 'relationship-adjust' && (
 					<>
-						<select aria-label="Отношение от персонажа" value={fromCharacterId} onChange={event => setFromCharacterId(event.target.value)}>
-							<option value="">Кто меняет отношение</option>
-							{project.characters.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
-						</select>
-						<select aria-label="Отношение к персонажу" value={toCharacterId} onChange={event => setToCharacterId(event.target.value)}>
-							<option value="">К кому</option>
-							{project.characters.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
-						</select>
+						<CharacterReferenceSelect
+							ariaLabel="Отношение от персонажа"
+							value={fromCharacterReference}
+							onChange={setFromCharacterReference}
+							characters={project.characters}
+							move={move}
+						/>
+						<CharacterReferenceSelect
+							ariaLabel="Отношение к персонажу"
+							value={toCharacterReference}
+							onChange={setToCharacterReference}
+							characters={project.characters}
+							move={move}
+						/>
 						<input aria-label="Ось отношения" value={relationshipAxis} onChange={event => setRelationshipAxis(event.target.value)} placeholder="trust" />
 						<input aria-label="Изменение отношения" type="number" value={relationshipDelta} onChange={event => setRelationshipDelta(Number(event.target.value))} />
 					</>
@@ -398,10 +409,13 @@ export const OutcomeEffectsPanel: React.FC = () => {
 
 				{effectMode === 'character-mood-set' && (
 					<>
-						<select aria-label="Персонаж для mood" value={moodCharacterId} onChange={event => setMoodCharacterId(event.target.value)}>
-							<option value="">Выбери персонажа</option>
-							{project.characters.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
-						</select>
+						<CharacterReferenceSelect
+							ariaLabel="Персонаж для mood"
+							value={moodCharacterReference}
+							onChange={setMoodCharacterReference}
+							characters={project.characters}
+							move={move}
+						/>
 						<input aria-label="Новое настроение" value={mood} onChange={event => setMood(event.target.value)} placeholder="angry / relieved / afraid" />
 					</>
 				)}
@@ -412,19 +426,22 @@ export const OutcomeEffectsPanel: React.FC = () => {
 							<option value="">Выбери экземпляр предмета</option>
 							{project.itemInstances.map(item => <option key={item.id} value={item.id}>{project.itemDefinitions.find(definition => definition.id === item.definitionId)?.name ?? item.id}</option>)}
 						</select>
-						<select aria-label="Куда переместить предмет" value={itemDestination} onChange={event => {setItemDestination(event.target.value as ItemDestination); setItemDestinationId('');}}>
+						<select aria-label="Куда переместить предмет" value={itemDestination} onChange={event => {setItemDestination(event.target.value as ItemDestination); setItemLocationId(''); setItemCharacterReference('');}}>
 							<option value="unplaced">Убрать из размещения</option>
 							<option value="character">Передать персонажу</option>
 							<option value="location">Переместить в локацию</option>
 						</select>
 						{itemDestination === 'character' && (
-							<select aria-label="Получатель предмета" value={itemDestinationId} onChange={event => setItemDestinationId(event.target.value)}>
-								<option value="">Выбери персонажа</option>
-								{project.characters.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
-							</select>
+							<CharacterReferenceSelect
+								ariaLabel="Получатель предмета"
+								value={itemCharacterReference}
+								onChange={setItemCharacterReference}
+								characters={project.characters}
+								move={move}
+							/>
 						)}
 						{itemDestination === 'location' && (
-							<select aria-label="Локация предмета" value={itemDestinationId} onChange={event => setItemDestinationId(event.target.value)}>
+							<select aria-label="Локация предмета" value={itemLocationId} onChange={event => setItemLocationId(event.target.value)}>
 								<option value="">Выбери локацию</option>
 								{project.locations.map(location => <option key={location.id} value={location.id}>{location.name}</option>)}
 							</select>
@@ -446,10 +463,13 @@ export const OutcomeEffectsPanel: React.FC = () => {
 
 				{effectMode === 'character-remembers' && (
 					<>
-						<select aria-label="Персонаж для воспоминания" value={memoryCharacterId} onChange={event => setMemoryCharacterId(event.target.value)}>
-							<option value="">Кто запомнит</option>
-							{project.characters.map(character => <option key={character.id} value={character.id}>{character.name}</option>)}
-						</select>
+						<CharacterReferenceSelect
+							ariaLabel="Персонаж для воспоминания"
+							value={memoryCharacterReference}
+							onChange={setMemoryCharacterReference}
+							characters={project.characters}
+							move={move}
+						/>
 						<input aria-label="Содержание воспоминания" value={memorySummary} onChange={event => setMemorySummary(event.target.value)} placeholder="Что персонаж запомнит" />
 						<label>
 							Важность памяти 0–1
