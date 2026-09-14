@@ -63,10 +63,10 @@ export function storyBrainNavigationForFinding(
 	finding: StoryBrainFinding
 ): StoryBrainDiagnosticNavigation | undefined {
 	if (finding.kind !== 'broken-authored-reference') {
-		if (finding.moveId) {
+		if ('moveId' in finding && finding.moveId) {
 			return navigationForFocus(project, {kind: 'move', id: finding.moveId});
 		}
-		if (finding.storyNodeId) {
+		if ('storyNodeId' in finding && finding.storyNodeId) {
 			return navigationForFocus(project, {
 				kind: 'story-node',
 				id: finding.storyNodeId

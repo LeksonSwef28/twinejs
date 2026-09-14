@@ -41,7 +41,7 @@ Deliverables:
 
 ## A48 — Validation & Story Brain 2.0
 
-**Status:** IN PROGRESS. Broken authored-reference diagnostics, Reaction Candidate Set validation, project-wide visibility and the first actionable Story-side jump-to-source path are merged. This branch adds conservative isolated/unreachable Story diagnostics: strict reachability is reported only when the executable graph has one unambiguous entry root.
+**Status:** IN PROGRESS. Broken authored-reference diagnostics, Reaction Candidate Set validation, project-wide visibility, Story-side jump-to-source and conservative isolated/unreachable Story diagnostics are merged. This branch adds deterministic RoutineRule overlap diagnostics to both project-wide and Character-focused Story Brain views while preserving Scheduled Presence != Actual Presence.
 
 **Goal:** turn architectural correctness checks into useful author-facing diagnostics.
 
