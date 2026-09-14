@@ -1,0 +1,37 @@
+name: A47 Knowledge UI Guard
+
+on:
+  push:
+    branches:
+      - audit/a47-knowledge-effect-closure
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: audit/a47-knowledge-effect-closure
+      - name: Guard knowledge effect editor without a Move
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          path = Path('src/components/narrative/workspace/outcome-effects-panel.tsx')
+          text = path.read_text()
+          old = "{effectMode === 'character-learns-claim' && ("
+          new = "{effectMode === 'character-learns-claim' && move && ("
+          if old not in text:
+              raise SystemExit('Knowledge effect render condition not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          rm .github/workflows/a47-knowledge-guard.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'fix(93-days): guard knowledge effect editor without move'
+          git push origin HEAD:audit/a47-knowledge-effect-closure
