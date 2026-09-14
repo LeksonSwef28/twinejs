@@ -33,22 +33,24 @@ jobs:
               1,
           )
           marker = "\n\tfor (const scene of project.scenes) {\n"
-          block = """
-\n\tfor (const character of project.characters) {
-\t\taddMissingReference(
-\t\t\tfindings,
-\t\t\tsets.behaviorProfiles,
-\t\t\t'behavior-profile',
-\t\t\tcharacter.defaultBehaviorProfileId,
-\t\t\t{
-\t\t\t\townerKind: 'character',
-\t\t\t\townerId: character.id,
-\t\t\t\tcharacterId: character.id
-\t\t\t},
-\t\t\t`Character «${character.name}»: default behavior profile`
-\t\t);
-\t}
-"""
+          block = "\n".join([
+              "",
+              "\tfor (const character of project.characters) {",
+              "\t\taddMissingReference(",
+              "\t\t\tfindings,",
+              "\t\t\tsets.behaviorProfiles,",
+              "\t\t\t'behavior-profile',",
+              "\t\t\tcharacter.defaultBehaviorProfileId,",
+              "\t\t\t{",
+              "\t\t\t\townerKind: 'character',",
+              "\t\t\t\townerId: character.id,",
+              "\t\t\t\tcharacterId: character.id",
+              "\t\t\t},",
+              "\t\t\t`Character «${character.name}»: default behavior profile`",
+              "\t\t);",
+              "\t}",
+              ""
+          ])
           if "default behavior profile`" not in text:
               assert marker in text
               text = text.replace(marker, block + marker, 1)
