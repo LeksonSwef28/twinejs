@@ -1,8 +1,10 @@
 import * as React from 'react';
+import {storyBrainNavigationForFinding} from '../../../application/narrative/story-brain-diagnostic-navigation';
 import {
 	queryStoryBrain,
 	queryStoryBrainProjectDiagnostics,
 	storyBrainEntityCount,
+	StoryBrainFinding,
 	StoryBrainQueryResult
 } from '../../../application/narrative/story-brain-query';
 import {NarrativeProject} from '../../../domain/narrative/project';
@@ -10,6 +12,7 @@ import {
 	StoryBrainEntityKind,
 	StoryBrainEntityRef
 } from '../../../domain/narrative/story-brain';
+import {storyCanvasViewportForNode} from '../../../domain/narrative/workspace-navigation';
 import {useNarrativeProject} from '../../../store/narrative-project';
 import './story-brain-panel.css';
 
@@ -69,7 +72,7 @@ function storyNodeLabel(project: NarrativeProject, storyNodeId: string) {
 }
 
 export const StoryBrainPanel: React.FC = () => {
-	const {project} = useNarrativeProject();
+	const {project, execute} = useNarrativeProject();
 	const [selectedFocus, setSelectedFocus] = React.useState('');
 	const focus = React.useMemo(() => parseFocus(selectedFocus), [selectedFocus]);
 	const result: StoryBrainQueryResult | undefined = React.useMemo(
@@ -101,6 +104,52 @@ export const StoryBrainPanel: React.FC = () => {
 		}));
 	}, [result]);
 
+	function jumpToFinding(finding: StoryBrainFinding) {
+		const navigation = storyBrainNavigationForFinding(project, finding);
+		if (!navigation) {
+			return;
+		}
+		setSelectedFocus(focusValue(navigation.focus));
+		execute({type: 'editor/selectWorkspace', workspace: 'story'});
+
+		if (!navigation.canvasEntityRef) {
+			return;
+		}
+		const visual = project.editor.storyCanvas?.nodes.find(
+			node =>
+				node.entityRef?.type === navigation.canvasEntityRef?.type &&
+				node.entityRef.id === navigation.canvasEntityRef.id
+		);
+		if (!visual) {
+			return;
+		}
+		execute({
+			type: 'editor/setStoryViewport',
+			viewport: storyCanvasViewportForNode(
+				visual.position,
+				project.editor.storyCanvas?.viewport.zoom
+			)
+		});
+	}
+
+	function renderFinding(finding: StoryBrainFinding) {
+		const navigation = storyBrainNavigationForFinding(project, finding);
+		return (
+			<li key={finding.id} data-severity={finding.severity}>
+				<span>{finding.severity === 'warning' ? '⚠' : '•'}</span>
+				<div>
+					<strong>{finding.summary}</strong>
+					<small>{finding.kind}</small>
+				</div>
+				{navigation && (
+					<button type="button" onClick={() => jumpToFinding(finding)}>
+						К источнику
+					</button>
+				)}
+			</li>
+		);
+	}
+
 	return (
 		<section className="narrative-workspace__story-brain" aria-label="Story Brain">
 			<header className="narrative-workspace__story-brain-header">
@@ -118,7 +167,7 @@ export const StoryBrainPanel: React.FC = () => {
 					value={selectedFocus}
 					onChange={event => setSelectedFocus(event.target.value)}
 				>
-					<option value="">Выбери Story / Move / Claim</option>
+					<option value="">Выбери Story / Move / Claim / Character / Item</option>
 					<optgroup label="Story nodes">
 						{project.storyNodes.map(node => (
 							<option key={node.id} value={focusValue({kind: 'story-node', id: node.id})}>
@@ -140,6 +189,20 @@ export const StoryBrainPanel: React.FC = () => {
 							</option>
 						))}
 					</optgroup>
+					<optgroup label="Персонажи">
+						{project.characters.map(character => (
+							<option key={character.id} value={focusValue({kind: 'character', id: character.id})}>
+								{character.name}
+							</option>
+						))}
+					</optgroup>
+					<optgroup label="Предметы">
+						{project.itemInstances.map(item => (
+							<option key={item.id} value={focusValue({kind: 'item', id: item.id})}>
+								{project.itemDefinitions.find(definition => definition.id === item.definitionId)?.name ?? item.id}
+							</option>
+						))}
+					</optgroup>
 				</select>
 			</div>
 
@@ -152,15 +215,7 @@ export const StoryBrainPanel: React.FC = () => {
 				</p>
 				{projectDiagnostics.findings.length > 0 ? (
 					<ul className="narrative-workspace__story-brain-finding-list">
-						{projectDiagnostics.findings.slice(0, 12).map(finding => (
-							<li key={finding.id} data-severity={finding.severity}>
-								<span>{finding.severity === 'warning' ? '⚠' : '•'}</span>
-								<div>
-									<strong>{finding.summary}</strong>
-									<small>{finding.kind}</small>
-								</div>
-							</li>
-						))}
+						{projectDiagnostics.findings.slice(0, 12).map(renderFinding)}
 					</ul>
 				) : (
 					<small>Структурных и authored-reference диагностик по проекту не найдено.</small>
@@ -168,7 +223,7 @@ export const StoryBrainPanel: React.FC = () => {
 				<small>
 					Всего диагностик по проекту: {projectDiagnostics.findingCount}.
 					{projectDiagnostics.findingCount > 12
-						? ' Показаны первые 12; jump-to-source станет следующим A48-срезом.'
+						? ' Показаны первые 12.'
 						: ''}
 				</small>
 			</article>
@@ -270,15 +325,7 @@ export const StoryBrainPanel: React.FC = () => {
 						</p>
 						{result.coverage.findings.length > 0 ? (
 							<ul className="narrative-workspace__story-brain-finding-list">
-								{result.coverage.findings.slice(0, 8).map(finding => (
-									<li key={finding.id} data-severity={finding.severity}>
-										<span>{finding.severity === 'warning' ? '⚠' : '•'}</span>
-										<div>
-											<strong>{finding.summary}</strong>
-											<small>{finding.kind}</small>
-										</div>
-									</li>
-								))}
+								{result.coverage.findings.slice(0, 8).map(renderFinding)}
 							</ul>
 						) : (
 							<small>В выбранном контексте Coverage-проблем не найдено.</small>

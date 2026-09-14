@@ -188,8 +188,19 @@
 }
 
 .narrative-workspace__story-brain-finding-list li {
-	grid-template-columns: auto minmax(0, 1fr);
+	grid-template-columns: auto minmax(0, 1fr) auto;
 	align-items: start;
+}
+
+.narrative-workspace__story-brain-finding-list li > button {
+	align-self: center;
+	padding: 4px 7px;
+	border: 1px solid currentColor;
+	border-radius: 6px;
+	background: transparent;
+	color: inherit;
+	font-size: 11px;
+	cursor: pointer;
 }
 
 .narrative-workspace__story-brain-finding-list li > span {
