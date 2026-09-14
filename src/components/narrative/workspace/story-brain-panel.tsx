@@ -110,7 +110,23 @@ export const StoryBrainPanel: React.FC = () => {
 			return;
 		}
 		setSelectedFocus(focusValue(navigation.focus));
-		execute({type: 'editor/selectWorkspace', workspace: 'story'});
+		if (
+			navigation.workspace === 'world-time' &&
+			navigation.worldTimeCenterAbsoluteMinute !== undefined
+		) {
+			execute({
+				type: 'editor/setWorldTimeViewport',
+				centerAbsoluteMinute: navigation.worldTimeCenterAbsoluteMinute,
+				pixelsPerHour: Math.max(
+					12,
+					project.editor.worldTimeViewport?.pixelsPerHour ?? 12
+				)
+			});
+			execute({type: 'editor/selectWorkspace', workspace: 'world-time'});
+			return;
+		}
+
+		execute({type: 'editor/selectWorkspace', workspace: navigation.workspace});
 
 		const canvasEntityRef = navigation.canvasEntityRef;
 		if (!canvasEntityRef) {
@@ -210,16 +226,16 @@ export const StoryBrainPanel: React.FC = () => {
 			<article className="narrative-workspace__story-brain-project-diagnostics">
 				<h3>PROJECT DIAGNOSTICS</h3>
 				<p>
-					Полный read-only список структурных и authored-reference проблем проекта.
-					 Он не зависит от текущего Focus, поэтому глобальные ошибки не скрываются
-					 за одним локальным контекстом.
+					Полный read-only список структурных, authored-reference и schedule/time
+					 проблем проекта. Он не зависит от текущего Focus, поэтому глобальные
+					 ошибки не скрываются за одним локальным контекстом.
 				</p>
 				{projectDiagnostics.findings.length > 0 ? (
 					<ul className="narrative-workspace__story-brain-finding-list">
 						{projectDiagnostics.findings.slice(0, 12).map(renderFinding)}
 					</ul>
 				) : (
-					<small>Структурных и authored-reference диагностик по проекту не найдено.</small>
+					<small>Структурных, authored-reference и schedule/time диагностик по проекту не найдено.</small>
 				)}
 				<small>
 					Всего диагностик по проекту: {projectDiagnostics.findingCount}.
