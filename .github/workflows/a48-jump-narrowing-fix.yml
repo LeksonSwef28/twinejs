@@ -1,0 +1,37 @@
+name: A48 Jump Narrowing Fix
+
+on:
+  push:
+    branches:
+      - audit/a48-diagnostic-jump-source
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: audit/a48-diagnostic-jump-source
+      - name: Harden TypeScript narrowing
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/components/narrative/workspace/story-brain-panel.tsx')
+          text = path.read_text()
+          old = """\t\tif (!navigation.canvasEntityRef) {\n\t\t\treturn;\n\t\t}\n\t\tconst visual = project.editor.storyCanvas?.nodes.find(\n\t\t\tnode =>\n\t\t\t\tnode.entityRef?.type === navigation.canvasEntityRef?.type &&\n\t\t\t\tnode.entityRef.id === navigation.canvasEntityRef.id\n\t\t);\n"""
+          new = """\t\tconst canvasEntityRef = navigation.canvasEntityRef;\n\t\tif (!canvasEntityRef) {\n\t\t\treturn;\n\t\t}\n\t\tconst visual = project.editor.storyCanvas?.nodes.find(\n\t\t\tnode =>\n\t\t\t\tnode.entityRef?.type === canvasEntityRef.type &&\n\t\t\t\tnode.entityRef.id === canvasEntityRef.id\n\t\t);\n"""
+          if old not in text:
+              raise SystemExit('navigation narrowing fragment missing')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          rm .github/workflows/a48-jump-narrowing-fix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'fix(93-days): preserve diagnostic canvas reference narrowing'
+          git push origin HEAD:audit/a48-diagnostic-jump-source
