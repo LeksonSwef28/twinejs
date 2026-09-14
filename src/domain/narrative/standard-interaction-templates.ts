@@ -9,10 +9,10 @@ export const starterInteractionTemplates: InteractionTemplateDefinition[] = [
 		id: 'starter-share-claim',
 		name: 'Поделиться утверждением',
 		description:
-			'Один персонаж сообщает другому выбранный Claim. Подходит для слухов, новостей и обычной передачи информации.',
+			'Персонаж сообщает другому выбранный Claim, когда они находятся рядом; при успешном обычном исходе слушатель получает это знание.',
 		roles: [
-			{id: 'speaker', label: 'Говорящий'},
-			{id: 'listener', label: 'Слушатель'}
+			{id: 'speaker', label: 'Говорящий', kind: 'character'},
+			{id: 'listener', label: 'Слушатель', kind: 'character'}
 		],
 		claimSlots: [{id: 'claim', label: 'Claim', required: true}],
 		moves: [
@@ -23,9 +23,67 @@ export const starterInteractionTemplates: InteractionTemplateDefinition[] = [
 				actorRoleId: 'speaker',
 				targetRoleIds: ['listener'],
 				communicatedClaimSlotId: 'claim',
-				communicationIntent: 'honest'
+				communicationIntent: 'honest',
+				guards: [
+					{
+						id: 'share-location',
+						label: 'Говорящий и слушатель находятся рядом',
+						condition: {
+							type: 'roles-share-location',
+							roleIds: ['speaker', 'listener']
+						}
+					}
+				],
+				effects: [
+					{
+						id: 'listener-learns-claim',
+						type: 'role-learns-claim',
+						recipientRoleId: 'listener',
+						claimSlotId: 'claim',
+						attitude: 'believes',
+						confidence: 0.75,
+						source: {type: 'move-actor'}
+					}
+				]
 			}
 		],
-		tags: ['communication', 'knowledge']
+		tags: ['communication', 'knowledge', 'reusable']
+	},
+	{
+		id: 'starter-request-and-answer',
+		name: 'Просьба и ответ',
+		description:
+			'Двухшаговый EventTemplate-style паттерн: один персонаж просит, второй отвечает. После инстанцирования это два обычных Move.',
+		roles: [
+			{id: 'requester', label: 'Проситель', kind: 'character'},
+			{id: 'responder', label: 'Отвечающий', kind: 'character'}
+		],
+		claimSlots: [],
+		moves: [
+			{
+				id: 'request',
+				kind: 'ask',
+				label: 'Попросить о помощи',
+				actorRoleId: 'requester',
+				targetRoleIds: ['responder'],
+				guards: [
+					{
+						id: 'share-location',
+						condition: {
+							type: 'roles-share-location',
+							roleIds: ['requester', 'responder']
+						}
+					}
+				]
+			},
+			{
+				id: 'answer',
+				kind: 'inform',
+				label: 'Ответить на просьбу',
+				actorRoleId: 'responder',
+				targetRoleIds: ['requester']
+			}
+		],
+		tags: ['conversation', 'multi-step', 'reusable']
 	}
 ];
