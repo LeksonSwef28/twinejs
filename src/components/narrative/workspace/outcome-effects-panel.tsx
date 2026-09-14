@@ -1,20 +1,32 @@
 import * as React from 'react';
 import {NarrativeEffectDefinition} from '../../../domain/narrative/interaction';
+import {KnowledgeAttitude} from '../../../domain/narrative/knowledge';
 import {StoryNodeActivationState} from '../../../domain/narrative/story';
 import {useNarrativeProject} from '../../../store/narrative-project';
 
 type EffectMode =
+	| 'character-learns-claim'
 	| 'relationship-adjust'
 	| 'character-mood-set'
 	| 'item-set-placement'
 	| 'story-node-set-state'
 	| 'character-remembers';
 
+type KnowledgeRecipientMode = 'character' | 'move-target';
+type KnowledgeClaimMode = 'claim' | 'communicated-claim';
+type KnowledgeSourceMode = 'authored' | 'move-actor' | 'observed' | 'inferred';
 type ItemDestination = 'unplaced' | 'character' | 'location';
 type MemorySourceMode =
 	| 'current-move'
 	| 'owning-story-node'
 	| 'communicated-claim';
+
+const knowledgeAttitudeLabels: Record<KnowledgeAttitude, string> = {
+	knows: 'Знает / уверен',
+	believes: 'Верит',
+	doubts: 'Сомневается',
+	disbelieves: 'Не верит'
+};
 
 const storyStates: StoryNodeActivationState[] = [
 	'draft',
@@ -30,6 +42,18 @@ export const OutcomeEffectsPanel: React.FC = () => {
 	const [moveId, setMoveId] = React.useState('');
 	const [outcomeId, setOutcomeId] = React.useState('');
 	const [effectMode, setEffectMode] = React.useState<EffectMode>('relationship-adjust');
+	const [knowledgeRecipientMode, setKnowledgeRecipientMode] =
+		React.useState<KnowledgeRecipientMode>('character');
+	const [knowledgeCharacterId, setKnowledgeCharacterId] = React.useState('');
+	const [knowledgeTargetIndex, setKnowledgeTargetIndex] = React.useState(0);
+	const [knowledgeClaimMode, setKnowledgeClaimMode] =
+		React.useState<KnowledgeClaimMode>('claim');
+	const [knowledgeClaimId, setKnowledgeClaimId] = React.useState('');
+	const [knowledgeAttitude, setKnowledgeAttitude] =
+		React.useState<KnowledgeAttitude>('believes');
+	const [knowledgeConfidence, setKnowledgeConfidence] = React.useState(0.75);
+	const [knowledgeSource, setKnowledgeSource] =
+		React.useState<KnowledgeSourceMode>('authored');
 	const [fromCharacterId, setFromCharacterId] = React.useState('');
 	const [toCharacterId, setToCharacterId] = React.useState('');
 	const [relationshipAxis, setRelationshipAxis] = React.useState('trust');
@@ -61,6 +85,13 @@ export const OutcomeEffectsPanel: React.FC = () => {
 	React.useEffect(() => {
 		const selectedMove = project.narrativeMoves.find(candidate => candidate.id === moveId);
 		setOutcomeId(selectedMove?.outcomes[0]?.id ?? '');
+		setKnowledgeTargetIndex(0);
+		if (!selectedMove?.communicatedClaimId) {
+			setKnowledgeClaimMode('claim');
+		}
+		if (!selectedMove?.actorCharacterId) {
+			setKnowledgeSource('authored');
+		}
 		setMessage('');
 	}, [moveId, project.narrativeMoves]);
 
@@ -72,6 +103,36 @@ export const OutcomeEffectsPanel: React.FC = () => {
 
 		let effect: NarrativeEffectDefinition | undefined;
 		switch (effectMode) {
+			case 'character-learns-claim':
+				if (
+					(knowledgeRecipientMode === 'character' && !knowledgeCharacterId) ||
+					(knowledgeRecipientMode === 'move-target' &&
+						!move.targetCharacterIds[knowledgeTargetIndex]) ||
+					(knowledgeClaimMode === 'claim' && !knowledgeClaimId) ||
+					(knowledgeClaimMode === 'communicated-claim' && !move.communicatedClaimId) ||
+					(knowledgeSource === 'move-actor' && !move.actorCharacterId) ||
+					!Number.isFinite(knowledgeConfidence) ||
+					knowledgeConfidence < 0 ||
+					knowledgeConfidence > 1
+				) {
+					return;
+				}
+				effect = {
+					id: createId('knowledge-effect'),
+					type: 'character-learns-claim',
+					recipient:
+						knowledgeRecipientMode === 'character'
+							? {type: 'character', characterId: knowledgeCharacterId}
+							: {type: 'move-target', targetIndex: knowledgeTargetIndex},
+					claim:
+						knowledgeClaimMode === 'claim'
+							? {type: 'claim', claimId: knowledgeClaimId}
+							: {type: 'communicated-claim'},
+					attitude: knowledgeAttitude,
+					confidence: knowledgeConfidence,
+					source: {type: knowledgeSource}
+				};
+				break;
 			case 'relationship-adjust':
 				if (
 					!fromCharacterId ||
@@ -183,7 +244,7 @@ export const OutcomeEffectsPanel: React.FC = () => {
 		<section className="narrative-workspace__move-editor" aria-label="Outcome Effects">
 			<h2>Outcome Effects</h2>
 			<p>
-				Последствия типизированы отдельно от Outcome: отношение, настроение,
+				Последствия типизированы отдельно от Outcome: знания, отношения, настроение,
 				 предмет, Story state и память. Редактирование здесь не меняет текущий preview.
 			</p>
 			<form className="narrative-workspace__compact-form" onSubmit={addEffect}>
@@ -199,12 +260,126 @@ export const OutcomeEffectsPanel: React.FC = () => {
 					))}
 				</select>
 				<select aria-label="Тип Outcome effect" value={effectMode} onChange={event => setEffectMode(event.target.value as EffectMode)}>
+					<option value="character-learns-claim">Персонаж узнаёт / принимает Claim</option>
 					<option value="relationship-adjust">Изменить отношение</option>
 					<option value="character-mood-set">Изменить настроение</option>
 					<option value="item-set-placement">Переместить предмет</option>
 					<option value="story-node-set-state">Изменить Story state</option>
 					<option value="character-remembers">Создать / усилить воспоминание</option>
 				</select>
+
+
+				{effectMode === 'character-learns-claim' && (
+					<>
+						<select
+							aria-label="Получатель знания"
+							value={knowledgeRecipientMode}
+							onChange={event =>
+								setKnowledgeRecipientMode(event.target.value as KnowledgeRecipientMode)
+							}
+						>
+							<option value="character">Конкретный персонаж</option>
+							<option value="move-target">Цель текущего Move</option>
+						</select>
+						{knowledgeRecipientMode === 'character' ? (
+							<select
+								aria-label="Персонаж получает Claim"
+								value={knowledgeCharacterId}
+								onChange={event => setKnowledgeCharacterId(event.target.value)}
+							>
+								<option value="">Выбери персонажа</option>
+								{project.characters.map(character => (
+									<option key={character.id} value={character.id}>
+										{character.name}
+									</option>
+								))}
+							</select>
+						) : (
+							<select
+								aria-label="Цель Move получает Claim"
+								value={knowledgeTargetIndex}
+								onChange={event => setKnowledgeTargetIndex(Number(event.target.value))}
+							>
+								{move.targetCharacterIds.length === 0 ? (
+									<option value={0}>У Move нет целей</option>
+								) : (
+									move.targetCharacterIds.map((characterId, index) => (
+										<option key={`${characterId}:${index}`} value={index}>
+											Цель {index + 1}:{' '}
+											{project.characters.find(character => character.id === characterId)?.name ??
+												characterId}
+										</option>
+									))
+								)}
+							</select>
+						)}
+						<select
+							aria-label="Claim для knowledge effect"
+							value={knowledgeClaimMode}
+							onChange={event =>
+								setKnowledgeClaimMode(event.target.value as KnowledgeClaimMode)
+							}
+						>
+							<option value="claim">Конкретный Claim</option>
+							<option value="communicated-claim" disabled={!move.communicatedClaimId}>
+								Claim, который передаёт текущий Move
+							</option>
+						</select>
+						{knowledgeClaimMode === 'claim' && (
+							<select
+								aria-label="Конкретный Claim knowledge effect"
+								value={knowledgeClaimId}
+								onChange={event => setKnowledgeClaimId(event.target.value)}
+							>
+								<option value="">Выбери Claim</option>
+								{project.claims.map(claim => (
+									<option key={claim.id} value={claim.id}>
+										{claim.text}
+									</option>
+								))}
+							</select>
+						)}
+						<select
+							aria-label="Отношение к Claim"
+							value={knowledgeAttitude}
+							onChange={event =>
+								setKnowledgeAttitude(event.target.value as KnowledgeAttitude)
+							}
+						>
+							{Object.entries(knowledgeAttitudeLabels).map(([value, label]) => (
+								<option key={value} value={value}>
+									{label}
+								</option>
+							))}
+						</select>
+						<label>
+							Уверенность 0–1
+							<input
+								aria-label="Уверенность в Claim"
+								type="number"
+								min={0}
+								max={1}
+								step={0.05}
+								value={knowledgeConfidence}
+								onChange={event => setKnowledgeConfidence(Number(event.target.value))}
+							/>
+						</label>
+						<select
+							aria-label="Источник knowledge effect"
+							value={knowledgeSource}
+							onChange={event =>
+								setKnowledgeSource(event.target.value as KnowledgeSourceMode)
+							}
+						>
+							<option value="authored">Авторское знание / убеждение</option>
+							<option value="move-actor" disabled={!move.actorCharacterId}>
+								Актор текущего Move
+							</option>
+							<option value="observed">Наблюдение</option>
+							<option value="inferred">Вывод персонажа</option>
+						</select>
+					</>
+				)}
 
 				{effectMode === 'relationship-adjust' && (
 					<>
