@@ -15,6 +15,23 @@ jobs:
       - uses: actions/checkout@v6
         with:
           ref: audit/a47-knowledge-effect-closure
+      - name: Repair staged stale-copy matcher
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          path = Path('.github/scripts/a47_knowledge_effect_patch.py')
+          text = path.read_text()
+          marker = "replace_once(\n    'src/components/narrative/workspace/story-workspace.tsx',"
+          start = text.index(marker)
+          end = text.index("\n)\n\n", start) + 3
+          replacement = '''replace_once(
+              'src/components/narrative/workspace/story-workspace.tsx',
+              '<small>раздельные модели — следующий слой</small>',
+              '<small>Objective Facts · Claims · Initial Knowledge — в Project Library</small>'
+          )'''
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
       - name: Apply staged patch
         run: python .github/scripts/a47_knowledge_effect_patch.py
       - name: Commit product changes
@@ -22,6 +39,7 @@ jobs:
         run: |
           rm .github/scripts/a47_knowledge_effect_patch.py
           rm .github/workflows/a47-knowledge-effect-patch.yml
+          rm -f A47_KNOWLEDGE_PATCH_TRIGGER.md
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
