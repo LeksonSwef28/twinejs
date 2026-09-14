@@ -175,7 +175,7 @@ describe('A50 project search', () => {
 	test('searches all terms with kind filtering and useful title ranking', () => {
 		const project = projectFixture();
 
-		expect(searchNarrativeProject(project, {text: 'катя правда'})[0]).toEqual(
+		expect(searchNarrativeProject(project, {text: 'катя правду'})[0]).toEqual(
 			expect.objectContaining({kind: 'story-node', id: 'reveal'})
 		);
 		expect(
