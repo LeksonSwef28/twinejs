@@ -1,0 +1,64 @@
+name: Apply World Time indexing integration
+
+on:
+  push:
+    branches:
+      - audit/world-time-indexing
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/world-time-indexing
+      - name: Integrate location indexes
+        shell: bash
+        run: |
+          if grep -q "buildWorldTimeLocationIndexes" src/components/narrative/workspace/world-time-workspace.tsx; then
+            echo 'World Time indexes already integrated.'
+            exit 0
+          fi
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('src/components/narrative/workspace/world-time-workspace.tsx')
+          text = path.read_text()
+
+          old_import = "import {useNarrativeProject} from '../../../store/narrative-project';\n"
+          new_import = old_import + "import {buildWorldTimeLocationIndexes} from './world-time-indexes';\n"
+          assert text.count(old_import) == 1
+          text = text.replace(old_import, new_import, 1)
+
+          old_visible = """\tconst visibleStoryNodes = project.storyNodes.filter(node => {\n\t\tconst placement = node.placement;\n\t\tif (placement?.day === undefined || placement.minuteOfDay === undefined) {\n\t\t\treturn false;\n\t\t}\n\t\tconst minute = (placement.day - 1) * minutesPerDay + placement.minuteOfDay;\n\t\treturn minute >= worldRange.start && minute <= worldRange.end;\n\t});\n"""
+          new_visible = """\tconst visibleStoryNodes = React.useMemo(\n\t\t() =>\n\t\t\tproject.storyNodes.filter(node => {\n\t\t\t\tconst placement = node.placement;\n\t\t\t\tif (\n\t\t\t\t\tplacement?.day === undefined ||\n\t\t\t\t\tplacement.minuteOfDay === undefined\n\t\t\t\t) {\n\t\t\t\t\treturn false;\n\t\t\t\t}\n\t\t\t\tconst minute =\n\t\t\t\t\t(placement.day - 1) * minutesPerDay + placement.minuteOfDay;\n\t\t\t\treturn minute >= worldRange.start && minute <= worldRange.end;\n\t\t\t}),\n\t\t[project.storyNodes, worldRange.end, worldRange.start]\n\t);\n\tconst locationIndexes = React.useMemo(\n\t\t() =>\n\t\t\tbuildWorldTimeLocationIndexes(\n\t\t\t\tproject.routineRules,\n\t\t\t\tproject.characters,\n\t\t\t\tproject.simulation.actualLocationByCharacter,\n\t\t\t\tvisibleStoryNodes\n\t\t\t),\n\t\t[\n\t\t\tproject.routineRules,\n\t\t\tproject.characters,\n\t\t\tproject.simulation.actualLocationByCharacter,\n\t\t\tvisibleStoryNodes\n\t\t]\n\t);\n"""
+          assert text.count(old_visible) == 1
+          text = text.replace(old_visible, new_visible, 1)
+
+          old_loop = """\t\t\t\t\tfor (const rule of project.routineRules) {\n\t\t\t\t\t\tif (\n\t\t\t\t\t\t\trule.targetLocationId !== location.id ||\n\t\t\t\t\t\t\trule.absent\n\t\t\t\t\t\t) {\n\t\t\t\t\t\t\tcontinue;\n\t\t\t\t\t\t}\n"""
+          new_loop = """\t\t\t\t\tfor (\n\t\t\t\t\t\tconst rule of locationIndexes.routineRulesByLocation.get(\n\t\t\t\t\t\t\tlocation.id\n\t\t\t\t\t\t) ?? []\n\t\t\t\t\t) {\n"""
+          assert text.count(old_loop) == 1
+          text = text.replace(old_loop, new_loop, 1)
+
+          old_filters = """\t\t\t\t\tconst actualCharacters = project.characters.filter(\n\t\t\t\t\t\tcharacter =>\n\t\t\t\t\t\t\tproject.simulation.actualLocationByCharacter[character.id] ===\n\t\t\t\t\t\t\tlocation.id\n\t\t\t\t\t);\n\t\t\t\t\tconst locationStoryNodes = visibleStoryNodes.filter(\n\t\t\t\t\t\tnode => node.placement?.locationId === location.id\n\t\t\t\t\t);\n"""
+          new_filters = """\t\t\t\t\tconst actualCharacters =\n\t\t\t\t\t\tlocationIndexes.actualCharactersByLocation.get(location.id) ?? [];\n\t\t\t\t\tconst locationStoryNodes =\n\t\t\t\t\t\tlocationIndexes.storyNodesByLocation.get(location.id) ?? [];\n"""
+          assert text.count(old_filters) == 1
+          text = text.replace(old_filters, new_filters, 1)
+
+          path.write_text(text)
+          PY
+      - name: Commit integration
+        shell: bash
+        run: |
+          if git diff --quiet -- src/components/narrative/workspace/world-time-workspace.tsx; then
+            echo 'No integration diff to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/components/narrative/workspace/world-time-workspace.tsx
+          git commit -m 'perf(93-days): use location indexes in World Time [world-time-indexed]'
+          git push origin HEAD:audit/world-time-indexing
