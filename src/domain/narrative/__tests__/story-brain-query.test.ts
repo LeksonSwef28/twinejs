@@ -1,4 +1,7 @@
-import {queryStoryBrain} from '../../../application/narrative/story-brain-query';
+import {
+	queryStoryBrain,
+	queryStoryBrainProjectDiagnostics
+} from '../../../application/narrative/story-brain-query';
 import {createNarrativeProject} from '../project-factory';
 import {characterKnowledgeStateId} from '../knowledge';
 import {ninetyThreeDaysTemplate} from '../templates/93-days';
@@ -128,5 +131,39 @@ describe('Story Brain WHY query', () => {
 		expect(result.impact.hits.map(hit => `${hit.entity.kind}:${hit.entity.id}`)).toContain(
 			'move:say-code'
 		);
+	});
+
+	test('exposes project-wide diagnostics outside the current Focus', () => {
+		const base = projectWithGuardedMove(true);
+		const project = {
+			...base,
+			claims: [
+				...base.claims,
+				{
+					id: 'orphan-claim',
+					text: 'Ссылка на исчезнувший факт',
+					stance: 'unresolved' as const,
+					tags: [],
+					aboutFactId: 'missing-fact'
+				}
+			]
+		};
+		const focused = queryStoryBrain(project, {kind: 'story-node', id: 'door'});
+		const diagnostics = queryStoryBrainProjectDiagnostics(project);
+
+		expect(focused.coverage.findings.some(finding => finding.id.includes('orphan-claim'))).toBe(false);
+		expect(focused.projectDiagnostics.findings.some(finding => finding.id.includes('orphan-claim'))).toBe(true);
+		expect(diagnostics.findings).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					kind: 'broken-authored-reference',
+					ownerKind: 'claim',
+					ownerId: 'orphan-claim',
+					targetKind: 'objective-fact',
+					targetId: 'missing-fact'
+				})
+			])
+		);
+		expect(diagnostics.findingCount).toBe(diagnostics.findings.length);
 	});
 });

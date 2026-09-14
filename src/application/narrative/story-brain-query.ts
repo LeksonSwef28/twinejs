@@ -56,11 +56,17 @@ export interface StoryBrainCoverageResult {
 	findings: StoryBrainFinding[];
 }
 
+export interface StoryBrainProjectDiagnosticsResult {
+	findingCount: number;
+	findings: StoryBrainFinding[];
+}
+
 export interface StoryBrainQueryResult {
 	focus: StoryBrainFocusResult;
 	impact: StoryBrainImpactResult;
 	why: StoryBrainWhyResult;
 	coverage: StoryBrainCoverageResult;
+	projectDiagnostics: StoryBrainProjectDiagnosticsResult;
 	bridges: StoryBridgeFinderResult;
 	reactions: ReactionCandidateSetEvaluation[];
 }
@@ -263,6 +269,36 @@ function reactionsForFocus(project: NarrativeProject, storyNodeIds: string[]) {
 		.map(set => evaluateReactionCandidateSet(set, context));
 }
 
+function collectProjectDiagnostics(project: NarrativeProject) {
+	const storyCoverage = analyzeStoryCoverage(
+		project.storyNodes,
+		project.storyConnections,
+		project.narrativeMoves,
+		project.template.dayCount
+	);
+	const referenceValidation = validateNarrativeProjectReferences(project);
+	const findings: StoryBrainFinding[] = [
+		...storyCoverage.findings,
+		...referenceValidation.findings
+	];
+	return {storyCoverage, referenceValidation, findings};
+}
+
+/**
+ * Project-wide read-only diagnostics do not require a Story Brain Focus. This
+ * keeps broken references and structural coverage visible even when the author
+ * has no Story node / Move / Claim that can surface the problem contextually.
+ */
+export function queryStoryBrainProjectDiagnostics(
+	project: NarrativeProject
+): StoryBrainProjectDiagnosticsResult {
+	const diagnostics = collectProjectDiagnostics(project);
+	return {
+		findingCount: diagnostics.findings.length,
+		findings: diagnostics.findings
+	};
+}
+
 /**
  * Application-level Story Brain query. It composes the read-only authored graph
  * with the current preview/runtime state for WHY and reaction explanations.
@@ -293,13 +329,9 @@ export function queryStoryBrain(
 		};
 	});
 	const storyNodeIds = focusStoryNodeIds(project, focus, focusResult, related);
-	const projectCoverage = analyzeStoryCoverage(
-		project.storyNodes,
-		project.storyConnections,
-		project.narrativeMoves,
-		project.template.dayCount
-	);
-	const referenceValidation = validateNarrativeProjectReferences(project);
+	const projectDiagnostics = collectProjectDiagnostics(project);
+	const projectCoverage = projectDiagnostics.storyCoverage;
+	const referenceValidation = projectDiagnostics.referenceValidation;
 	const focusCoverage = coverageForFocus(
 		projectCoverage.findings,
 		storyNodeIds,
@@ -328,9 +360,12 @@ export function queryStoryBrain(
 		impact,
 		why: {moves},
 		coverage: {
-			projectFindingCount:
-				projectCoverage.findings.length + referenceValidation.findings.length,
+			projectFindingCount: projectDiagnostics.findings.length,
 			findings: [...focusCoverage, ...focusReferences]
+		},
+		projectDiagnostics: {
+			findingCount: projectDiagnostics.findings.length,
+			findings: projectDiagnostics.findings
 		},
 		bridges,
 		reactions: reactionsForFocus(project, storyNodeIds)

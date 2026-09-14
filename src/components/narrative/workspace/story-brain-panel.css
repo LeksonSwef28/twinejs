@@ -58,7 +58,8 @@
 	gap: 10px;
 }
 
-.narrative-workspace__story-brain-grid > article {
+.narrative-workspace__story-brain-grid > article,
+.narrative-workspace__story-brain-project-diagnostics {
 	min-width: 0;
 	padding: 12px;
 	border: 1px solid rgba(127, 127, 127, 0.18);
@@ -66,13 +67,19 @@
 	background: rgba(127, 127, 127, 0.035);
 }
 
-.narrative-workspace__story-brain-grid h3 {
+.narrative-workspace__story-brain-project-diagnostics {
+	margin-bottom: 10px;
+}
+
+.narrative-workspace__story-brain-grid h3,
+.narrative-workspace__story-brain-project-diagnostics h3 {
 	margin: 0 0 7px;
 	font-size: 12px;
 	letter-spacing: 0.1em;
 }
 
-.narrative-workspace__story-brain-grid article > p {
+.narrative-workspace__story-brain-grid article > p,
+.narrative-workspace__story-brain-project-diagnostics > p {
 	margin: 0 0 10px;
 	opacity: 0.68;
 	line-height: 1.45;
