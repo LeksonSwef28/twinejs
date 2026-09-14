@@ -112,13 +112,14 @@ export const StoryBrainPanel: React.FC = () => {
 		setSelectedFocus(focusValue(navigation.focus));
 		execute({type: 'editor/selectWorkspace', workspace: 'story'});
 
-		if (!navigation.canvasEntityRef) {
+		const canvasEntityRef = navigation.canvasEntityRef;
+		if (!canvasEntityRef) {
 			return;
 		}
 		const visual = project.editor.storyCanvas?.nodes.find(
 			node =>
-				node.entityRef?.type === navigation.canvasEntityRef?.type &&
-				node.entityRef.id === navigation.canvasEntityRef.id
+				node.entityRef?.type === canvasEntityRef.type &&
+				node.entityRef.id === canvasEntityRef.id
 		);
 		if (!visual) {
 			return;
