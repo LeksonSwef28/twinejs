@@ -279,14 +279,15 @@ function hydrateSimulation(
 	};
 }
 
-function looksLikeSchemaV2(value: unknown) {
+function looksLikeSchemaV2OrV3(value: unknown) {
 	if (!value || typeof value !== 'object') {
 		return false;
 	}
 
 	const candidate = value as Partial<NarrativeProject>;
 	return (
-		candidate.schemaVersion === narrativeProjectSchemaVersion &&
+		(candidate.schemaVersion === 2 ||
+			candidate.schemaVersion === narrativeProjectSchemaVersion) &&
 		typeof candidate.projectId === 'string' &&
 		typeof candidate.hostStoryId === 'string' &&
 		Array.isArray(candidate.locations) &&
@@ -385,17 +386,17 @@ function hydrateReactionCandidateSets(value: unknown): ReactionCandidateSetDefin
 }
 
 /**
- * Schema v2 intentionally grows during the Authoring MVP. Hydration supplies
- * newly introduced collections so a project saved by an earlier v2 patch does
- * not disappear just because a new authoring concept was added.
+ * Schema v2 was the mutable Authoring MVP format. v3 freezes that boundary.
+ * The same defensive hydrator accepts v2 or v3, then always returns the current
+ * schema so migrated v2 projects are immediately persisted into the v3 slot.
  */
-function hydrateSchemaV2(
+function hydrateSchemaV2OrV3(
 	value: unknown,
 	hostStoryId: string,
 	projectName: string,
 	template: NarrativeProjectTemplate
 ): NarrativeProject | undefined {
-	if (!looksLikeSchemaV2(value)) {
+	if (!looksLikeSchemaV2OrV3(value)) {
 		return undefined;
 	}
 
@@ -414,6 +415,7 @@ function hydrateSchemaV2(
 	return {
 		...fresh,
 		...saved,
+		schemaVersion: narrativeProjectSchemaVersion,
 		template,
 		itemDefinitions: Array.isArray(saved.itemDefinitions)
 			? saved.itemDefinitions
@@ -551,7 +553,29 @@ export function createLocalStorageNarrativeProjectRepository(
 	template: NarrativeProjectTemplate
 ): NarrativeProjectRepository {
 	const key = `twine:narrative-project:v${narrativeProjectSchemaVersion}:${hostStoryId}`;
+	const legacyV2Key = `twine:narrative-project:v2:${hostStoryId}`;
 	const legacyV1Key = `twine:narrative-project:v1:${hostStoryId}`;
+
+	function loadV2OrV3(raw: string | null) {
+		if (!raw) {
+			return undefined;
+		}
+		try {
+			const parsed: unknown = JSON.parse(raw);
+			const projected = isNarrativeProjectPersistenceEnvelope(parsed)
+				? composeNarrativeProjectPersistence(parsed)
+				: parsed;
+			const hydrated = hydrateSchemaV2OrV3(
+				projected,
+				hostStoryId,
+				projectName,
+				template
+			);
+			return hydrated ? {parsed, hydrated} : undefined;
+		} catch {
+			return undefined;
+		}
+	}
 
 	return {
 		load() {
@@ -559,32 +583,29 @@ export function createLocalStorageNarrativeProjectRepository(
 				return createNarrativeProject(hostStoryId, projectName, template);
 			}
 
-			try {
-				const saved = window.localStorage.getItem(key);
-				if (saved) {
-					const parsed: unknown = JSON.parse(saved);
-					const projected = isNarrativeProjectPersistenceEnvelope(parsed)
-						? composeNarrativeProjectPersistence(parsed)
-						: parsed;
-					const hydrated = hydrateSchemaV2(
-						projected,
-						hostStoryId,
-						projectName,
-						template
+			const current = loadV2OrV3(window.localStorage.getItem(key));
+			if (current) {
+				if (!isNarrativeProjectPersistenceEnvelope(current.parsed)) {
+					window.localStorage.setItem(
+						key,
+						JSON.stringify(projectNarrativePersistence(current.hydrated))
 					);
-					if (hydrated) {
-						if (!isNarrativeProjectPersistenceEnvelope(parsed)) {
-							window.localStorage.setItem(
-								key,
-								JSON.stringify(projectNarrativePersistence(hydrated))
-							);
-						}
-						return hydrated;
-					}
 				}
+				return current.hydrated;
+			}
 
-				const legacySaved = window.localStorage.getItem(legacyV1Key);
-				if (legacySaved) {
+			const legacyV2 = loadV2OrV3(window.localStorage.getItem(legacyV2Key));
+			if (legacyV2) {
+				window.localStorage.setItem(
+					key,
+					JSON.stringify(projectNarrativePersistence(legacyV2.hydrated))
+				);
+				return legacyV2.hydrated;
+			}
+
+			const legacySaved = window.localStorage.getItem(legacyV1Key);
+			if (legacySaved) {
+				try {
 					const migrated = migrateSchemaV1(
 						JSON.parse(legacySaved),
 						hostStoryId,
@@ -598,9 +619,9 @@ export function createLocalStorageNarrativeProjectRepository(
 						);
 						return migrated;
 					}
+				} catch {
+					// Keep walking toward a fresh project; recoverable wrapper preserves raw data.
 				}
-			} catch {
-				// A damaged or unavailable localStorage payload must not block Story Edit.
 			}
 
 			return createNarrativeProject(hostStoryId, projectName, template);

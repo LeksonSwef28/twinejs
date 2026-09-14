@@ -23,7 +23,7 @@ import {
 } from './story';
 import {NarrativeProjectTemplate} from './template';
 
-export const narrativeProjectSchemaVersion = 2;
+export const narrativeProjectSchemaVersion = 3;
 
 export type {NarrativeWorkspaceMode} from './editor';
 
