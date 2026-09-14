@@ -153,7 +153,7 @@ describe('<PreviewLaboratoryPanel>', () => {
 	});
 
 	it('edits explicit sandbox inputs without dispatching authoring or live-runtime commands', () => {
-		const {container} = render(<PreviewLaboratoryPanel />);
+		render(<PreviewLaboratoryPanel />);
 
 		expect(screen.getByText('Изолированные авторские сценарии')).toBeInTheDocument();
 		expect(screen.getByText(/не создаёт authoring Undo\/Redo entries/)).toBeInTheDocument();
