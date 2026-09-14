@@ -68,7 +68,8 @@ describe('Story Brain schedule diagnostics', () => {
 		expect(focused.projectDiagnostics.findings).toContainEqual(finding);
 		expect(finding && storyBrainNavigationForFinding(project, finding)).toEqual({
 			focus: {kind: 'character', id: 'hero'},
-			canvasEntityRef: {type: 'character', id: 'hero'}
+			workspace: 'world-time',
+			worldTimeCenterAbsoluteMinute: 630
 		});
 	});
 });
