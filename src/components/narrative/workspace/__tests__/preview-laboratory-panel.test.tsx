@@ -233,7 +233,7 @@ describe('<PreviewLaboratoryPanel>', () => {
 		fireEvent.change(screen.getByLabelText('Skill value'), {target: {value: '4'}});
 		fireEvent.change(screen.getByLabelText('Roll total'), {target: {value: '2'}});
 		fireEvent.click(screen.getByRole('button', {name: 'Trace only'}));
-		expect(screen.getByText(/skill-check/)).toBeInTheDocument();
+		expect(screen.getByText(/"outcomeId": "skill-accepted"/)).toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole('button', {name: 'Reset'}));
 		fireEvent.click(screen.getByRole('button', {name: 'Set from live runtime'}));
