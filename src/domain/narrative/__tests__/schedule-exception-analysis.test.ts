@@ -7,7 +7,7 @@ const template: NarrativeProjectTemplate = {
 	displayName: 'Schedule exception analysis',
 	dayCount: 2,
 	day1Weekday: 'monday',
-	periods: [],
+	periods: [{id: 'day', label: 'День', startMinute: 480, endMinute: 1200}],
 	presenceTransition: {
 		defaultTransitionWindowMinutes: 15,
 		allowFinishCurrentInteraction: true,
