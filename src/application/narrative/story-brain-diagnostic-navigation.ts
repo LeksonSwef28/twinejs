@@ -1,6 +1,9 @@
+import {minutesPerDay} from '../../domain/narrative/calendar';
 import {CanvasEntityReference} from '../../domain/narrative/editor';
 import {NarrativeProject, NarrativeWorkspaceMode} from '../../domain/narrative/project';
+import {RoutineRule, ScheduleException} from '../../domain/narrative/schedule';
 import {StoryBrainEntityRef} from '../../domain/narrative/story-brain';
+import {routineWindowForDay} from '../../domain/narrative/world-time';
 import {StoryBrainFinding} from './story-brain-query';
 
 export interface StoryBrainDiagnosticNavigation {
@@ -59,31 +62,87 @@ function navigationForFocus(
 	};
 }
 
+function worldTimeFocus(
+	project: NarrativeProject,
+	focus: StoryBrainEntityRef,
+	centerAbsoluteMinute: number
+): StoryBrainDiagnosticNavigation | undefined {
+	if (!focusExists(project, focus)) {
+		return undefined;
+	}
+	return {
+		focus,
+		workspace: 'world-time',
+		worldTimeCenterAbsoluteMinute: centerAbsoluteMinute
+	};
+}
+
+function firstRoutineCenter(project: NarrativeProject, rule: RoutineRule) {
+	const lastDay = Math.min(rule.activeRange.toDay ?? project.template.dayCount, project.template.dayCount);
+	for (let day = Math.max(1, rule.activeRange.fromDay); day <= lastDay; day += 1) {
+		const window = routineWindowForDay(
+			rule,
+			day,
+			project.template.periods,
+			project.template.day1Weekday
+		);
+		if (window) {
+			return Math.floor((window.start + window.end) / 2);
+		}
+	}
+	return (Math.max(1, rule.activeRange.fromDay) - 1) * minutesPerDay;
+}
+
+function firstExceptionCenter(project: NarrativeProject, exception: ScheduleException) {
+	const day = Math.max(1, Math.min(project.template.dayCount, exception.activeRange.fromDay));
+	const dayStart = (day - 1) * minutesPerDay;
+	const window = exception.timeWindow;
+	if (window?.type === 'exact') {
+		const endOffset = window.endDayOffset ?? (window.endMinute < window.startMinute ? 1 : 0);
+		return Math.floor(
+			(dayStart + window.startMinute + dayStart + endOffset * minutesPerDay + window.endMinute) /
+				2
+		);
+	}
+	const periodId = window?.type === 'period' ? window.periodId : exception.periodId;
+	const period = project.template.periods.find(candidate => candidate.id === periodId);
+	if (!period) {
+		return dayStart;
+	}
+	const endOffset = period.endMinute <= period.startMinute ? 1 : 0;
+	return Math.floor(
+		(dayStart + period.startMinute + dayStart + endOffset * minutesPerDay + period.endMinute) /
+			2
+	);
+}
+
 /**
- * Maps a read-only diagnostic to an existing authoring source. Schedule
- * overlaps are time-specific, so they jump to WORLD/TIME at the overlap
- * midpoint while keeping the affected Character as Story Brain Focus. This is
- * editor navigation only and never changes the Simulation Playhead.
+ * Maps a read-only diagnostic to an existing authoring source. Time-specific
+ * findings jump to WORLD/TIME; Story semantics stay in STORY. Navigation changes
+ * only the editor View Cursor and never advances the Simulation Playhead.
  */
 export function storyBrainNavigationForFinding(
 	project: NarrativeProject,
 	finding: StoryBrainFinding
 ): StoryBrainDiagnosticNavigation | undefined {
 	if (finding.kind === 'routine-overlap') {
-		const focus: StoryBrainEntityRef = {
-			kind: 'character',
-			id: finding.characterId
-		};
-		if (!focusExists(project, focus)) {
-			return undefined;
-		}
-		return {
-			focus,
-			workspace: 'world-time',
-			worldTimeCenterAbsoluteMinute: Math.floor(
-				(finding.overlap.start + finding.overlap.end) / 2
-			)
-		};
+		return worldTimeFocus(
+			project,
+			{kind: 'character', id: finding.characterId},
+			Math.floor((finding.overlap.start + finding.overlap.end) / 2)
+		);
+	}
+
+	if (
+		finding.kind === 'story-schedule-location-conflict' ||
+		finding.kind === 'story-participant-schedule-gap'
+	) {
+		const focus: StoryBrainEntityRef = finding.storyNodeId
+			? {kind: 'story-node', id: finding.storyNodeId}
+			: {kind: 'character', id: finding.characterId ?? ''};
+		return finding.centerAbsoluteMinute === undefined
+			? undefined
+			: worldTimeFocus(project, focus, finding.centerAbsoluteMinute);
 	}
 
 	if (finding.kind !== 'broken-authored-reference') {
@@ -96,7 +155,7 @@ export function storyBrainNavigationForFinding(
 				id: finding.storyNodeId
 			});
 		}
-		if (finding.characterId) {
+		if ('characterId' in finding && finding.characterId) {
 			return navigationForFocus(project, {
 				kind: 'character',
 				id: finding.characterId
@@ -116,6 +175,28 @@ export function storyBrainNavigationForFinding(
 			return navigationForFocus(project, {kind: 'character', id: finding.ownerId});
 		case 'item-instance':
 			return navigationForFocus(project, {kind: 'item', id: finding.ownerId});
+		case 'routine-rule': {
+			const rule = project.routineRules.find(candidate => candidate.id === finding.ownerId);
+			return rule
+				? worldTimeFocus(
+						project,
+						{kind: 'character', id: rule.characterId},
+						firstRoutineCenter(project, rule)
+					)
+				: undefined;
+		}
+		case 'schedule-exception': {
+			const exception = project.scheduleExceptions.find(
+				candidate => candidate.id === finding.ownerId
+			);
+			return exception
+				? worldTimeFocus(
+						project,
+						{kind: 'character', id: exception.characterId},
+						firstExceptionCenter(project, exception)
+					)
+				: undefined;
+		}
 		default:
 			return undefined;
 	}
