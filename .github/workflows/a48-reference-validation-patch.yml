@@ -1,0 +1,61 @@
+name: Apply A48 reference validation patch
+
+on:
+  push:
+    branches:
+      - audit/a48-reference-validation
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: audit/a48-reference-validation
+      - name: Add Character default profile validation
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('src/domain/narrative/project-reference-validation.ts')
+          text = path.read_text()
+          text = text.replace(
+              "export type NarrativeReferenceOwnerKind =\n\t| 'scene'\n",
+              "export type NarrativeReferenceOwnerKind =\n\t| 'character'\n\t| 'scene'\n",
+              1,
+          )
+          marker = "\n\tfor (const scene of project.scenes) {\n"
+          block = """
+\n\tfor (const character of project.characters) {
+\t\taddMissingReference(
+\t\t\tfindings,
+\t\t\tsets.behaviorProfiles,
+\t\t\t'behavior-profile',
+\t\t\tcharacter.defaultBehaviorProfileId,
+\t\t\t{
+\t\t\t\townerKind: 'character',
+\t\t\t\townerId: character.id,
+\t\t\t\tcharacterId: character.id
+\t\t\t},
+\t\t\t`Character «${character.name}»: default behavior profile`
+\t\t);
+\t}
+"""
+          if "Character «${character.name}»: default behavior profile" not in text:
+              assert marker in text
+              text = text.replace(marker, block + marker, 1)
+          path.write_text(text)
+          PY
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/domain/narrative/project-reference-validation.ts
+          git commit -m 'feat(93-days): validate character default behavior profiles'
+          git push origin HEAD:audit/a48-reference-validation
