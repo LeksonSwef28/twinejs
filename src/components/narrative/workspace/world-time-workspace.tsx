@@ -10,6 +10,7 @@ import {
 	visibleAbsoluteMinuteRange
 } from '../../../domain/narrative/world-time';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {buildWorldTimeLocationIndexes} from './world-time-indexes';
 
 interface WorldPanState {
 	startClientX: number;
@@ -46,7 +47,8 @@ export const WorldTimeWorkspace: React.FC = () => {
 		project.simulation.day === project.editor.selectedDay &&
 		project.simulation.minuteOfDay === selectedMinuteOfDay;
 	const charactersById = React.useMemo(
-		() => new Map(project.characters.map(character => [character.id, character])),
+		() =>
+			new Map(project.characters.map(character => [character.id, character])),
 		[project.characters]
 	);
 	const locationsById = React.useMemo(
@@ -82,8 +84,7 @@ export const WorldTimeWorkspace: React.FC = () => {
 				worldPanState!.pixelsPerHour;
 			execute({
 				type: 'editor/setWorldTimeViewport',
-				centerAbsoluteMinute:
-					worldPanState!.originCenterMinute + deltaMinutes,
+				centerAbsoluteMinute: worldPanState!.originCenterMinute + deltaMinutes,
 				pixelsPerHour: worldPanState!.pixelsPerHour,
 				viewportWidth: worldViewportSize.width,
 				viewportHeight: worldViewportSize.height
@@ -261,14 +262,37 @@ export const WorldTimeWorkspace: React.FC = () => {
 	const cursorVisible =
 		worldTimeViewport.centerAbsoluteMinute >= worldRange.start &&
 		worldTimeViewport.centerAbsoluteMinute <= worldRange.end;
-	const visibleStoryNodes = project.storyNodes.filter(node => {
-		const placement = node.placement;
-		if (placement?.day === undefined || placement.minuteOfDay === undefined) {
-			return false;
-		}
-		const minute = (placement.day - 1) * minutesPerDay + placement.minuteOfDay;
-		return minute >= worldRange.start && minute <= worldRange.end;
-	});
+	const visibleStoryNodes = React.useMemo(
+		() =>
+			project.storyNodes.filter(node => {
+				const placement = node.placement;
+				if (
+					placement?.day === undefined ||
+					placement.minuteOfDay === undefined
+				) {
+					return false;
+				}
+				const minute =
+					(placement.day - 1) * minutesPerDay + placement.minuteOfDay;
+				return minute >= worldRange.start && minute <= worldRange.end;
+			}),
+		[project.storyNodes, worldRange.end, worldRange.start]
+	);
+	const locationIndexes = React.useMemo(
+		() =>
+			buildWorldTimeLocationIndexes(
+				project.routineRules,
+				project.characters,
+				project.simulation.actualLocationByCharacter,
+				visibleStoryNodes
+			),
+		[
+			project.routineRules,
+			project.characters,
+			project.simulation.actualLocationByCharacter,
+			visibleStoryNodes
+		]
+	);
 
 	return (
 		<section className="narrative-workspace__world-time">
@@ -277,8 +301,8 @@ export const WorldTimeWorkspace: React.FC = () => {
 					<p className="narrative-workspace__eyebrow">World / Time</p>
 					<h2>93 дня как единая карта</h2>
 					<p>
-						Издалека виден весь период. Колесо раскрывает дни, часы и
-						 минуты; drag двигает временную карту без запуска симуляции.
+						Издалека виден весь период. Колесо раскрывает дни, часы и минуты;
+						drag двигает временную карту без запуска симуляции.
 					</p>
 				</div>
 				<div className="narrative-workspace__world-controls">
@@ -332,7 +356,11 @@ export const WorldTimeWorkspace: React.FC = () => {
 					<div className="narrative-workspace__library-row">
 						<span>Сюжет на времени</span>
 						<small>
-							{project.storyNodes.filter(node => node.placement?.day !== undefined).length}
+							{
+								project.storyNodes.filter(
+									node => node.placement?.day !== undefined
+								).length
+							}
 						</small>
 					</div>
 				</aside>
@@ -363,7 +391,9 @@ export const WorldTimeWorkspace: React.FC = () => {
 
 					<div
 						ref={worldViewportRef}
-						className={`narrative-workspace__timeline-viewport${worldPanState ? ' is-panning' : ''}`}
+						className={`narrative-workspace__timeline-viewport${
+							worldPanState ? ' is-panning' : ''
+						}`}
 						onWheel={handleWorldWheel}
 						onMouseDown={handleWorldPanStart}
 					>
@@ -399,7 +429,9 @@ export const WorldTimeWorkspace: React.FC = () => {
 
 						<div className="narrative-workspace__timeline-body">
 							<div className="narrative-workspace__timeline-row narrative-workspace__timeline-row--story">
-								<div className="narrative-workspace__timeline-row-label">Сюжет</div>
+								<div className="narrative-workspace__timeline-row-label">
+									Сюжет
+								</div>
 								<div className="narrative-workspace__timeline-track">
 									{visibleStoryNodes.map(node => {
 										const placement = node.placement!;
@@ -412,7 +444,14 @@ export const WorldTimeWorkspace: React.FC = () => {
 												type="button"
 												className={`narrative-workspace__story-marker is-${node.activationState}`}
 												style={{left: worldX(storyMinute)}}
-												title={`${node.title}${placement.locationId ? ` · ${locationsById.get(placement.locationId)?.name ?? 'Локация'}` : ''}`}
+												title={`${node.title}${
+													placement.locationId
+														? ` · ${
+																locationsById.get(placement.locationId)?.name ??
+																'Локация'
+														  }`
+														: ''
+												}`}
 												onClick={() => openStoryNode(node.id)}
 											>
 												<span>{node.title}</span>
@@ -425,18 +464,14 @@ export const WorldTimeWorkspace: React.FC = () => {
 							{project.locations.length === 0 ? (
 								<div className="narrative-workspace__timeline-empty">
 									Создай локацию в Project Library. Здесь появятся её временная
-									 линия, расписания и фактическое присутствие.
+									линия, расписания и фактическое присутствие.
 								</div>
 							) : (
 								project.locations.map(location => {
 									const scheduleBlocks: React.ReactNode[] = [];
-									for (const rule of project.routineRules) {
-										if (
-											rule.targetLocationId !== location.id ||
-											rule.absent
-										) {
-											continue;
-										}
+									for (const rule of locationIndexes.routineRulesByLocation.get(
+										location.id
+									) ?? []) {
 										for (
 											let day = Math.max(1, firstVisibleDay - 1);
 											day <= lastVisibleDay;
@@ -472,7 +507,11 @@ export const WorldTimeWorkspace: React.FC = () => {
 															worldX(visibleEnd) - worldX(visibleStart)
 														)
 													}}
-													title={`${character?.name ?? 'Персонаж'} · ${absoluteMinuteLabel(window.start)} → ${absoluteMinuteLabel(window.end)}`}
+													title={`${
+														character?.name ?? 'Персонаж'
+													} · ${absoluteMinuteLabel(
+														window.start
+													)} → ${absoluteMinuteLabel(window.end)}`}
 												>
 													{worldTimeViewport.pixelsPerHour >= 8 && (
 														<span>{character?.name ?? 'Персонаж'}</span>
@@ -481,14 +520,12 @@ export const WorldTimeWorkspace: React.FC = () => {
 											);
 										}
 									}
-									const actualCharacters = project.characters.filter(
-										character =>
-											project.simulation.actualLocationByCharacter[character.id] ===
+									const actualCharacters =
+										locationIndexes.actualCharactersByLocation.get(
 											location.id
-									);
-									const locationStoryNodes = visibleStoryNodes.filter(
-										node => node.placement?.locationId === location.id
-									);
+										) ?? [];
+									const locationStoryNodes =
+										locationIndexes.storyNodesByLocation.get(location.id) ?? [];
 									return (
 										<div
 											key={location.id}
@@ -504,20 +541,23 @@ export const WorldTimeWorkspace: React.FC = () => {
 														const segments =
 															period.endMinute > period.startMinute
 																? [
-																	[
-																		dayStart + period.startMinute,
-																		dayStart + period.endMinute
-																	]
+																		[
+																			dayStart + period.startMinute,
+																			dayStart + period.endMinute
+																		]
 																  ]
 																: [
-																	[dayStart, dayStart + period.endMinute],
-																	[
-																		dayStart + period.startMinute,
-																		dayStart + minutesPerDay
-																	]
+																		[dayStart, dayStart + period.endMinute],
+																		[
+																			dayStart + period.startMinute,
+																			dayStart + minutesPerDay
+																		]
 																  ];
 														return segments.map((segment, segmentIndex) => {
-															const start = Math.max(segment[0], worldRange.start);
+															const start = Math.max(
+																segment[0],
+																worldRange.start
+															);
 															const end = Math.min(segment[1], worldRange.end);
 															if (end <= start) {
 																return null;
@@ -528,7 +568,10 @@ export const WorldTimeWorkspace: React.FC = () => {
 																	className={`narrative-workspace__period-band is-${period.id}`}
 																	style={{
 																		left: worldX(start),
-																		width: Math.max(1, worldX(end) - worldX(start))
+																		width: Math.max(
+																			1,
+																			worldX(end) - worldX(start)
+																		)
 																	}}
 																/>
 															);
@@ -597,8 +640,8 @@ export const WorldTimeWorkspace: React.FC = () => {
 						</strong>
 						<span>
 							Полосы — authored schedule. Маркеры сюжета связаны с Story.
-							 Маркеры на playhead — фактическое присутствие. Масштабирование
-							 само по себе мир не меняет.
+							Маркеры на playhead — фактическое присутствие. Масштабирование
+							само по себе мир не меняет.
 						</span>
 					</div>
 				</div>
