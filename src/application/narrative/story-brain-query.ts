@@ -17,6 +17,10 @@ import {
 	ReactionEvaluationContext
 } from '../../domain/narrative/reaction';
 import {
+	analyzeNarrativeScheduleConflicts,
+	NarrativeScheduleConflictFinding
+} from '../../domain/narrative/schedule-analysis';
+import {
 	buildStoryBrainIndex,
 	queryStoryBrainFocus,
 	queryStoryBrainImpact,
@@ -49,7 +53,10 @@ export interface StoryBrainWhyResult {
 	moves: StoryBrainWhyMoveResult[];
 }
 
-export type StoryBrainFinding = StoryCoverageFinding | NarrativeReferenceFinding;
+export type StoryBrainFinding =
+	| StoryCoverageFinding
+	| NarrativeReferenceFinding
+	| NarrativeScheduleConflictFinding;
 
 export interface StoryBrainCoverageResult {
 	projectFindingCount: number;
@@ -187,6 +194,43 @@ function focusStoryNodeIds(
 	return [...ids].filter(id => project.storyNodes.some(node => node.id === id));
 }
 
+function focusCharacterIds(
+	project: NarrativeProject,
+	focus: StoryBrainEntityRef,
+	focusResult: StoryBrainFocusResult,
+	storyNodeIds: string[],
+	moves: NarrativeMoveDefinition[]
+) {
+	const ids = new Set<string>();
+	if (focus.kind === 'character') {
+		ids.add(focus.id);
+	}
+	for (const entity of focusResult.entities) {
+		if (entity.kind === 'character') {
+			ids.add(entity.id);
+		}
+	}
+	const nodeIds = new Set(storyNodeIds);
+	for (const node of project.storyNodes) {
+		if (!nodeIds.has(node.id)) {
+			continue;
+		}
+		if (node.primaryCharacterId) {
+			ids.add(node.primaryCharacterId);
+		}
+		for (const participantId of node.participantIds) {
+			ids.add(participantId);
+		}
+	}
+	for (const move of moves) {
+		ids.add(move.actorCharacterId);
+		for (const targetId of move.targetCharacterIds) {
+			ids.add(targetId);
+		}
+	}
+	return ids;
+}
+
 function coverageForFocus(
 	findings: StoryCoverageFinding[],
 	storyNodeIds: string[],
@@ -266,8 +310,8 @@ function reactionsForFocus(project: NarrativeProject, storyNodeIds: string[]) {
 /**
  * Application-level Story Brain query. It composes the read-only authored graph
  * with the current preview/runtime state for WHY and reaction explanations.
- * Coverage, authored-reference validation, Bridge Finder and reaction ranking
- * remain derived/read-only; authoring changes still require an explicit command.
+ * Coverage, authored-reference/schedule validation, Bridge Finder and reaction
+ * ranking remain derived/read-only; authoring changes still require a command.
  */
 export function queryStoryBrain(
 	project: NarrativeProject,
@@ -293,6 +337,13 @@ export function queryStoryBrain(
 		};
 	});
 	const storyNodeIds = focusStoryNodeIds(project, focus, focusResult, related);
+	const characterIds = focusCharacterIds(
+		project,
+		focus,
+		focusResult,
+		storyNodeIds,
+		related
+	);
 	const projectCoverage = analyzeStoryCoverage(
 		project.storyNodes,
 		project.storyConnections,
@@ -300,6 +351,7 @@ export function queryStoryBrain(
 		project.template.dayCount
 	);
 	const referenceValidation = validateNarrativeProjectReferences(project);
+	const scheduleAnalysis = analyzeNarrativeScheduleConflicts(project);
 	const focusCoverage = coverageForFocus(
 		projectCoverage.findings,
 		storyNodeIds,
@@ -311,6 +363,9 @@ export function queryStoryBrain(
 		storyNodeIds,
 		related,
 		focus
+	);
+	const focusScheduleConflicts = scheduleAnalysis.findings.filter(finding =>
+		characterIds.has(finding.characterId)
 	);
 	const bridges = findStoryBridgeCandidates(
 		{
@@ -329,8 +384,10 @@ export function queryStoryBrain(
 		why: {moves},
 		coverage: {
 			projectFindingCount:
-				projectCoverage.findings.length + referenceValidation.findings.length,
-			findings: [...focusCoverage, ...focusReferences]
+				projectCoverage.findings.length +
+				referenceValidation.findings.length +
+				scheduleAnalysis.findings.length,
+			findings: [...focusCoverage, ...focusReferences, ...focusScheduleConflicts]
 		},
 		bridges,
 		reactions: reactionsForFocus(project, storyNodeIds)
