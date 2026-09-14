@@ -78,7 +78,10 @@ function worldTimeFocus(
 }
 
 function firstRoutineCenter(project: NarrativeProject, rule: RoutineRule) {
-	const lastDay = Math.min(rule.activeRange.toDay ?? project.template.dayCount, project.template.dayCount);
+	const lastDay = Math.min(
+		rule.activeRange.toDay ?? project.template.dayCount,
+		project.template.dayCount
+	);
 	for (let day = Math.max(1, rule.activeRange.fromDay); day <= lastDay; day += 1) {
 		const window = routineWindowForDay(
 			rule,
@@ -94,13 +97,21 @@ function firstRoutineCenter(project: NarrativeProject, rule: RoutineRule) {
 }
 
 function firstExceptionCenter(project: NarrativeProject, exception: ScheduleException) {
-	const day = Math.max(1, Math.min(project.template.dayCount, exception.activeRange.fromDay));
+	const day = Math.max(
+		1,
+		Math.min(project.template.dayCount, exception.activeRange.fromDay)
+	);
 	const dayStart = (day - 1) * minutesPerDay;
 	const window = exception.timeWindow;
 	if (window?.type === 'exact') {
-		const endOffset = window.endDayOffset ?? (window.endMinute < window.startMinute ? 1 : 0);
+		const endOffset =
+			window.endDayOffset ?? (window.endMinute < window.startMinute ? 1 : 0);
 		return Math.floor(
-			(dayStart + window.startMinute + dayStart + endOffset * minutesPerDay + window.endMinute) /
+			(dayStart +
+				window.startMinute +
+				dayStart +
+				endOffset * minutesPerDay +
+				window.endMinute) /
 				2
 		);
 	}
@@ -111,7 +122,11 @@ function firstExceptionCenter(project: NarrativeProject, exception: ScheduleExce
 	}
 	const endOffset = period.endMinute <= period.startMinute ? 1 : 0;
 	return Math.floor(
-		(dayStart + period.startMinute + dayStart + endOffset * minutesPerDay + period.endMinute) /
+		(dayStart +
+			period.startMinute +
+			dayStart +
+			endOffset * minutesPerDay +
+			period.endMinute) /
 			2
 	);
 }
@@ -125,7 +140,10 @@ export function storyBrainNavigationForFinding(
 	project: NarrativeProject,
 	finding: StoryBrainFinding
 ): StoryBrainDiagnosticNavigation | undefined {
-	if (finding.kind === 'routine-overlap') {
+	if (
+		finding.kind === 'routine-overlap' ||
+		finding.kind === 'schedule-exception-ambiguity'
+	) {
 		return worldTimeFocus(
 			project,
 			{kind: 'character', id: finding.characterId},
