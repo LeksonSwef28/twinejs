@@ -1,4 +1,9 @@
 import {
+	BulkStoryAuthoringCommand,
+	applyBulkStoryAuthoringCommand,
+	isBulkStoryAuthoringCommand
+} from './bulk-authoring';
+import {
 	CanonicalEntityAuthoringCommand,
 	applyCanonicalEntityAuthoringCommand,
 	isCanonicalEntityAuthoringCommand
@@ -11,12 +16,27 @@ import {
 
 export type EditorAuthoringCommand =
 	| NarrativeAuthoringCommand
-	| CanonicalEntityAuthoringCommand;
+	| CanonicalEntityAuthoringCommand
+	| BulkStoryAuthoringCommand;
 
 export type EditorAuthoringAction =
 	| {type: 'execute'; command: EditorAuthoringCommand}
 	| {type: 'undo'}
 	| {type: 'redo'};
+
+function commitAuthoringProject(
+	state: NarrativeProjectHistoryState,
+	present: NarrativeProjectHistoryState['present']
+) {
+	if (present === state.present) {
+		return state;
+	}
+	return {
+		past: [...state.past, state.present],
+		present,
+		future: []
+	};
+}
 
 export function editorAuthoringReducer(
 	state: NarrativeProjectHistoryState,
@@ -25,22 +45,20 @@ export function editorAuthoringReducer(
 	if (action.type === 'undo' || action.type === 'redo') {
 		return narrativeProjectAuthoringReducer(state, action);
 	}
+	if (isBulkStoryAuthoringCommand(action.command)) {
+		return commitAuthoringProject(
+			state,
+			applyBulkStoryAuthoringCommand(state.present, action.command)
+		);
+	}
 	if (!isCanonicalEntityAuthoringCommand(action.command)) {
 		return narrativeProjectAuthoringReducer(state, {
 			type: 'execute',
 			command: action.command
 		});
 	}
-	const nextProject = applyCanonicalEntityAuthoringCommand(
-		state.present,
-		action.command
+	return commitAuthoringProject(
+		state,
+		applyCanonicalEntityAuthoringCommand(state.present, action.command)
 	);
-	if (nextProject === state.present) {
-		return state;
-	}
-	return {
-		past: [...state.past, state.present],
-		present: nextProject,
-		future: []
-	};
 }
