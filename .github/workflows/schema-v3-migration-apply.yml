@@ -1,0 +1,481 @@
+name: Apply schema v3 migration patch
+
+on:
+  push:
+    branches: [audit/schema-v3-migration]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ !contains(github.event.head_commit.message, '[schema-v3-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/schema-v3-migration
+      - name: Apply migration changes
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          project = Path('src/domain/narrative/project.ts')
+          text = project.read_text()
+          old = 'export const narrativeProjectSchemaVersion = 2;'
+          assert old in text
+          project.write_text(text.replace(old, 'export const narrativeProjectSchemaVersion = 3;'))
+
+          repository = Path('src/store/narrative-project/repository.ts')
+          text = repository.read_text()
+          text = text.replace('function looksLikeSchemaV2(value: unknown) {', 'function looksLikeSchemaV2OrV3(value: unknown) {')
+          text = text.replace(
+              'candidate.schemaVersion === narrativeProjectSchemaVersion &&',
+              '(candidate.schemaVersion === 2 ||\n\t\t\tcandidate.schemaVersion === narrativeProjectSchemaVersion) &&',
+              1,
+          )
+          text = text.replace(
+              ' * Schema v2 intentionally grows during the Authoring MVP. Hydration supplies\n * newly introduced collections so a project saved by an earlier v2 patch does\n * not disappear just because a new authoring concept was added.\n */\nfunction hydrateSchemaV2(',
+              ' * Schema v2 was the mutable Authoring MVP format. v3 freezes that boundary.\n * The same defensive hydrator accepts v2 or v3, then always returns the current\n * schema so migrated v2 projects are immediately persisted into the v3 slot.\n */\nfunction hydrateSchemaV2OrV3(',
+          )
+          text = text.replace('if (!looksLikeSchemaV2(value)) {', 'if (!looksLikeSchemaV2OrV3(value)) {')
+          text = text.replace(
+              '\t\t...fresh,\n\t\t...saved,\n\t\ttemplate,',
+              '\t\t...fresh,\n\t\t...saved,\n\t\tschemaVersion: narrativeProjectSchemaVersion,\n\t\ttemplate,',
+              1,
+          )
+          marker = 'export function createLocalStorageNarrativeProjectRepository('
+          assert marker in text
+          prefix = text[:text.index(marker)]
+          tail = r'''export function createLocalStorageNarrativeProjectRepository(
+	hostStoryId: string,
+	projectName: string,
+	template: NarrativeProjectTemplate
+): NarrativeProjectRepository {
+	const key = `twine:narrative-project:v${narrativeProjectSchemaVersion}:${hostStoryId}`;
+	const legacyV2Key = `twine:narrative-project:v2:${hostStoryId}`;
+	const legacyV1Key = `twine:narrative-project:v1:${hostStoryId}`;
+
+	function loadV2OrV3(raw: string | null) {
+		if (!raw) {
+			return undefined;
+		}
+		try {
+			const parsed: unknown = JSON.parse(raw);
+			const projected = isNarrativeProjectPersistenceEnvelope(parsed)
+				? composeNarrativeProjectPersistence(parsed)
+				: parsed;
+			const hydrated = hydrateSchemaV2OrV3(
+				projected,
+				hostStoryId,
+				projectName,
+				template
+			);
+			return hydrated ? {parsed, hydrated} : undefined;
+		} catch {
+			return undefined;
+		}
+	}
+
+	return {
+		load() {
+			if (typeof window === 'undefined') {
+				return createNarrativeProject(hostStoryId, projectName, template);
+			}
+
+			const current = loadV2OrV3(window.localStorage.getItem(key));
+			if (current) {
+				if (!isNarrativeProjectPersistenceEnvelope(current.parsed)) {
+					window.localStorage.setItem(
+						key,
+						JSON.stringify(projectNarrativePersistence(current.hydrated))
+					);
+				}
+				return current.hydrated;
+			}
+
+			const legacyV2 = loadV2OrV3(window.localStorage.getItem(legacyV2Key));
+			if (legacyV2) {
+				window.localStorage.setItem(
+					key,
+					JSON.stringify(projectNarrativePersistence(legacyV2.hydrated))
+				);
+				return legacyV2.hydrated;
+			}
+
+			const legacySaved = window.localStorage.getItem(legacyV1Key);
+			if (legacySaved) {
+				try {
+					const migrated = migrateSchemaV1(
+						JSON.parse(legacySaved),
+						hostStoryId,
+						projectName,
+						template
+					);
+					if (migrated) {
+						window.localStorage.setItem(
+							key,
+							JSON.stringify(projectNarrativePersistence(migrated))
+						);
+						return migrated;
+					}
+				} catch {
+					// Keep walking toward a fresh project; recoverable wrapper preserves raw data.
+				}
+			}
+
+			return createNarrativeProject(hostStoryId, projectName, template);
+		},
+		save(project) {
+			if (typeof window !== 'undefined') {
+				window.localStorage.setItem(
+					key,
+					JSON.stringify(projectNarrativePersistence(project))
+				);
+			}
+		}
+	};
+}
+'''
+          repository.write_text(prefix + tail)
+
+          recoverable = Path('src/store/narrative-project/recoverable-repository.ts')
+          recoverable.write_text(r'''import {
+	NarrativeProject,
+	narrativeProjectSchemaVersion
+} from '../../domain/narrative/project';
+import {NarrativeProjectTemplate} from '../../domain/narrative/template';
+import {narrativeProjectPersistenceFormat} from './persistence-projection';
+import {
+	createLocalStorageNarrativeProjectRepository,
+	NarrativeProjectRepository
+} from './repository';
+
+export type NarrativeProjectLoadStatus = 'loaded' | 'new' | 'recovery';
+
+export interface NarrativeProjectLoadResult {
+	project: NarrativeProject;
+	status: NarrativeProjectLoadStatus;
+	recoveryBackupKeys: string[];
+}
+
+export interface RecoverableNarrativeProjectRepository
+	extends NarrativeProjectRepository {
+	load(): NarrativeProject;
+	loadResult(): NarrativeProjectLoadResult;
+	acknowledgeRecoveryReset(): void;
+}
+
+interface PayloadInspection {
+	recognized: boolean;
+	validJson: boolean;
+}
+
+type PayloadKind = 'current' | 'v2' | 'v1';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function storageKey(hostStoryId: string, version: number) {
+	return `twine:narrative-project:v${version}:${hostStoryId}`;
+}
+
+function requiredProjectIdentityAndArraysExist(
+	value: Record<string, unknown>,
+	hostStoryId: string
+) {
+	return (
+		typeof value.projectId === 'string' &&
+		value.hostStoryId === hostStoryId &&
+		Array.isArray(value.locations) &&
+		Array.isArray(value.characters) &&
+		Array.isArray(value.storyNodes) &&
+		Array.isArray(value.storyConnections)
+	);
+}
+
+function isRecognizedProjectPayload(
+	value: unknown,
+	hostStoryId: string,
+	schemaVersion: number
+) {
+	if (!isRecord(value)) {
+		return false;
+	}
+	if (value.format === narrativeProjectPersistenceFormat) {
+		const authored = value.authored;
+		return (
+			value.schemaVersion === schemaVersion &&
+			isRecord(authored) &&
+			isRecord(value.editor) &&
+			isRecord(value.runtime) &&
+			requiredProjectIdentityAndArraysExist(authored, hostStoryId)
+		);
+	}
+	return (
+		value.schemaVersion === schemaVersion &&
+		requiredProjectIdentityAndArraysExist(value, hostStoryId)
+	);
+}
+
+function isRecognizedV1Payload(value: unknown, hostStoryId: string) {
+	if (!isRecord(value)) {
+		return false;
+	}
+	return (
+		value.schemaVersion === 1 &&
+		value.hostStoryId === hostStoryId &&
+		Array.isArray(value.locations) &&
+		Array.isArray(value.characters)
+	);
+}
+
+function inspectPayload(
+	raw: string | null,
+	hostStoryId: string,
+	kind: PayloadKind
+): PayloadInspection {
+	if (raw === null) {
+		return {recognized: false, validJson: false};
+	}
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		return {
+			recognized:
+				kind === 'current'
+					? isRecognizedProjectPayload(
+							parsed,
+							hostStoryId,
+							narrativeProjectSchemaVersion
+						)
+					: kind === 'v2'
+						? isRecognizedProjectPayload(parsed, hostStoryId, 2)
+						: isRecognizedV1Payload(parsed, hostStoryId),
+			validJson: true
+		};
+	} catch {
+		return {recognized: false, validJson: false};
+	}
+}
+
+function backupRawPayload(hostStoryId: string, kind: PayloadKind, raw: string) {
+	const key = `twine:narrative-project:recovery:${hostStoryId}:${kind}:${Date.now()}`;
+	try {
+		window.localStorage.setItem(key, raw);
+		return key;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * Protects author data from the "failed load -> fresh project -> autosave"
+ * failure mode. v3 is the current format; recognized v2 and v1 slots remain
+ * readable migration sources. Unknown or damaged payloads are copied aside,
+ * while any recognized older source keeps the project loadable and writable.
+ */
+export function createRecoverableLocalStorageNarrativeProjectRepository(
+	hostStoryId: string,
+	projectName: string,
+	template: NarrativeProjectTemplate
+): RecoverableNarrativeProjectRepository {
+	const repository = createLocalStorageNarrativeProjectRepository(
+		hostStoryId,
+		projectName,
+		template
+	);
+	let cachedResult: NarrativeProjectLoadResult | undefined;
+	let recoveryBlocked = false;
+
+	function inspectAndLoad(): NarrativeProjectLoadResult {
+		if (cachedResult) {
+			return cachedResult;
+		}
+		if (typeof window === 'undefined') {
+			cachedResult = {
+				project: repository.load(),
+				status: 'new',
+				recoveryBackupKeys: []
+			};
+			return cachedResult;
+		}
+
+		const sources = [
+			{
+				kind: 'current' as const,
+				key: storageKey(hostStoryId, narrativeProjectSchemaVersion)
+			},
+			{kind: 'v2' as const, key: storageKey(hostStoryId, 2)},
+			{kind: 'v1' as const, key: storageKey(hostStoryId, 1)}
+		].map(source => {
+			const raw = window.localStorage.getItem(source.key);
+			return {
+				...source,
+				raw,
+				inspection: inspectPayload(raw, hostStoryId, source.kind)
+			};
+		});
+		const recoveryBackupKeys: string[] = [];
+
+		for (const source of sources) {
+			if (source.raw !== null && !source.inspection.recognized) {
+				const backupKey = backupRawPayload(hostStoryId, source.kind, source.raw);
+				if (backupKey) {
+					recoveryBackupKeys.push(backupKey);
+				}
+			}
+		}
+
+		const hasStoredPayload = sources.some(source => source.raw !== null);
+		const hasRecognizedSource = sources.some(
+			source => source.inspection.recognized
+		);
+		const status: NarrativeProjectLoadStatus = !hasStoredPayload
+			? 'new'
+			: hasRecognizedSource
+				? 'loaded'
+				: 'recovery';
+		recoveryBlocked = status === 'recovery';
+		cachedResult = {
+			project: repository.load(),
+			status,
+			recoveryBackupKeys
+		};
+		return cachedResult;
+	}
+
+	return {
+		load() {
+			return inspectAndLoad().project;
+		},
+		loadResult: inspectAndLoad,
+		save(project) {
+			if (recoveryBlocked) {
+				throw new Error(
+					'Narrative project save is blocked until recovery reset is acknowledged.'
+				);
+			}
+			repository.save(project);
+		},
+		acknowledgeRecoveryReset() {
+			recoveryBlocked = false;
+			if (cachedResult?.status === 'recovery') {
+				cachedResult = {...cachedResult, status: 'new'};
+			}
+		}
+	};
+}
+''')
+
+          test = Path('src/store/narrative-project/__tests__/schema-v3-migration.test.ts')
+          test.write_text(r'''import {NarrativeProject} from '../../../domain/narrative/project';
+import {createNarrativeProject} from '../../../domain/narrative/project-factory';
+import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
+import {projectNarrativePersistence} from '../persistence-projection';
+import {createRecoverableLocalStorageNarrativeProjectRepository} from '../recoverable-repository';
+
+const hostStoryId = 'schema-v3-story';
+const v3Key = `twine:narrative-project:v3:${hostStoryId}`;
+const v2Key = `twine:narrative-project:v2:${hostStoryId}`;
+
+function v2Raw(name = 'Migrated v2 project') {
+	const project = {
+		...createNarrativeProject(hostStoryId, name, ninetyThreeDaysTemplate),
+		schemaVersion: 2
+	} as NarrativeProject;
+	return JSON.stringify(projectNarrativePersistence(project));
+}
+
+function recoveryKeys() {
+	return Object.keys(window.localStorage).filter(key =>
+		key.startsWith(`twine:narrative-project:recovery:${hostStoryId}:`)
+	);
+}
+
+describe('narrative project schema v3 migration', () => {
+	beforeEach(() => window.localStorage.clear());
+
+	test('loads v2 from its legacy slot, writes v3, and preserves the v2 fallback', () => {
+		const raw = v2Raw();
+		window.localStorage.setItem(v2Key, raw);
+		const repository = createRecoverableLocalStorageNarrativeProjectRepository(
+			hostStoryId,
+			'Migrated v2 project',
+			ninetyThreeDaysTemplate
+		);
+
+		const result = repository.loadResult();
+
+		expect(result.status).toBe('loaded');
+		expect(result.project.schemaVersion).toBe(3);
+		expect(result.project.name).toBe('Migrated v2 project');
+		expect(window.localStorage.getItem(v3Key)).not.toBeNull();
+		expect(window.localStorage.getItem(v2Key)).toBe(raw);
+		expect(recoveryKeys()).toEqual([]);
+	});
+
+	test('backs up damaged v3 and still migrates a recognized v2 fallback', () => {
+		const damagedV3 = '{"schemaVersion":3,"projectId":';
+		const rawV2 = v2Raw('Fallback v2');
+		window.localStorage.setItem(v3Key, damagedV3);
+		window.localStorage.setItem(v2Key, rawV2);
+		const repository = createRecoverableLocalStorageNarrativeProjectRepository(
+			hostStoryId,
+			'Fallback v2',
+			ninetyThreeDaysTemplate
+		);
+
+		const result = repository.loadResult();
+
+		expect(result.status).toBe('loaded');
+		expect(result.project.schemaVersion).toBe(3);
+		expect(result.project.name).toBe('Fallback v2');
+		expect(result.recoveryBackupKeys).toHaveLength(1);
+		expect(window.localStorage.getItem(result.recoveryBackupKeys[0])).toBe(
+			damagedV3
+		);
+		expect(window.localStorage.getItem(v2Key)).toBe(rawV2);
+		expect(window.localStorage.getItem(v3Key)).not.toBe(damagedV3);
+	});
+
+	test('treats an unknown future current payload as recovery data', () => {
+		const project = createNarrativeProject(
+			hostStoryId,
+			'Future project',
+			ninetyThreeDaysTemplate
+		);
+		const futureRaw = JSON.stringify({
+			...projectNarrativePersistence(project),
+			schemaVersion: 4
+		});
+		window.localStorage.setItem(v3Key, futureRaw);
+		const repository = createRecoverableLocalStorageNarrativeProjectRepository(
+			hostStoryId,
+			'Future project',
+			ninetyThreeDaysTemplate
+		);
+
+		const result = repository.loadResult();
+
+		expect(result.status).toBe('recovery');
+		expect(result.recoveryBackupKeys).toHaveLength(1);
+		expect(() => repository.save(result.project)).toThrow(/blocked/i);
+		expect(window.localStorage.getItem(v3Key)).toBe(futureRaw);
+	});
+});
+''')
+          PY
+      - name: Commit migration patch
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No migration diff to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/domain/narrative/project.ts src/store/narrative-project/repository.ts src/store/narrative-project/recoverable-repository.ts src/store/narrative-project/__tests__/schema-v3-migration.test.ts
+          git commit -m "fix(93-days): freeze schema v3 migration path [schema-v3-applied]"
+          git push origin HEAD:audit/schema-v3-migration
