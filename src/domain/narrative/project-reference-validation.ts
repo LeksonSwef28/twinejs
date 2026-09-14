@@ -17,7 +17,8 @@ export type NarrativeReferenceOwnerKind =
 	| 'item-instance'
 	| 'story-node'
 	| 'story-connection'
-	| 'narrative-move';
+	| 'narrative-move'
+	| 'reaction-candidate-set';
 
 export type NarrativeReferenceTargetKind =
 	| 'character'
@@ -29,6 +30,7 @@ export type NarrativeReferenceTargetKind =
 	| 'item-definition'
 	| 'item-instance'
 	| 'story-node'
+	| 'narrative-move'
 	| 'outcome';
 
 export interface NarrativeReferenceFinding {
@@ -59,6 +61,7 @@ interface ReferenceSets {
 	itemDefinitions: Set<string>;
 	itemInstances: Set<string>;
 	storyNodes: Set<string>;
+	narrativeMoves: Set<string>;
 }
 
 interface FindingContext {
@@ -398,6 +401,85 @@ function validateMove(
 	}
 }
 
+
+function validateReactionCandidateSet(
+	findings: NarrativeReferenceFinding[],
+	sets: ReferenceSets,
+	set: NarrativeProject['reactionCandidateSets'][number]
+) {
+	const context: FindingContext = {
+		ownerKind: 'reaction-candidate-set',
+		ownerId: set.id,
+		storyNodeId: set.storyNodeId,
+		characterId: set.reactingCharacterId
+	};
+	addMissingReference(
+		findings,
+		sets.storyNodes,
+		'story-node',
+		set.storyNodeId,
+		context,
+		`Reaction set «${set.id}»: Story node`
+	);
+	addMissingReference(
+		findings,
+		sets.characters,
+		'character',
+		set.reactingCharacterId,
+		context,
+		`Reaction set «${set.id}»: reacting character`
+	);
+	addMissingReference(
+		findings,
+		sets.characters,
+		'character',
+		set.counterpartCharacterId,
+		context,
+		`Reaction set «${set.id}»: counterpart character`
+	);
+
+	for (const candidate of set.candidates) {
+		addMissingReference(
+			findings,
+			sets.narrativeMoves,
+			'narrative-move',
+			candidate.moveId,
+			context,
+			`Reaction candidate «${candidate.id}»: Move`
+		);
+		for (const guard of candidate.guards) {
+			validateCondition(
+				findings,
+				sets,
+				guard.condition,
+				context,
+				`Reaction candidate «${candidate.id}» guard «${guard.label ?? guard.id}»`
+			);
+		}
+		for (const consideration of candidate.considerations) {
+			if (consideration.type === 'knows-claim') {
+				addMissingReference(
+					findings,
+					sets.claims,
+					'claim',
+					consideration.claimId,
+					context,
+					`Reaction candidate «${candidate.id}»: Claim consideration`
+				);
+			} else if (consideration.type === 'story-node-state') {
+				addMissingReference(
+					findings,
+					sets.storyNodes,
+					'story-node',
+					consideration.storyNodeId,
+					context,
+					`Reaction candidate «${candidate.id}»: Story consideration`
+				);
+			}
+		}
+	}
+}
+
 /**
  * A48 read-only validation for authored references. It does not repair or
  * delete anything; it reports references that no longer resolve so Story Brain
@@ -417,7 +499,8 @@ export function validateNarrativeProjectReferences(
 		claims: new Set(project.claims.map(entity => entity.id)),
 		itemDefinitions: new Set(project.itemDefinitions.map(entity => entity.id)),
 		itemInstances: new Set(project.itemInstances.map(entity => entity.id)),
-		storyNodes: new Set(project.storyNodes.map(entity => entity.id))
+		storyNodes: new Set(project.storyNodes.map(entity => entity.id)),
+		narrativeMoves: new Set(project.narrativeMoves.map(entity => entity.id))
 	};
 
 	for (const character of project.characters) {
@@ -525,6 +608,9 @@ export function validateNarrativeProjectReferences(
 	}
 	for (const move of project.narrativeMoves) {
 		validateMove(findings, sets, move);
+	}
+	for (const set of project.reactionCandidateSets) {
+		validateReactionCandidateSet(findings, sets, set);
 	}
 
 	return {findings};
