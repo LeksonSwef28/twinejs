@@ -25,7 +25,7 @@ Runtime work is allowed only when it exists to preview, validate or execute auth
 
 ## A47 — Editor Product Audit & Authoring Closure
 
-**Status:** DONE pending green CI/merge of the final Move-relative effect-reference authoring closure (2026-09-14).
+**Status:** DONE (2026-09-14). The final Move-relative effect-reference authoring closure passed the full branch gate and merged in PR #14.
 
 **Goal:** make the existing A1–A46 capabilities genuinely authorable through the UI instead of merely present in the domain/runtime.
 
@@ -41,7 +41,7 @@ Deliverables:
 
 ## A48 — Validation & Story Brain 2.0
 
-**Status:** IN PROGRESS. Broken authored-reference diagnostics and Reaction Candidate Set reference validation are implemented; project-wide diagnostic visibility is the next closure slice.
+**Status:** IN PROGRESS. Broken authored-reference diagnostics and Reaction Candidate Set reference validation are implemented. Project-wide diagnostic visibility is implemented in this branch; actionable jump-to-source is the next closure slice.
 
 **Goal:** turn architectural correctness checks into useful author-facing diagnostics.
 

@@ -126,4 +126,4 @@ The next A48 visibility gap found by this audit is that `projectFindingCount` is
 
 ## Status
 
-**A47: DONE pending this branch's green CI/merge.** The non-destructive authoring loops and current authored effect/reference variants are available through UI without JSON/code. Broad destructive canonical-entity deletion remains deliberately deferred behind A48 reference diagnostics/repair UX rather than being misclassified as ordinary A47 CRUD.
+**A47: DONE.** The non-destructive authoring loops and current authored effect/reference variants are available through UI without JSON/code. The final Move-relative reference closure passed the full branch gate and merged in PR #14. Broad destructive canonical-entity deletion remains deliberately deferred behind A48 reference diagnostics/repair UX rather than being misclassified as ordinary A47 CRUD.

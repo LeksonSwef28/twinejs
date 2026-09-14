@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
 	queryStoryBrain,
+	queryStoryBrainProjectDiagnostics,
 	storyBrainEntityCount,
 	StoryBrainQueryResult
 } from '../../../application/narrative/story-brain-query';
@@ -75,6 +76,10 @@ export const StoryBrainPanel: React.FC = () => {
 		() => (focus ? queryStoryBrain(project, focus) : undefined),
 		[focus, project]
 	);
+	const projectDiagnostics = React.useMemo(
+		() => result?.projectDiagnostics ?? queryStoryBrainProjectDiagnostics(project),
+		[project, result]
+	);
 
 	React.useEffect(() => {
 		if (selectedFocus) {
@@ -137,6 +142,36 @@ export const StoryBrainPanel: React.FC = () => {
 					</optgroup>
 				</select>
 			</div>
+
+			<article className="narrative-workspace__story-brain-project-diagnostics">
+				<h3>PROJECT DIAGNOSTICS</h3>
+				<p>
+					Полный read-only список структурных и authored-reference проблем проекта.
+					 Он не зависит от текущего Focus, поэтому глобальные ошибки не скрываются
+					 за одним локальным контекстом.
+				</p>
+				{projectDiagnostics.findings.length > 0 ? (
+					<ul className="narrative-workspace__story-brain-finding-list">
+						{projectDiagnostics.findings.slice(0, 12).map(finding => (
+							<li key={finding.id} data-severity={finding.severity}>
+								<span>{finding.severity === 'warning' ? '⚠' : '•'}</span>
+								<div>
+									<strong>{finding.summary}</strong>
+									<small>{finding.kind}</small>
+								</div>
+							</li>
+						))}
+					</ul>
+				) : (
+					<small>Структурных и authored-reference диагностик по проекту не найдено.</small>
+				)}
+				<small>
+					Всего диагностик по проекту: {projectDiagnostics.findingCount}.
+					{projectDiagnostics.findingCount > 12
+						? ' Показаны первые 12; jump-to-source станет следующим A48-срезом.'
+						: ''}
+				</small>
+			</article>
 
 			{result ? (
 				<div className="narrative-workspace__story-brain-grid">
