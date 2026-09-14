@@ -1,0 +1,47 @@
+name: Apply dependency security fixes
+
+on:
+  push:
+    branches:
+      - audit/dependency-security
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/dependency-security
+      - uses: actions/setup-node@v4
+        with:
+          cache: npm
+          node-version: 22.12.0
+      - name: Apply safe lockfile and runtime backend fixes
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = 'package.json';
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+          pkg.engines.node = '>=22.12.0';
+          pkg.dependencies['i18next-http-backend'] = '^3.0.6';
+          fs.writeFileSync(path, JSON.stringify(pkg, null, '\t') + '\n');
+          NODE
+          npm install --package-lock-only --ignore-scripts
+          npm audit fix --package-lock-only --ignore-scripts || true
+          npm audit --omit=dev --audit-level=moderate
+      - name: Commit dependency fixes
+        shell: bash
+        run: |
+          if git diff --quiet -- package.json package-lock.json; then
+            echo 'Dependency fixes already applied.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json
+          git commit -m 'fix(93-days): patch dependency security baseline [security-applied]'
+          git push origin HEAD:audit/dependency-security
