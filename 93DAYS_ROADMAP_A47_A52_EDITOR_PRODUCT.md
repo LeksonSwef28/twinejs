@@ -74,6 +74,8 @@ Deliverables:
 
 ## A50 — Editor Scale, Search & Navigation
 
+**Status:** DONE (2026-09-14). A50 adds project-wide authored search and type filters across Story/WORLD-TIME entities, authored back-reference discovery with jump and local navigation history, safe multi-select Story location edits as one Undo step, browser-level off-screen render culling plus reusable Story/timeline virtualization projections, and preserves the existing indexed WORLD/TIME location hot paths and horizontal visible-range culling. Canonical entities remain independent from viewport visibility, editor navigation stays outside authoring Undo/Redo, and the implementation passed the full 93 Days branch gate before this status update.
+
 **Goal:** make large projects practical to author, not merely possible to simulate.
 
 Deliverables:
