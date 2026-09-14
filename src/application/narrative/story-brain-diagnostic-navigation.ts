@@ -1,11 +1,13 @@
 import {CanvasEntityReference} from '../../domain/narrative/editor';
-import {NarrativeProject} from '../../domain/narrative/project';
+import {NarrativeProject, NarrativeWorkspaceMode} from '../../domain/narrative/project';
 import {StoryBrainEntityRef} from '../../domain/narrative/story-brain';
 import {StoryBrainFinding} from './story-brain-query';
 
 export interface StoryBrainDiagnosticNavigation {
 	focus: StoryBrainEntityRef;
+	workspace: NarrativeWorkspaceMode;
 	canvasEntityRef?: CanvasEntityReference;
+	worldTimeCenterAbsoluteMinute?: number;
 }
 
 function focusExists(project: NarrativeProject, focus: StoryBrainEntityRef) {
@@ -50,18 +52,40 @@ function navigationForFocus(
 	if (!focus || !focusExists(project, focus)) {
 		return undefined;
 	}
-	return {focus, canvasEntityRef: canvasEntityRefForFocus(project, focus)};
+	return {
+		focus,
+		workspace: 'story',
+		canvasEntityRef: canvasEntityRefForFocus(project, focus)
+	};
 }
 
 /**
- * Maps a read-only diagnostic to an existing authoring source. The function is
- * intentionally conservative: findings whose owner has no precise Story Brain
- * entity do not receive a fake navigation target.
+ * Maps a read-only diagnostic to an existing authoring source. Schedule
+ * overlaps are time-specific, so they jump to WORLD/TIME at the overlap
+ * midpoint while keeping the affected Character as Story Brain Focus. This is
+ * editor navigation only and never changes the Simulation Playhead.
  */
 export function storyBrainNavigationForFinding(
 	project: NarrativeProject,
 	finding: StoryBrainFinding
 ): StoryBrainDiagnosticNavigation | undefined {
+	if (finding.kind === 'routine-overlap') {
+		const focus: StoryBrainEntityRef = {
+			kind: 'character',
+			id: finding.characterId
+		};
+		if (!focusExists(project, focus)) {
+			return undefined;
+		}
+		return {
+			focus,
+			workspace: 'world-time',
+			worldTimeCenterAbsoluteMinute: Math.floor(
+				(finding.overlap.start + finding.overlap.end) / 2
+			)
+		};
+	}
+
 	if (finding.kind !== 'broken-authored-reference') {
 		if ('moveId' in finding && finding.moveId) {
 			return navigationForFocus(project, {kind: 'move', id: finding.moveId});
