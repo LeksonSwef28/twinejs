@@ -24,8 +24,18 @@ function previewProject() {
 		{id: 'station', name: 'Станция'}
 	];
 	project.characters = [
-		{id: 'player', name: 'Игрок', cognitionTier: 'full'},
-		{id: 'katya', name: 'Катя', cognitionTier: 'full'}
+		{
+			id: 'player',
+			name: 'Игрок',
+			cognitionTier: 'full',
+			defaultBehaviorProfileId: 'player-default'
+		},
+		{
+			id: 'katya',
+			name: 'Катя',
+			cognitionTier: 'full',
+			defaultBehaviorProfileId: 'katya-default'
+		}
 	];
 	project.storyNodes = [
 		{
@@ -176,10 +186,11 @@ describe('A51 preview laboratory', () => {
 			locationId: 'station'
 		});
 		const result = executePreviewMove(scenario, 'promise');
+		const lastAction = result.scenario.actions[result.scenario.actions.length - 1];
 		expect(result.resolution.status).toBe('resolved');
 		expect(result.outcomeTrace?.occurrenceId).toBeDefined();
 		expect(result.scenario.project.storyNodeStateOverrides.meeting).toBe('completed');
-		expect(result.scenario.actions.at(-1)).toEqual(
+		expect(lastAction).toEqual(
 			expect.objectContaining({kind: 'resolved-outcome', forced: false})
 		);
 		expect(source.storyNodeStateOverrides.meeting).toBeUndefined();
@@ -191,9 +202,11 @@ describe('A51 preview laboratory', () => {
 		const authoredBefore = JSON.stringify(source.narrativeMoves);
 		const scenario = createPreviewScenario(source);
 		const forced = forcePreviewOutcome(scenario, 'promise', 'declined');
+		const lastAction =
+			forced.scenario.actions[forced.scenario.actions.length - 1];
 		expect(forced.scenario.project.storyNodeStateOverrides.meeting).toBe('blocked');
 		expect(forced.scenario.project.runtimeOccurrences).toHaveLength(1);
-		expect(forced.scenario.actions.at(-1)).toEqual(
+		expect(lastAction).toEqual(
 			expect.objectContaining({
 				kind: 'forced-outcome',
 				moveId: 'promise',
