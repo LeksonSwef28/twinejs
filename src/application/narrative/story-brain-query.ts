@@ -7,6 +7,10 @@ import {
 import {NarrativeMoveDefinition} from '../../domain/narrative/interaction';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {
+	NarrativeReferenceFinding,
+	validateNarrativeProjectReferences
+} from '../../domain/narrative/project-reference-validation';
+import {
 	evaluateReactionCandidateSet,
 	ReactionCandidateSetEvaluation,
 	reactionCandidateSetIsStructurallyValid,
@@ -45,9 +49,11 @@ export interface StoryBrainWhyResult {
 	moves: StoryBrainWhyMoveResult[];
 }
 
+export type StoryBrainFinding = StoryCoverageFinding | NarrativeReferenceFinding;
+
 export interface StoryBrainCoverageResult {
 	projectFindingCount: number;
-	findings: StoryCoverageFinding[];
+	findings: StoryBrainFinding[];
 }
 
 export interface StoryBrainQueryResult {
@@ -197,6 +203,40 @@ function coverageForFocus(
 	);
 }
 
+function referenceFindingsForFocus(
+	findings: NarrativeReferenceFinding[],
+	storyNodeIds: string[],
+	moves: NarrativeMoveDefinition[],
+	focus: StoryBrainEntityRef
+) {
+	const nodeIds = new Set(storyNodeIds);
+	const moveIds = new Set(moves.map(move => move.id));
+	return findings.filter(finding => {
+		if (finding.storyNodeId && nodeIds.has(finding.storyNodeId)) {
+			return true;
+		}
+		if (finding.moveId && moveIds.has(finding.moveId)) {
+			return true;
+		}
+		if (focus.kind === 'character') {
+			return (
+				finding.characterId === focus.id ||
+				(finding.targetKind === 'character' && finding.targetId === focus.id)
+			);
+		}
+		if (focus.kind === 'story-node') {
+			return finding.targetKind === 'story-node' && finding.targetId === focus.id;
+		}
+		if (focus.kind === 'claim') {
+			return finding.targetKind === 'claim' && finding.targetId === focus.id;
+		}
+		if (focus.kind === 'item') {
+			return finding.targetKind === 'item-instance' && finding.targetId === focus.id;
+		}
+		return false;
+	});
+}
+
 function reactionsForFocus(project: NarrativeProject, storyNodeIds: string[]) {
 	const nodeIds = new Set(storyNodeIds);
 	const movesById = new Map(project.narrativeMoves.map(move => [move.id, move]));
@@ -226,8 +266,8 @@ function reactionsForFocus(project: NarrativeProject, storyNodeIds: string[]) {
 /**
  * Application-level Story Brain query. It composes the read-only authored graph
  * with the current preview/runtime state for WHY and reaction explanations.
- * Coverage, Bridge Finder and reaction ranking remain derived/read-only;
- * authoring changes still require an explicit command from the user.
+ * Coverage, authored-reference validation, Bridge Finder and reaction ranking
+ * remain derived/read-only; authoring changes still require an explicit command.
  */
 export function queryStoryBrain(
 	project: NarrativeProject,
@@ -259,6 +299,19 @@ export function queryStoryBrain(
 		project.narrativeMoves,
 		project.template.dayCount
 	);
+	const referenceValidation = validateNarrativeProjectReferences(project);
+	const focusCoverage = coverageForFocus(
+		projectCoverage.findings,
+		storyNodeIds,
+		related,
+		focus
+	);
+	const focusReferences = referenceFindingsForFocus(
+		referenceValidation.findings,
+		storyNodeIds,
+		related,
+		focus
+	);
 	const bridges = findStoryBridgeCandidates(
 		{
 			nodes: project.storyNodes,
@@ -275,13 +328,9 @@ export function queryStoryBrain(
 		impact,
 		why: {moves},
 		coverage: {
-			projectFindingCount: projectCoverage.findings.length,
-			findings: coverageForFocus(
-				projectCoverage.findings,
-				storyNodeIds,
-				related,
-				focus
-			)
+			projectFindingCount:
+				projectCoverage.findings.length + referenceValidation.findings.length,
+			findings: [...focusCoverage, ...focusReferences]
 		},
 		bridges,
 		reactions: reactionsForFocus(project, storyNodeIds)
