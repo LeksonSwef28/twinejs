@@ -41,7 +41,7 @@ Deliverables:
 
 ## A48 — Validation & Story Brain 2.0
 
-**Status:** IN PROGRESS. Broken authored-reference diagnostics, Reaction Candidate Set validation and project-wide visibility are implemented. This branch adds the first actionable jump-to-source path for diagnostics whose authoring owner is represented by Story Brain / STORY canvas; unsupported owner kinds remain text-only instead of receiving misleading navigation.
+**Status:** IN PROGRESS. Broken authored-reference diagnostics, Reaction Candidate Set validation, project-wide visibility and the first actionable Story-side jump-to-source path are merged. This branch adds conservative isolated/unreachable Story diagnostics: strict reachability is reported only when the executable graph has one unambiguous entry root.
 
 **Goal:** turn architectural correctness checks into useful author-facing diagnostics.
 

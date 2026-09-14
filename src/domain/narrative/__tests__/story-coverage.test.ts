@@ -111,4 +111,74 @@ describe('Story Brain Coverage', () => {
 			result.findings.some(finding => finding.kind === 'character-frontier')
 		).toBe(true);
 	});
+
+	test('flags isolated nodes without pretending a multi-entry story has one canonical root', () => {
+		const nodes = [node('entry', 1), node('next', 2), node('lonely', 3)];
+		const connections: StoryConnectionDefinition[] = [
+			{
+				id: 'entry-next',
+				sourceNodeId: 'entry',
+				targetNodeId: 'next',
+				kind: 'flow',
+				mode: 'executable',
+				sourcePortId: 'flow-out',
+				targetPortId: 'flow-in'
+			}
+		];
+
+		const result = analyzeStoryCoverage(nodes, connections, [], 93);
+
+		expect(result.isolatedNodeIds).toEqual(['lonely']);
+		expect(result.unreachableNodeIds).toEqual([]);
+		expect(
+			result.findings.some(
+				finding => finding.kind === 'isolated-story-node' && finding.storyNodeId === 'lonely'
+			)
+		).toBe(true);
+	});
+
+	test('flags a disconnected causal cycle when the story has one unambiguous entry', () => {
+		const nodes = [
+			node('root', 1),
+			node('end', 2),
+			node('cycle-a', 3),
+			node('cycle-b', 4)
+		];
+		const connections: StoryConnectionDefinition[] = [
+			{
+				id: 'root-end',
+				sourceNodeId: 'root',
+				targetNodeId: 'end',
+				kind: 'flow',
+				mode: 'executable',
+				sourcePortId: 'flow-out',
+				targetPortId: 'flow-in'
+			},
+			{
+				id: 'cycle-a-b',
+				sourceNodeId: 'cycle-a',
+				targetNodeId: 'cycle-b',
+				kind: 'flow',
+				mode: 'executable',
+				sourcePortId: 'flow-out',
+				targetPortId: 'flow-in'
+			},
+			{
+				id: 'cycle-b-a',
+				sourceNodeId: 'cycle-b',
+				targetNodeId: 'cycle-a',
+				kind: 'flow',
+				mode: 'executable',
+				sourcePortId: 'flow-out',
+				targetPortId: 'flow-in'
+			}
+		];
+
+		const result = analyzeStoryCoverage(nodes, connections, [], 93);
+
+		expect(result.unreachableNodeIds.sort()).toEqual(['cycle-a', 'cycle-b']);
+		expect(
+			result.findings.filter(finding => finding.kind === 'unreachable-story-node')
+		).toHaveLength(2);
+	});
 });

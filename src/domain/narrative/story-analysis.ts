@@ -25,6 +25,8 @@ export interface StoryContinuityAnalysis {
 export type StoryCoverageFindingKind =
 	| 'terminal-story-node'
 	| 'early-terminal-story-node'
+	| 'isolated-story-node'
+	| 'unreachable-story-node'
 	| 'outcome-without-consequence'
 	| 'asymmetric-outcomes'
 	| 'character-frontier';
@@ -46,6 +48,8 @@ export interface StoryCoverageAnalysis {
 	findings: StoryCoverageFinding[];
 	terminalNodeIds: string[];
 	earlyTerminalNodeIds: string[];
+	isolatedNodeIds: string[];
+	unreachableNodeIds: string[];
 	outcomeWithoutConsequenceIds: string[];
 	asymmetricMoveIds: string[];
 	characterFrontierIds: string[];
@@ -203,23 +207,30 @@ export function analyzeStoryCoverage(
 	dayCount: number
 ): StoryCoverageAnalysis {
 	const causalConnections = continuityConnections(connections);
+	const nodeIds = new Set(nodes.map(node => node.id));
 	const outgoingByNode = new Map<string, Set<string>>();
+	const incomingByNode = new Map<string, Set<string>>();
 	for (const node of nodes) {
 		outgoingByNode.set(node.id, new Set());
+		incomingByNode.set(node.id, new Set());
+	}
+	function addCausalLink(sourceNodeId: string, targetNodeId: string) {
+		if (!nodeIds.has(sourceNodeId) || !nodeIds.has(targetNodeId)) {
+			return;
+		}
+		outgoingByNode.get(sourceNodeId)!.add(targetNodeId);
+		incomingByNode.get(targetNodeId)!.add(sourceNodeId);
 	}
 	for (const connection of causalConnections) {
-		outgoingByNode
-			.get(connection.sourceNodeId)
-			?.add(connection.targetNodeId);
+		addCausalLink(connection.sourceNodeId, connection.targetNodeId);
 	}
 	for (const move of moves) {
-		const outgoing = outgoingByNode.get(move.storyNodeId);
-		if (!outgoing) {
+		if (!nodeIds.has(move.storyNodeId)) {
 			continue;
 		}
 		for (const outcome of move.outcomes) {
 			for (const targetNodeId of outcome.effectStoryNodeIds) {
-				outgoing.add(targetNodeId);
+				addCausalLink(move.storyNodeId, targetNodeId);
 			}
 		}
 	}
@@ -254,6 +265,60 @@ export function analyzeStoryCoverage(
 				? `Ветка заканчивается на «${node.title}» раньше конца 93-дневного окна.`
 				: `«${node.title}» — текущий конец исполняемой ветки.`
 		});
+	}
+
+	const isolatedNodeIds =
+		nodes.length <= 1
+			? []
+			: nodes
+					.filter(
+						node =>
+							(incomingByNode.get(node.id)?.size ?? 0) === 0 &&
+							(outgoingByNode.get(node.id)?.size ?? 0) === 0
+					)
+					.map(node => node.id);
+	for (const nodeId of isolatedNodeIds) {
+		const node = nodes.find(candidate => candidate.id === nodeId)!;
+		findings.push({
+			id: `coverage:isolated:${node.id}`,
+			kind: 'isolated-story-node',
+			severity: 'warning',
+			storyNodeId: node.id,
+			summary: `«${node.title}» изолирован: у узла нет исполняемых входящих или исходящих Story-связей/продолжений.`
+		});
+	}
+
+	const entryNodeIds = nodes
+		.filter(node => (incomingByNode.get(node.id)?.size ?? 0) === 0)
+		.map(node => node.id);
+	const unreachableNodeIds: string[] = [];
+	if (entryNodeIds.length === 1) {
+		const entryNodeId = entryNodeIds[0];
+		const reachable = new Set<string>([entryNodeId]);
+		const queue = [entryNodeId];
+		while (queue.length > 0) {
+			const current = queue.shift()!;
+			for (const targetNodeId of outgoingByNode.get(current) ?? []) {
+				if (!reachable.has(targetNodeId)) {
+					reachable.add(targetNodeId);
+					queue.push(targetNodeId);
+				}
+			}
+		}
+		const entryNode = nodes.find(node => node.id === entryNodeId)!;
+		for (const node of nodes) {
+			if (reachable.has(node.id)) {
+				continue;
+			}
+			unreachableNodeIds.push(node.id);
+			findings.push({
+				id: `coverage:unreachable:${node.id}`,
+				kind: 'unreachable-story-node',
+				severity: 'warning',
+				storyNodeId: node.id,
+				summary: `«${node.title}» недостижим из единственной точки входа «${entryNode.title}» по исполняемому Story-графу.`
+			});
+		}
 	}
 
 	const outcomeWithoutConsequenceIds: string[] = [];
@@ -336,6 +401,8 @@ export function analyzeStoryCoverage(
 		findings,
 		terminalNodeIds,
 		earlyTerminalNodeIds,
+		isolatedNodeIds,
+		unreachableNodeIds,
 		outcomeWithoutConsequenceIds,
 		asymmetricMoveIds,
 		characterFrontierIds
