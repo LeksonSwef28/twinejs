@@ -536,7 +536,7 @@ export const StoryWorkspace: React.FC = () => {
 
 				<div className="narrative-workspace__library-row">
 					<span>Факты / знания</span>
-					<small>раздельные модели — следующий слой</small>
+					<small>Objective Facts · Claims · Initial Knowledge — в Project Library</small>
 				</div>
 			</aside>
 

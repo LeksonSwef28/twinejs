@@ -87,19 +87,22 @@ The editor also received safeguards that were not part of the original authoring
 - the production dependency tree currently passes that gate with zero vulnerabilities;
 - Node metadata and CI agree on Node 22.12+.
 
+## A47 cleanup closed after the audit
+
+The two originally identified non-destructive UX tails are now closed:
+
+- the Story left rail points authors to the existing Objective Facts / Claims / Initial Knowledge models in Project Library instead of calling cognition a future layer;
+- `OutcomeEffectsPanel` exposes `character-learns-claim` alongside the other typed Outcome effects, including fixed-character or Move-target recipients, fixed or communicated Claims, attitude, confidence and source.
+
+The original Narrative Move shortcut remains useful for the common "target learns the communicated Claim" case, while the general Outcome picker now exposes every current effect type without requiring JSON/code.
+
 ## Remaining A47 cleanup / explicitly deferred work
 
-### P2 — Story left-rail cognition copy is stale
+### P1 — dynamic character-reference modes are not yet exposed for every typed effect
 
-The Story left rail still says `Факты / знания — раздельные модели — следующий слой`, although Objective Facts, Claims and Initial Knowledge already exist in the global Project Library. This is stale product copy, not a missing domain or authoring capability.
+The domain model allows `NarrativeCharacterReferenceDefinition` to address a fixed Character, the current `move-actor`, or a `move-target`. The general Outcome UI currently uses fixed Characters for relationship endpoints, mood targets, character item placement and memory targets. Therefore every effect **type** is now reachable through UI, but not every authored character-reference **variant** is reachable yet.
 
-**Disposition:** small UI-copy cleanup. It does not block A48.
-
-### P2 — typed Outcome effect authoring is not yet consolidated into one surface
-
-`OutcomeEffectsPanel` directly authors relationship, mood, item placement, Story-state and memory effects. `character-learns-claim` is still primarily reached through the Narrative Move authoring shortcut rather than the same general Outcome effect picker.
-
-**Disposition:** UX consolidation candidate. The effect exists in the authored/runtime model, so this is not a simulation gap and does not block A48.
+**Disposition:** one focused authoring-closure slice should add reusable fixed/Move-actor/Move-target reference controls to the affected effect editors. This is a real UI-authoring gap under the product rule and should be closed before A47 is called fully complete.
 
 ### P2 — destructive canonical-entity deletion remains intentionally conservative
 
@@ -121,8 +124,10 @@ Canonical metadata can now be edited, but broad delete workflows are not exposed
 
 The next milestone is **A48 — Validation & Story Brain 2.0**. Existing Story Brain already provides Focus, Impact, Why, Coverage and Bridge Finder analysis. Existing Coverage detects terminal/early-terminal branches, empty Outcome consequences, asymmetric outcomes and character frontiers.
 
-The first A48 addition should therefore not duplicate those diagnostics. The highest-leverage next slice is **broken authored-reference validation**: deterministic read-only findings for references to canonical/story entities that no longer exist or cannot resolve, surfaced through Story Brain before destructive entity deletion is expanded.
+A48 is now underway. Broken authored-reference validation is implemented as deterministic read-only diagnostics for canonical/story references, including nested Narrative Move references and Reaction Candidate Set dependencies. These findings are surfaced through Story Brain before destructive entity deletion is expanded.
+
+The next A48 visibility gap found by this audit is that `projectFindingCount` is global while the detailed Coverage list is Focus-scoped. Some broken references can therefore be counted without any focused entity capable of surfacing their explanation. A project-wide diagnostic view should be added before destructive repair/delete UX depends on these findings.
 
 ## Status
 
-**A47: CORE NON-DESTRUCTIVE AUTHORING CLOSED.** The editor can complete the main authored loops through UI without JSON/code. Remaining A47 items are explicitly classified as P2 copy/UX/destructive-editing cleanup and do not block the start of A48 validation work.
+**A47: CORE NON-DESTRUCTIVE LOOPS CLOSED; ONE DYNAMIC-REFERENCE AUTHORING GAP REMAINS.** All current Outcome effect types are reachable from the UI, but several effects still need Move-actor / Move-target address variants exposed. Broad destructive canonical-entity deletion remains deliberately deferred behind A48 reference diagnostics/repair UX.
