@@ -7,11 +7,7 @@ function character(id: string, name: string) {
 	return {id, name} as NarrativeCharacter;
 }
 
-function routine(
-	id: string,
-	locationId: string | undefined,
-	absent = false
-) {
+function routine(id: string, locationId: string | undefined, absent = false) {
 	return {
 		id,
 		targetLocationId: locationId,
@@ -52,10 +48,7 @@ describe('buildWorldTimeLocationIndexes', () => {
 
 	test('does not index absent routines or locationless authored data', () => {
 		const indexes = buildWorldTimeLocationIndexes(
-			[
-				routine('absent', 'cafe', true),
-				routine('locationless', undefined)
-			],
+			[routine('absent', 'cafe', true), routine('locationless', undefined)],
 			[character('unknown', 'Без позиции')],
 			{},
 			[storyNode('floating')]
