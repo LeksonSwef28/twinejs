@@ -61,12 +61,13 @@ export function applyBulkStoryAuthoringCommand(
 			return node;
 		}
 		changed = true;
-		const {locationId: _locationId, ...remainingPlacement} = node.placement;
 		const placement =
-			remainingPlacement.day === undefined &&
-			remainingPlacement.minuteOfDay === undefined
+			node.placement.day === undefined && node.placement.minuteOfDay === undefined
 				? undefined
-				: remainingPlacement;
+				: {
+						day: node.placement.day,
+						minuteOfDay: node.placement.minuteOfDay
+				  };
 		return {...node, placement};
 	});
 
