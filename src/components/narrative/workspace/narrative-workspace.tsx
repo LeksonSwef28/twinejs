@@ -15,6 +15,7 @@ import {NarrativeMovePanel} from './narrative-move-panel';
 import {OutcomeEffectsPanel} from './outcome-effects-panel';
 import {ProjectIdentityPanel} from './project-identity-panel';
 import {ProjectLibrary} from './project-library';
+import {ProjectSearchPanel} from './project-search-panel';
 import {ReactionCandidatesPanel} from './reaction-candidates-panel';
 import {RoutineAuthoringPanel} from './routine-authoring-panel';
 import {SimulationDebugPanel} from './simulation-debug-panel';
@@ -24,6 +25,7 @@ import {StoryWorkspace} from './story-workspace';
 import {WorldTimeWorkspace} from './world-time-workspace';
 import './narrative-workspace.css';
 import './narrative-workspace-v9.css';
+import './narrative-workspace-a50.css';
 import './workspace-navigation.css';
 
 const weekdayLabels = {
@@ -236,6 +238,7 @@ export const NarrativeWorkspace: React.FC = () => {
 				onClose={() => setSimulationDebugOpen(false)}
 			/>
 
+			<ProjectSearchPanel />
 			<CrossWorkspaceNavigator splitView={splitView} />
 			<ProjectLibrary
 				open={projectLibraryOpen}
