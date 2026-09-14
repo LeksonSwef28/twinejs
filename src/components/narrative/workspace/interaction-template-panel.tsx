@@ -1,6 +1,9 @@
 import * as React from 'react';
 import {NarrativeMoveKind} from '../../../domain/narrative/interaction';
-import {InteractionTemplateDefinition} from '../../../domain/narrative/interaction-template';
+import {
+	InteractionTemplateDefinition,
+	previewInteractionTemplate
+} from '../../../domain/narrative/interaction-template';
 import {starterInteractionTemplates} from '../../../domain/narrative/standard-interaction-templates';
 import {useNarrativeProject} from '../../../store/narrative-project';
 
@@ -41,10 +44,26 @@ export const InteractionTemplatePanel: React.FC = () => {
 	const [claimBySlot, setClaimBySlot] = React.useState<Record<string, string>>({});
 	const [message, setMessage] = React.useState('');
 	const [customName, setCustomName] = React.useState('');
+	const [customDescription, setCustomDescription] = React.useState('');
 	const [customMoveLabel, setCustomMoveLabel] = React.useState('');
 	const [customMoveKind, setCustomMoveKind] = React.useState<NarrativeMoveKind>('inform');
 	const [customUsesClaim, setCustomUsesClaim] = React.useState(true);
+	const [customShareLocationGuard, setCustomShareLocationGuard] = React.useState(false);
+	const [customTargetLearnsClaim, setCustomTargetLearnsClaim] = React.useState(false);
+	const [customFollowupLabel, setCustomFollowupLabel] = React.useState('');
+	const [customFollowupKind, setCustomFollowupKind] = React.useState<NarrativeMoveKind>('ask');
 	const template = templates.find(candidate => candidate.id === templateId);
+	const preview = React.useMemo(
+		() =>
+			template
+				? previewInteractionTemplate(
+						template,
+						{storyNodeId, characterByRole, claimBySlot},
+						'template-preview'
+					  )
+				: undefined,
+		[template, storyNodeId, characterByRole, claimBySlot]
+	);
 
 	React.useEffect(() => {
 		if (!templateId && templates[0]) {
@@ -58,9 +77,17 @@ export const InteractionTemplatePanel: React.FC = () => {
 		setMessage('');
 	}, [templateId]);
 
+	function characterName(characterId?: string) {
+		return (
+			project.characters.find(character => character.id === characterId)?.name ??
+			characterId ??
+			'—'
+		);
+	}
+
 	function instantiate(event: React.FormEvent) {
 		event.preventDefault();
-		if (!template || !storyNodeId) {
+		if (!template || preview?.status !== 'ready') {
 			return;
 		}
 		execute({
@@ -70,7 +97,7 @@ export const InteractionTemplatePanel: React.FC = () => {
 			instanceId: createId('interaction-instance')
 		});
 		setMessage(
-			`Шаблон отправлен как одна authoring-команда: ${template.moves.length} Move(s), один Undo.`
+			`Шаблон материализован как одна authoring-команда: ${template.moves.length} Move(s), один Undo.`
 		);
 	}
 
@@ -78,60 +105,172 @@ export const InteractionTemplatePanel: React.FC = () => {
 		event.preventDefault();
 		const name = customName.trim();
 		const moveLabel = customMoveLabel.trim();
+		const followupLabel = customFollowupLabel.trim();
 		if (!name || !moveLabel) {
 			return;
 		}
 		const id = createId('interaction-template');
+		const guards = customShareLocationGuard
+			? [
+					{
+						id: 'share-location',
+						label: 'Участники находятся в одном месте',
+						condition: {
+							type: 'roles-share-location' as const,
+							roleIds: ['speaker', 'listener']
+						}
+					}
+			  ]
+			: [];
+		const effects =
+			customUsesClaim && customTargetLearnsClaim
+				? [
+						{
+							id: 'listener-learns-claim',
+							type: 'role-learns-claim' as const,
+							recipientRoleId: 'listener',
+							claimSlotId: 'claim',
+							attitude: 'believes' as const,
+							confidence: 0.75,
+							source: {type: 'move-actor' as const}
+						}
+				  ]
+				: [];
 		const customTemplate: InteractionTemplateDefinition = {
 			id,
 			name,
-			description: 'Пользовательский reusable Interaction Template.',
+			description:
+				customDescription.trim() || 'Пользовательский reusable Interaction Template.',
 			roles: [
-				{id: 'speaker', label: 'Актор'},
-				{id: 'listener', label: 'Цель'}
+				{id: 'speaker', label: 'Актор', kind: 'character'},
+				{id: 'listener', label: 'Цель', kind: 'character'}
 			],
 			claimSlots: customUsesClaim
 				? [{id: 'claim', label: 'Claim', required: true}]
 				: [],
 			moves: [
 				{
-					id: 'move',
+					id: 'move-1',
 					kind: customMoveKind,
 					label: moveLabel,
 					actorRoleId: 'speaker',
 					targetRoleIds: ['listener'],
 					communicatedClaimSlotId: customUsesClaim ? 'claim' : undefined,
-					communicationIntent: customUsesClaim ? 'honest' : undefined
-				}
+					communicationIntent: customUsesClaim ? 'honest' : undefined,
+					guards,
+					effects
+				},
+				...(followupLabel
+					? [
+							{
+								id: 'move-2',
+								kind: customFollowupKind,
+								label: followupLabel,
+								actorRoleId: 'listener',
+								targetRoleIds: ['speaker'],
+								guards
+							}
+					  ]
+					: [])
 			],
-			tags: ['custom']
+			tags: ['custom', 'reusable', ...(followupLabel ? ['multi-step'] : [])]
 		};
 		execute({type: 'template/add', template: customTemplate});
 		setTemplateId(id);
 		setCustomName('');
+		setCustomDescription('');
 		setCustomMoveLabel('');
+		setCustomFollowupLabel('');
 	}
 
 	return (
 		<section className="narrative-workspace__move-editor" aria-label="Interaction Templates">
 			<h2>Interaction Templates</h2>
 			<p>
-				Один reusable шаблон привязывается к конкретным ролям и затем атомарно
-				 материализуется в обычные Narrative Moves. Runtime шаблонов не знает.
+				Reusable шаблон связывает типизированные Character/Claim slots, guards и
+				 effects, а затем атомарно материализуется в обычные Narrative Moves. Один
+				 многошаговый шаблон покрывает EventTemplate-style сценарий без отдельного
+				 runtime-движка.
 			</p>
 
 			<form className="narrative-workspace__compact-form" onSubmit={addCustomTemplate}>
 				<strong>Новый пользовательский шаблон</strong>
-				<input aria-label="Название interaction template" value={customName} onChange={event => setCustomName(event.target.value)} placeholder="Например: Попросить услугу" />
-				<input aria-label="Текст move шаблона" value={customMoveLabel} onChange={event => setCustomMoveLabel(event.target.value)} placeholder="Например: Попросить помочь" />
-				<select aria-label="Тип move шаблона" value={customMoveKind} onChange={event => setCustomMoveKind(event.target.value as NarrativeMoveKind)}>
-					{moveKinds.map(kind => <option key={kind} value={kind}>{kind}</option>)}
+				<input
+					aria-label="Название interaction template"
+					value={customName}
+					onChange={event => setCustomName(event.target.value)}
+					placeholder="Например: Попросить услугу"
+				/>
+				<input
+					aria-label="Описание interaction template"
+					value={customDescription}
+					onChange={event => setCustomDescription(event.target.value)}
+					placeholder="Когда и зачем использовать этот паттерн"
+				/>
+				<input
+					aria-label="Текст move шаблона"
+					value={customMoveLabel}
+					onChange={event => setCustomMoveLabel(event.target.value)}
+					placeholder="Например: Попросить помочь"
+				/>
+				<select
+					aria-label="Тип move шаблона"
+					value={customMoveKind}
+					onChange={event => setCustomMoveKind(event.target.value as NarrativeMoveKind)}
+				>
+					{moveKinds.map(kind => (
+						<option key={kind} value={kind}>
+							{kind}
+						</option>
+					))}
 				</select>
 				<label>
-					<input type="checkbox" checked={customUsesClaim} onChange={event => setCustomUsesClaim(event.target.checked)} />{' '}
-					Шаблон использует обязательный Claim
+					<input
+						type="checkbox"
+						checked={customUsesClaim}
+						onChange={event => setCustomUsesClaim(event.target.checked)}
+					/>{' '}
+					Шаблон использует обязательный Claim slot
 				</label>
-				<button type="submit">Сохранить шаблон</button>
+				<label>
+					<input
+						type="checkbox"
+						checked={customShareLocationGuard}
+						onChange={event => setCustomShareLocationGuard(event.target.checked)}
+					/>{' '}
+					Reusable guard: участники должны находиться в одном месте
+				</label>
+				<label>
+					<input
+						type="checkbox"
+						checked={customTargetLearnsClaim}
+						disabled={!customUsesClaim}
+						onChange={event => setCustomTargetLearnsClaim(event.target.checked)}
+					/>{' '}
+					Reusable effect: цель узнаёт выбранный Claim
+				</label>
+				<input
+					aria-label="Ответный move шаблона"
+					value={customFollowupLabel}
+					onChange={event => setCustomFollowupLabel(event.target.value)}
+					placeholder="Необязательно: второй шаг/ответ"
+				/>
+				{customFollowupLabel.trim() && (
+					<select
+						aria-label="Тип ответного move шаблона"
+						value={customFollowupKind}
+						onChange={event =>
+							setCustomFollowupKind(event.target.value as NarrativeMoveKind)
+						}
+					>
+						{moveKinds.map(kind => (
+							<option key={kind} value={kind}>
+								{kind}
+							</option>
+						))}
+					</select>
+				)}
+				<button type="submit">Сохранить reusable шаблон</button>
 			</form>
 
 			<form className="narrative-workspace__compact-form" onSubmit={instantiate}>
@@ -162,7 +301,7 @@ export const InteractionTemplatePanel: React.FC = () => {
 
 				{template?.roles.map(role => (
 					<label key={role.id}>
-						{role.label}
+						{role.label} · {role.kind ?? 'character'}
 						<select
 							aria-label={`Роль ${role.label}`}
 							value={characterByRole[role.id] ?? ''}
@@ -185,7 +324,7 @@ export const InteractionTemplatePanel: React.FC = () => {
 
 				{template?.claimSlots.map(slot => (
 					<label key={slot.id}>
-						{slot.label} {slot.required ? '· обязательно' : ''}
+						{slot.label} · claim {slot.required ? '· обязательно' : ''}
 						<select
 							aria-label={`Claim slot ${slot.label}`}
 							value={claimBySlot[slot.id] ?? ''}
@@ -207,8 +346,41 @@ export const InteractionTemplatePanel: React.FC = () => {
 				))}
 
 				{template?.description && <small>{template.description}</small>}
-				<button type="submit" disabled={!template || !storyNodeId}>
-					Применить шаблон
+
+				{template && preview && (
+					<div className="narrative-workspace__reaction-set" aria-label="Предпросмотр interaction template">
+						<strong>Предпросмотр перед созданием</strong>
+						{preview.status === 'ready' ? (
+							preview.moves.map(move => (
+								<div key={move.id}>
+									<span>
+										{move.label} · {characterName(move.actorCharacterId)} →{' '}
+										{move.targetCharacterIds.map(characterName).join(', ') || '—'}
+									</span>
+									<small>
+										{move.guards.length} guard(s) ·{' '}
+										{move.outcomes.reduce(
+											(total, outcome) => total + outcome.effects.length,
+											0
+										)}{' '}
+										effect(s)
+									</small>
+								</div>
+							))
+						) : (
+							<small>
+								{preview.status === 'invalid'
+									? preview.error
+									: `Нужно назначить: ${preview.missingBindings
+											.map(binding => binding.label)
+											.join(', ')}`}
+							</small>
+						)}
+					</div>
+				)}
+
+				<button type="submit" disabled={preview?.status !== 'ready'}>
+					Создать показанную структуру
 				</button>
 				{message && <small>{message}</small>}
 			</form>
@@ -218,8 +390,15 @@ export const InteractionTemplatePanel: React.FC = () => {
 					<strong>Пользовательские шаблоны</strong>
 					{project.interactionTemplates.map(candidate => (
 						<div key={candidate.id}>
-							<span>{candidate.name}</span>
-							<button type="button" onClick={() => execute({type: 'template/remove', id: candidate.id})}>Удалить</button>
+							<span>
+								{candidate.name} · {candidate.moves.length} Move(s)
+							</span>
+							<button
+								type="button"
+								onClick={() => execute({type: 'template/remove', id: candidate.id})}
+							>
+								Удалить
+							</button>
 						</div>
 					))}
 				</div>
