@@ -63,6 +63,7 @@ describe('storyBrainNavigationForFinding', () => {
 
 		expect(storyBrainNavigationForFinding(projectForNavigation(), finding)).toEqual({
 			focus: {kind: 'move', id: 'move-a'},
+			workspace: 'story',
 			canvasEntityRef: {type: 'storyNode', id: 'story-a'}
 		});
 	});
@@ -81,7 +82,27 @@ describe('storyBrainNavigationForFinding', () => {
 
 		expect(storyBrainNavigationForFinding(projectForNavigation(), finding)).toEqual({
 			focus: {kind: 'claim', id: 'claim-a'},
+			workspace: 'story',
 			canvasEntityRef: undefined
+		});
+	});
+
+	it('navigates a Routine overlap to the midpoint in WORLD/TIME', () => {
+		const finding: StoryBrainFinding = {
+			id: 'schedule-overlap:hero:a:b:600:660',
+			kind: 'routine-overlap',
+			severity: 'warning',
+			summary: 'Расписания пересекаются',
+			characterId: 'hero',
+			ruleIds: ['a', 'b'],
+			authoredDays: [1, 1],
+			overlap: {start: 600, end: 660}
+		};
+
+		expect(storyBrainNavigationForFinding(projectForNavigation(), finding)).toEqual({
+			focus: {kind: 'character', id: 'hero'},
+			workspace: 'world-time',
+			worldTimeCenterAbsoluteMinute: 630
 		});
 	});
 
