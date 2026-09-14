@@ -10,6 +10,7 @@ import {
 	visibleAbsoluteMinuteRange
 } from '../../../domain/narrative/world-time';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {buildWorldTimeLocationIndexes} from './world-time-indexes';
 
 interface WorldPanState {
 	startClientX: number;
@@ -261,14 +262,37 @@ export const WorldTimeWorkspace: React.FC = () => {
 	const cursorVisible =
 		worldTimeViewport.centerAbsoluteMinute >= worldRange.start &&
 		worldTimeViewport.centerAbsoluteMinute <= worldRange.end;
-	const visibleStoryNodes = project.storyNodes.filter(node => {
-		const placement = node.placement;
-		if (placement?.day === undefined || placement.minuteOfDay === undefined) {
-			return false;
-		}
-		const minute = (placement.day - 1) * minutesPerDay + placement.minuteOfDay;
-		return minute >= worldRange.start && minute <= worldRange.end;
-	});
+	const visibleStoryNodes = React.useMemo(
+		() =>
+			project.storyNodes.filter(node => {
+				const placement = node.placement;
+				if (
+					placement?.day === undefined ||
+					placement.minuteOfDay === undefined
+				) {
+					return false;
+				}
+				const minute =
+					(placement.day - 1) * minutesPerDay + placement.minuteOfDay;
+				return minute >= worldRange.start && minute <= worldRange.end;
+			}),
+		[project.storyNodes, worldRange.end, worldRange.start]
+	);
+	const locationIndexes = React.useMemo(
+		() =>
+			buildWorldTimeLocationIndexes(
+				project.routineRules,
+				project.characters,
+				project.simulation.actualLocationByCharacter,
+				visibleStoryNodes
+			),
+		[
+			project.routineRules,
+			project.characters,
+			project.simulation.actualLocationByCharacter,
+			visibleStoryNodes
+		]
+	);
 
 	return (
 		<section className="narrative-workspace__world-time">
@@ -430,14 +454,12 @@ export const WorldTimeWorkspace: React.FC = () => {
 							) : (
 								project.locations.map(location => {
 									const scheduleBlocks: React.ReactNode[] = [];
-									for (const rule of project.routineRules) {
-										if (
-											rule.targetLocationId !== location.id ||
-											rule.absent
-										) {
-											continue;
-										}
-										for (
+									for (
+						const rule of locationIndexes.routineRulesByLocation.get(
+							location.id
+						) ?? []
+					) {
+						for (
 											let day = Math.max(1, firstVisibleDay - 1);
 											day <= lastVisibleDay;
 											day++
@@ -481,15 +503,11 @@ export const WorldTimeWorkspace: React.FC = () => {
 											);
 										}
 									}
-									const actualCharacters = project.characters.filter(
-										character =>
-											project.simulation.actualLocationByCharacter[character.id] ===
-											location.id
-									);
-									const locationStoryNodes = visibleStoryNodes.filter(
-										node => node.placement?.locationId === location.id
-									);
-									return (
+									const actualCharacters =
+						locationIndexes.actualCharactersByLocation.get(location.id) ?? [];
+					const locationStoryNodes =
+						locationIndexes.storyNodesByLocation.get(location.id) ?? [];
+					return (
 										<div
 											key={location.id}
 											className="narrative-workspace__timeline-row"
