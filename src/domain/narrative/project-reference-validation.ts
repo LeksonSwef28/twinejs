@@ -7,6 +7,7 @@ import {
 import {NarrativeProject} from './project';
 
 export type NarrativeReferenceOwnerKind =
+	| 'character'
 	| 'scene'
 	| 'behavior-profile'
 	| 'routine-rule'
@@ -418,6 +419,21 @@ export function validateNarrativeProjectReferences(
 		itemInstances: new Set(project.itemInstances.map(entity => entity.id)),
 		storyNodes: new Set(project.storyNodes.map(entity => entity.id))
 	};
+
+	for (const character of project.characters) {
+		addMissingReference(
+			findings,
+			sets.behaviorProfiles,
+			'behavior-profile',
+			character.defaultBehaviorProfileId,
+			{
+				ownerKind: 'character',
+				ownerId: character.id,
+				characterId: character.id
+			},
+			`Character «${character.name}»: default behavior profile`
+		);
+	}
 
 	for (const scene of project.scenes) {
 		addMissingReference(findings, sets.locations, 'location', scene.locationId, {
