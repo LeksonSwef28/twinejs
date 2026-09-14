@@ -16,6 +16,7 @@ import {
 	SimulationStepTrace
 } from '../../../domain/narrative/simulation-kernel';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {PreviewLaboratoryPanel} from './preview-laboratory-panel';
 import './simulation-debug-panel.css';
 
 export interface SimulationDebugPanelProps {
@@ -151,6 +152,8 @@ export const SimulationDebugPanel: React.FC<SimulationDebugPanelProps> = ({
 				</button>
 				{atProjectEnd && <strong>Конец 93-го дня</strong>}
 			</section>
+
+			<PreviewLaboratoryPanel />
 
 			<div className="simulation-debug__grid">
 				<section className="simulation-debug__card is-wide">
