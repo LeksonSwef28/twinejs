@@ -59,6 +59,8 @@ Deliverables:
 
 ## A49 — Reusable Authoring Templates
 
+**Status:** DONE (2026-09-14). Interaction Templates now support explicit typed Character roles and Claim slots, reusable guards and outcome effects bound through those slots, multi-step EventTemplate-style authoring patterns that materialize into ordinary canonical Narrative Moves, and a read-only pre-commit preview of the exact instantiated structure. The authoring UI can create, bind, inspect, preview, instantiate and remove reusable patterns without editing internal JSON/code; runtime never executes templates directly and no autonomous content generation was introduced. The implementation passed the full 93 Days branch gate before this status update.
+
 **Goal:** let authors reuse structural narrative patterns without copying graph fragments manually.
 
 Deliverables:
