@@ -1,10 +1,15 @@
 import {
+	analyzeNarrativeAuthoring,
+	analyzeUnknownNarrativeGuards,
+	NarrativeAuthoringFinding
+} from '../../domain/narrative/authoring-analysis';
+import {NarrativeMoveDefinition} from '../../domain/narrative/interaction';
+import {
 	evaluateNarrativeCondition,
 	evaluateNarrativeGuards,
 	NarrativeConditionTrace,
 	NarrativeRuntimeEvaluationContext
 } from '../../domain/narrative/interaction-runtime';
-import {NarrativeMoveDefinition} from '../../domain/narrative/interaction';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {
 	NarrativeReferenceFinding,
@@ -56,7 +61,8 @@ export interface StoryBrainWhyResult {
 export type StoryBrainFinding =
 	| StoryCoverageFinding
 	| NarrativeReferenceFinding
-	| NarrativeScheduleConflictFinding;
+	| NarrativeScheduleConflictFinding
+	| NarrativeAuthoringFinding;
 
 export interface StoryBrainCoverageResult {
 	projectFindingCount: number;
@@ -255,6 +261,22 @@ function coverageForFocus(
 	);
 }
 
+function authoringFindingsForFocus(
+	findings: NarrativeAuthoringFinding[],
+	storyNodeIds: string[],
+	moves: NarrativeMoveDefinition[],
+	characterIds: Set<string>
+) {
+	const nodeIds = new Set(storyNodeIds);
+	const moveIds = new Set(moves.map(move => move.id));
+	return findings.filter(
+		finding =>
+			(finding.storyNodeId !== undefined && nodeIds.has(finding.storyNodeId)) ||
+			(finding.moveId !== undefined && moveIds.has(finding.moveId)) ||
+			(finding.characterId !== undefined && characterIds.has(finding.characterId))
+	);
+}
+
 function referenceFindingsForFocus(
 	findings: NarrativeReferenceFinding[],
 	storyNodeIds: string[],
@@ -324,19 +346,26 @@ function collectProjectDiagnostics(project: NarrativeProject) {
 	);
 	const referenceValidation = validateNarrativeProjectReferences(project);
 	const scheduleAnalysis = analyzeNarrativeScheduleConflicts(project);
+	const authoringAnalysis = analyzeNarrativeAuthoring(project);
 	const findings: StoryBrainFinding[] = [
 		...storyCoverage.findings,
 		...referenceValidation.findings,
-		...scheduleAnalysis.findings
+		...scheduleAnalysis.findings,
+		...authoringAnalysis.findings
 	];
-	return {storyCoverage, referenceValidation, scheduleAnalysis, findings};
+	return {
+		storyCoverage,
+		referenceValidation,
+		scheduleAnalysis,
+		authoringAnalysis,
+		findings
+	};
 }
 
 /**
  * Project-wide read-only diagnostics do not require a Story Brain Focus. This
- * keeps broken references, structural coverage and schedule conflicts visible
- * even when the author has no Story Brain entity that can surface the problem
- * contextually.
+ * keeps broken references, structural coverage, schedule conflicts and authored
+ * Story/WORLD-TIME consistency findings visible outside local Focus.
  */
 export function queryStoryBrainProjectDiagnostics(
 	project: NarrativeProject
@@ -351,8 +380,8 @@ export function queryStoryBrainProjectDiagnostics(
 /**
  * Application-level Story Brain query. It composes the read-only authored graph
  * with the current preview/runtime state for WHY and reaction explanations.
- * Coverage, authored-reference/schedule validation, Bridge Finder and reaction
- * ranking remain derived/read-only; authoring changes still require a command.
+ * Project diagnostics stay authored/read-only; preview-dependent unknown guards
+ * are added only to local Coverage and never mutate authored or runtime state.
  */
 export function queryStoryBrain(
 	project: NarrativeProject,
@@ -389,6 +418,7 @@ export function queryStoryBrain(
 	const projectCoverage = projectDiagnostics.storyCoverage;
 	const referenceValidation = projectDiagnostics.referenceValidation;
 	const scheduleAnalysis = projectDiagnostics.scheduleAnalysis;
+	const authoringAnalysis = projectDiagnostics.authoringAnalysis;
 	const focusCoverage = coverageForFocus(
 		projectCoverage.findings,
 		storyNodeIds,
@@ -404,6 +434,13 @@ export function queryStoryBrain(
 	const focusScheduleConflicts = scheduleAnalysis.findings.filter(finding =>
 		characterIds.has(finding.characterId)
 	);
+	const focusAuthoring = authoringFindingsForFocus(
+		authoringAnalysis.findings,
+		storyNodeIds,
+		related,
+		characterIds
+	);
+	const previewGuardFindings = analyzeUnknownNarrativeGuards(project, related);
 	const bridges = findStoryBridgeCandidates(
 		{
 			nodes: project.storyNodes,
@@ -421,7 +458,13 @@ export function queryStoryBrain(
 		why: {moves},
 		coverage: {
 			projectFindingCount: projectDiagnostics.findings.length,
-			findings: [...focusCoverage, ...focusReferences, ...focusScheduleConflicts]
+			findings: [
+				...focusCoverage,
+				...focusReferences,
+				...focusScheduleConflicts,
+				...focusAuthoring,
+				...previewGuardFindings
+			]
 		},
 		projectDiagnostics: {
 			findingCount: projectDiagnostics.findings.length,
