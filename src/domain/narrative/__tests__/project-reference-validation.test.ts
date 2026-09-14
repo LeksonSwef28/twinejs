@@ -196,4 +196,70 @@ describe('validateNarrativeProjectReferences', () => {
 			findings.length
 		);
 	});
+
+
+	it('finds broken references inside Reaction Candidate Sets', () => {
+		const value = project();
+		value.reactionCandidateSets = [
+			{
+				id: 'reaction-set-1',
+				storyNodeId: 'missing-reaction-story',
+				reactingCharacterId: 'missing-reactor',
+				counterpartCharacterId: 'missing-counterpart',
+				candidates: [
+					{
+						id: 'candidate-1',
+						moveId: 'missing-move',
+						valence: 'negative',
+						baseScore: 1,
+						guards: [
+							{
+								id: 'reaction-guard-1',
+								condition: {
+									type: 'character-knows-claim',
+									characterId: 'missing-guard-character',
+									claimId: 'missing-guard-claim'
+								}
+							}
+						],
+						considerations: [
+							{
+								id: 'claim-consideration',
+								type: 'knows-claim',
+								claimId: 'missing-consideration-claim',
+								weight: 1
+							},
+							{
+								id: 'story-consideration',
+								type: 'story-node-state',
+								storyNodeId: 'missing-consideration-story',
+								state: 'completed',
+								weight: 2
+							}
+						]
+					}
+				]
+			}
+		];
+
+		const findings = validateNarrativeProjectReferences(value).findings;
+		const targets = findings.map(finding => `${finding.targetKind}:${finding.targetId}`);
+
+		expect(targets).toEqual(
+			expect.arrayContaining([
+				'story-node:missing-reaction-story',
+				'character:missing-reactor',
+				'character:missing-counterpart',
+				'narrative-move:missing-move',
+				'character:missing-guard-character',
+				'claim:missing-guard-claim',
+				'claim:missing-consideration-claim',
+				'story-node:missing-consideration-story'
+			])
+		);
+		expect(
+			findings.every(finding => finding.ownerKind === 'reaction-candidate-set')
+		).toBe(true);
+	});
+
 });

@@ -230,8 +230,8 @@ export const StoryBrainPanel: React.FC = () => {
 					<article className="narrative-workspace__story-brain-coverage">
 						<h3>COVERAGE</h3>
 						<p>
-							Ищет пустые исходы, асимметрию веток и места, где исполняемая
-							 линия заканчивается раньше ожидаемого.
+							Ищет пустые исходы, асимметрию веток, ранние окончания и битые
+							 authored-ссылки, включая зависимости Reaction Candidate Sets.
 						</p>
 						{result.coverage.findings.length > 0 ? (
 							<ul className="narrative-workspace__story-brain-finding-list">
