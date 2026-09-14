@@ -10,15 +10,18 @@ permissions:
 
 jobs:
   apply:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           ref: audit/a48-reference-validation
-      - name: Add Character default profile validation
+      - name: Apply Character default profile validation
         shell: bash
         run: |
+          if git log -1 --pretty=%B | grep -q '\[a48-default-profile-applied\]'; then
+            echo 'Patch already applied.'
+            exit 0
+          fi
           python3 <<'PY'
           from pathlib import Path
 
@@ -46,16 +49,17 @@ jobs:
 \t\t);
 \t}
 """
-          if "Character «${character.name}»: default behavior profile" not in text:
+          if "default behavior profile`" not in text:
               assert marker in text
               text = text.replace(marker, block + marker, 1)
           path.write_text(text)
           PY
-      - name: Commit patch
-        shell: bash
-        run: |
+          if git diff --quiet -- src/domain/narrative/project-reference-validation.ts; then
+            echo 'No product diff to commit.'
+            exit 0
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add src/domain/narrative/project-reference-validation.ts
-          git commit -m 'feat(93-days): validate character default behavior profiles'
+          git commit -m 'feat(93-days): validate character default behavior profiles [a48-default-profile-applied]'
           git push origin HEAD:audit/a48-reference-validation
