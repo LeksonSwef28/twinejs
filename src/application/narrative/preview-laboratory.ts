@@ -192,7 +192,11 @@ export function setPreviewRuntimeInput(
 		) {
 			throw new Error(`Unknown preview location: ${input.locationId}`);
 		}
-		project.simulation.actualLocationByCharacter[input.characterId] = input.locationId;
+		if (input.locationId) {
+			project.simulation.actualLocationByCharacter[input.characterId] = input.locationId;
+		} else {
+			delete project.simulation.actualLocationByCharacter[input.characterId];
+		}
 		summary = `Test actual location for ${input.characterId} set to ${
 			input.locationId ?? 'unset'
 		}.`;
