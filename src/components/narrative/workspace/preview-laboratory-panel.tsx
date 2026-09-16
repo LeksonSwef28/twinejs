@@ -16,6 +16,7 @@ import {NarrativeProjectMoveResolutionTrace} from '../../../application/narrativ
 import {formatMinuteOfDay} from '../../../domain/narrative/calendar';
 import {KnowledgeAttitude} from '../../../domain/narrative/knowledge';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {PreviewCheckpointControls} from './preview-checkpoint-controls';
 import {PreviewTypedWatches} from './preview-typed-watches';
 import './preview-laboratory-panel.css';
 
@@ -278,6 +279,11 @@ export const PreviewLaboratoryPanel: React.FC = () => {
 
 			{error && <p className="preview-lab__error">{error}</p>}
 			<PreviewTypedWatches scenario={active} hidden={layer !== 'analysis'} />
+			<PreviewCheckpointControls
+				scenario={active}
+				hidden={layer !== 'analysis'}
+				onRestore={restored => replaceActive(() => restored)}
+			/>
 
 			{layer === 'preview' && (
 				<div className="preview-lab__grid" role="tabpanel" aria-label="Preview">
