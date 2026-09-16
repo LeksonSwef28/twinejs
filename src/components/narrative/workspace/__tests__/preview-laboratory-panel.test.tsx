@@ -180,6 +180,10 @@ describe('<PreviewLaboratoryPanel>', () => {
 		expect(screen.getByText('Raw Move trace')).toBeInTheDocument();
 		expect(screen.getByText(/"status": "blocked"/)).toBeInTheDocument();
 		expect(screen.getByText(/Force authored Outcome/)).toBeInTheDocument();
+
+		openLayer('Preview');
+		fireEvent.change(screen.getByLabelText('Move'), {target: {value: 'skill-promise'}});
+		expect(screen.getByText(/Запустите Trace only/)).toBeInTheDocument();
 	});
 
 	it('edits explicit sandbox inputs without dispatching authoring or live-runtime commands', () => {
@@ -232,6 +236,7 @@ describe('<PreviewLaboratoryPanel>', () => {
 		fireEvent.click(screen.getByRole('button', {name: 'Set test presence'}));
 
 		openLayer('Preview');
+		expect(screen.getByText(/Запустите Trace only/)).toBeInTheDocument();
 		fireEvent.click(screen.getByRole('button', {name: 'Trace only'}));
 		expect(screen.getByText(/Move доступен/)).toBeInTheDocument();
 		expect(screen.getByText('accepted')).toBeInTheDocument();
@@ -274,6 +279,8 @@ describe('<PreviewLaboratoryPanel>', () => {
 		fireEvent.change(screen.getByLabelText('Roll total'), {target: {value: '2'}});
 		fireEvent.click(screen.getByRole('button', {name: 'Trace only'}));
 		expect(screen.getByText('skill-accepted')).toBeInTheDocument();
+		fireEvent.change(screen.getByLabelText('Roll total'), {target: {value: '1'}});
+		expect(screen.getByText(/Запустите Trace only/)).toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole('button', {name: 'Reset'}));
 		fireEvent.click(screen.getByRole('button', {name: 'Set from live runtime'}));

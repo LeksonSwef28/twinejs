@@ -176,6 +176,8 @@ export const PreviewLaboratoryPanel: React.FC = () => {
 		setScenarios(current =>
 			current.map(scenario => (scenario.id === active.id ? replacement : scenario))
 		);
+		setTrace(undefined);
+		setLastOutcomeTrace(undefined);
 	}
 
 	function run(operation: () => void) {
@@ -283,7 +285,11 @@ export const PreviewLaboratoryPanel: React.FC = () => {
 							Move
 							<select
 								value={selectedMoveId}
-								onChange={event => setSelectedMoveId(event.target.value)}
+								onChange={event => {
+									setSelectedMoveId(event.target.value);
+									setTrace(undefined);
+									setLastOutcomeTrace(undefined);
+								}}
 							>
 								<option value="">Choose Move</option>
 								{active.project.narrativeMoves.map(move => (
@@ -300,7 +306,11 @@ export const PreviewLaboratoryPanel: React.FC = () => {
 									<input
 										type="number"
 										value={skillValueInput}
-										onChange={event => setSkillValueInput(event.target.value)}
+										onChange={event => {
+											setSkillValueInput(event.target.value);
+											setTrace(undefined);
+											setLastOutcomeTrace(undefined);
+										}}
 									/>
 								</label>
 								<label>
@@ -308,7 +318,11 @@ export const PreviewLaboratoryPanel: React.FC = () => {
 									<input
 										type="number"
 										value={rollTotalInput}
-										onChange={event => setRollTotalInput(event.target.value)}
+										onChange={event => {
+											setRollTotalInput(event.target.value);
+											setTrace(undefined);
+											setLastOutcomeTrace(undefined);
+										}}
 									/>
 								</label>
 							</div>
@@ -663,6 +677,7 @@ export const PreviewLaboratoryPanel: React.FC = () => {
 							onClick={() =>
 								run(() => {
 									const result = forcePreviewOutcome(active, selectedMoveId, selectedOutcomeId);
+									setTrace(undefined);
 									setLastOutcomeTrace(result.trace);
 									setScenarios(current =>
 										current.map(scenario =>
