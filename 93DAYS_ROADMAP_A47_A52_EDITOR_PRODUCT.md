@@ -89,7 +89,7 @@ Deliverables:
 
 ## A51 — Preview / Debug as an Authoring Laboratory
 
-**Status:** IN PROGRESS (2026-09-16). **A51-S1 baseline stabilization is DONE**: architecture/contracts were reviewed, exact CI failures were captured instead of guessed, the minimal validation/provenance fixes were applied, and exact-head workflow run #427 passed the full branch gate on `af2ffcf8ef4973be6f0755e629c93f02b6f4978c` (324/324 suites; Vite and Electron smoke PASS). The next permitted slice is **A51-S2 — progressive disclosure + human-readable diagnostics**. The overall A51 stage is not DONE and has not been merged.
+**Status:** IN PROGRESS (2026-09-16). **A51-S1 baseline stabilization is DONE** and **A51-S2 progressive disclosure + human-readable diagnostics is DONE**. S2 separates Preview / Analysis / Deep Debug, derives author-facing explanations from canonical runtime traces, keeps raw trace/Force Outcome in explicit Deep Debug, and invalidates diagnostics whenever their sandbox state or resolver inputs change. Exact code-head workflow run #430 passed the full branch gate on `5c496cb00dcac0e64370340ef1b33497504656a4` (324/324 suites; 2002 passed tests; Vite and Electron smoke PASS). The next permitted slice is **A51-S3 — Typed Watches**. The overall A51 stage is not DONE and has not been merged.
 
 **Goal:** let an author test assumptions and consequences without pretending the editor is the final game UI.
 

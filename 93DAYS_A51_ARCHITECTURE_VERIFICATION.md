@@ -1,6 +1,6 @@
 # 93 Days Narrative Editor — A51 Architecture & Verification Baseline
 
-Status: **ACTIVE / PRE-CI DESIGN GATE**  
+Status: **ACTIVE / S2 VERIFIED**  
 Stage: **A51 — Preview / Debug as an Authoring Laboratory**  
 Stable base: `93-days-editor` @ `060633b779f4fda9f72761ba735c2c34342b9991`  
 Feature branch: `feature/a51-preview-debug-laboratory`
@@ -114,16 +114,16 @@ Known risk: runtime projection is manually enumerated and can drift when runtime
 
 Current file: `src/components/narrative/workspace/preview-laboratory-panel.tsx`.
 
-Current state: functional but mixes Preview, Analysis and Deep Debug concerns.
-
-TO-BE after S1 is green:
-- Preview = compact result/current context;
-- Analysis = blocked reasons, comparisons and explicit overrides;
-- Deep Debug = raw traces/provenance/Force Outcome.
+Current state after S2:
+- Preview = default compact Move result/current context, without raw JSON;
+- Analysis = canonical guard reasons, comparisons, runtime changes and explicit test-only overrides;
+- Deep Debug = raw traces, provenance and Force Outcome;
+- human-readable diagnostics are projections of canonical runtime trace data, not a second evaluator;
+- derived Move diagnostics are invalidated whenever sandbox state, selected Move or explicit resolver inputs change, so stale explanations are not presented as current facts.
 
 ## 6. AS-IS / TO-BE / KEEP / DEFER
 
-### AS-IS and accepted for S1
+### AS-IS through S2
 
 - local isolated scenarios;
 - Set from live / Fork / Reset;
@@ -132,12 +132,13 @@ TO-BE after S1 is green:
 - canonical Move execution;
 - forced existing authored Outcome through canonical effect engine;
 - runtime diff and occurrence-linked preview provenance;
-- panel tests asserting no authoring/live-runtime dispatch.
-
-### TO-BE after baseline stabilization
-
-- human-readable Move diagnostics;
+- panel tests asserting no authoring/live-runtime dispatch;
+- human-readable Move diagnostics sourced from canonical trace summaries;
 - progressive Preview → Analysis → Deep Debug disclosure;
+- stale derived diagnostics invalidated when their source state/input changes.
+
+### TO-BE after S2
+
 - typed Watches;
 - safe Preview from here;
 - preview checkpoints/time travel;
@@ -163,16 +164,16 @@ TO-BE after S1 is green:
 
 | Requirement | Use cases | Components / files | Verification evidence | Gate |
 |---|---|---|---|---|
-| REQ-001 isolated preview | UC-001,009 | preview-laboratory.ts, panel local state | deep-equality/source-isolation tests + UI no-dispatch | PASS after CI |
-| REQ-002 capture/fork/reset | UC-001,007,008 | Preview Scenario Service | unit tests incl. fork-point reset | PASS after CI |
-| REQ-003 typed test inputs | UC-002 | Preview Scenario Service | valid + invalid + atomic-failure tests | PASS after CI |
-| REQ-004 read-only Move inspection | UC-003,004 | Canonical Runtime Bridge | trace no-mutation tests | PASS after CI |
-| REQ-005 execute authored Move | UC-005 | Canonical Runtime Bridge | canonical outcome/effect + blocked/input-required atomicity | PASS after CI |
-| REQ-006 force existing Outcome | UC-006 | Canonical Runtime Bridge | valid forced provenance + invalid outcome atomicity | PASS after CI |
-| REQ-007 compare alternatives | UC-008 | Diff reader | symmetric changed-path tests + independent scenarios | PASS after CI |
-| REQ-008 downstream/provenance | UC-005,006,008 | Diff reader + actions | occurrence linkage tests | PARTIAL: concept-level presentation still future |
-| REQ-009 no authoring Undo/Redo | UC-009 | panel + runtime-history boundary | UI no-dispatch plus existing runtime-history tests | PASS after CI |
-| REQ-010 progressive disclosure | UC-010 | Preview presentation | not implemented | TO-BE S2 |
+| REQ-001 isolated preview | UC-001,009 | preview-laboratory.ts, panel local state | deep-equality/source-isolation tests + UI no-dispatch | PASS |
+| REQ-002 capture/fork/reset | UC-001,007,008 | Preview Scenario Service | unit tests incl. fork-point reset | PASS |
+| REQ-003 typed test inputs | UC-002 | Preview Scenario Service | valid + invalid + atomic-failure tests | PASS |
+| REQ-004 read-only Move inspection | UC-003,004 | Canonical Runtime Bridge | trace no-mutation tests | PASS |
+| REQ-005 execute authored Move | UC-005 | Canonical Runtime Bridge | canonical outcome/effect + blocked/input-required atomicity | PASS |
+| REQ-006 force existing Outcome | UC-006 | Canonical Runtime Bridge | valid forced provenance + invalid outcome atomicity | PASS |
+| REQ-007 compare alternatives | UC-008 | Diff reader | symmetric changed-path tests + independent scenarios | PASS |
+| REQ-008 downstream/provenance | UC-005,006,008 | Diff reader + actions | occurrence linkage tests | PARTIAL: concept-level downstream presentation remains future work |
+| REQ-009 no authoring Undo/Redo | UC-009 | panel + runtime-history boundary | UI no-dispatch plus existing runtime-history tests | PASS |
+| REQ-010 progressive disclosure | UC-010 | Preview presentation | Preview/Analysis/Deep Debug UI regression + raw-debug isolation + stale-diagnostic invalidation; run #430 | PASS |
 | REQ-011 Preview from here | UC-011 | future navigation adapter | contract unresolved | BLOCKED from implementation |
 | REQ-012 Watches | UC-012 | future watch projection | typed union not defined | TO-BE S3 |
 | REQ-013 checkpoints | UC-013 | future preview history | storage semantics unresolved | BLOCKED from implementation |
@@ -180,7 +181,7 @@ TO-BE after S1 is green:
 
 ## 8. Contract tests required before expanding A51
 
-The S1 baseline must explicitly test these contracts in addition to existing happy paths:
+The S1 baseline explicitly tests these contracts in addition to happy paths:
 
 1. invalid preview override throws and does not change the prior scenario;
 2. blocked Move execution returns no applied Outcome and does not append a runtime occurrence/action;
@@ -193,6 +194,8 @@ The S1 baseline must explicitly test these contracts in addition to existing hap
 9. preview panel still never calls authoring `execute` or live `replaceRuntimeProject`;
 10. runtime-history tests remain green so A51 does not regress the existing live-runtime/authoring boundary.
 
+S2 additionally tests progressive disclosure and derived-diagnostic invalidation at the UI boundary.
+
 ## 9. Failure-mode review (FMEA-lite)
 
 | Failure mode | Impact | Likelihood | Detection | Mitigation / gate |
@@ -202,24 +205,25 @@ The S1 baseline must explicitly test these contracts in addition to existing hap
 | invalid operation partially mutates sandbox | misleading investigation | medium | atomic-failure tests | BLOCKER |
 | runtime projection drift misses new runtime fields | false comparison/debug conclusions | medium | projection contract review/test | HIGH |
 | `undefined` ghost keys change after clone | unstable diffs/checkpoints | medium | serialization-stability test | HIGH |
-| raw traces dominate default UI | unusable authoring tool | high | UI progressive-disclosure tests | S2 gate |
+| raw traces dominate default UI | unusable authoring tool | low after S2 | UI progressive-disclosure tests | S2 PASS |
+| stale trace survives changed sandbox/input | misleading author diagnosis | low after S2 | stale-diagnostic UI regressions | S2 PASS |
 | Preview from here fabricates missing world state | false conclusions | medium | unresolved-prerequisite contract | BLOCKER for S4 |
 | checkpoints reuse authoring Undo/Redo | history corruption/confusion | low | architecture review + integration tests | BLOCKER for S5 |
 | force Outcome becomes normal execution shortcut | author confusion / invalid testing | medium | Deep Debug-only UI + provenance `forced=true` | HIGH |
 | test coverage lowered to get green | hidden regressions | medium | CI policy | BLOCKER |
 
-## 10. Specific defect found during architecture review
+## 10. Defect corrected during S1 architecture review
 
-Current `actual-location` override assigns `undefined` to the character key when the author selects `unset`. Because A51 clones via JSON serialization, the next clone removes that key. This violates **A51-I12 stable serialization semantics** and can make diff/checkpoint behavior depend on whether another action happened afterwards.
+The original `actual-location` unset path assigned `undefined` to a character key. Because A51 clones via JSON serialization, the next clone removed that key, violating **A51-I12 stable serialization semantics** and making diff/checkpoint behavior depend on whether another action happened afterwards.
 
-Required correction for S1:
+S1 corrected the contract to:
 
 ```text
 if locationId is defined → assign character location
 else → delete character key
 ```
 
-Add a regression test proving that unset presence is identical before and after a subsequent clone-producing action.
+A regression test proves that unset presence is identical before and after a subsequent clone-producing action.
 
 ## 11. Verification pyramid
 
@@ -248,7 +252,10 @@ Add a regression test proving that unset presence is identical before and after 
 - explicit test-only labels;
 - no authoring/live dispatch;
 - validation surfaces errors;
-- later S2: Preview/Analysis/Deep Debug disclosure.
+- Preview/Analysis/Deep Debug disclosure;
+- canonical guard summaries rendered without duplicating evaluation;
+- raw traces and Force Outcome remain Deep Debug-only;
+- diagnostics invalidate when sandbox state or resolver inputs change.
 
 ### System / CI
 Required full branch gate:
@@ -263,27 +270,29 @@ Required full branch gate:
 
 No threshold weakening or coverage exclusions are accepted as a fix.
 
-## 12. Pre-CI S1 checklist
+## 12. Completed stabilization checklist
 
-S1 is ready for CI only when all are true:
+S1 and S2 have established the following verified baseline:
 
 - architecture invariants I01–I12 reviewed against actual files;
-- traceability table has no unowned REQ-001..009 behavior;
-- hidden unset-presence serialization defect fixed;
-- missing negative/atomicity contract tests added;
+- traceability has ownership for REQ-001..010 behavior;
+- unset-presence serialization defect fixed;
+- negative/atomicity contract tests retained;
 - existing runtime-history boundary tests retained;
-- no new REQ-010..014 feature code mixed into stabilization;
-- current code/tests compile by inspection;
-- then run full `93 Days Branch Check` and diagnose exact failures from evidence only.
+- progressive disclosure does not alter runtime semantics;
+- current human-readable diagnostics are derived from canonical trace data;
+- raw debug data is opt-in;
+- stale trace presentation is explicitly invalidated;
+- full `93 Days Branch Check` passed on S2 exact code head `5c496cb00dcac0e64370340ef1b33497504656a4` in run #430.
 
 ## 13. Slice order after S1
 
 ```text
-A51-S1 Stabilize architecture + contracts + CI
+A51-S1 Stabilize architecture + contracts + CI — DONE
   ↓
-A51-S2 Progressive disclosure + human-readable diagnostics
+A51-S2 Progressive disclosure + human-readable diagnostics — DONE
   ↓
-A51-S3 Typed Watches
+A51-S3 Typed Watches — NEXT
   ↓
 A51-S4 Preview from here (only after semantic contract PASS)
   ↓
