@@ -203,7 +203,7 @@ describe('<PreviewLaboratoryPanel>', () => {
 
 		fireEvent.click(screen.getByRole('button', {name: 'Resolve + apply authored'}));
 		expect(screen.getByText(/resolved-outcome/)).toBeInTheDocument();
-		expect(screen.getAllByText(/occurrence-/).length).toBeGreaterThan(0);
+		expect(screen.getAllByText(/occurrence:promise:accepted/).length).toBeGreaterThan(0);
 
 		const outcomeSelect = selectContainingOption(container, 'declined');
 		fireEvent.change(outcomeSelect, {target: {value: 'declined'}});
