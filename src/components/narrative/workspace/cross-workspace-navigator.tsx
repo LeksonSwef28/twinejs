@@ -8,6 +8,7 @@ import {
 	worldTimeViewportForStoryNode
 } from '../../../domain/narrative/workspace-navigation';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {usePreviewFromHereSession} from './preview-from-here-session';
 
 export interface CrossWorkspaceNavigatorProps {
 	splitView?: boolean;
@@ -17,6 +18,7 @@ export const CrossWorkspaceNavigator: React.FC<CrossWorkspaceNavigatorProps> = (
 	splitView = false
 }) => {
 	const {project, execute} = useNarrativeProject();
+	const {requestPreviewFromHere} = usePreviewFromHereSession();
 	const [storyNodeId, setStoryNodeId] = React.useState('');
 	const [locationFilterId, setLocationFilterId] = React.useState('');
 	const [characterFilterId, setCharacterFilterId] = React.useState('');
@@ -164,6 +166,19 @@ export const CrossWorkspaceNavigator: React.FC<CrossWorkspaceNavigatorProps> = (
 			</button>
 			<button type="button" onClick={showInWorldTime} disabled={!worldTarget}>
 				Показать во времени
+			</button>
+			<button
+				type="button"
+				disabled={!selectedNode}
+				onClick={() =>
+					selectedNode &&
+					requestPreviewFromHere({
+						type: 'story-node',
+						storyNodeId: selectedNode.id
+					})
+				}
+			>
+				Preview from here
 			</button>
 
 			{selectedNode && context && (
