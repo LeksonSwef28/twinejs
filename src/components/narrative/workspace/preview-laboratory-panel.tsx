@@ -100,8 +100,9 @@ export const PreviewLaboratoryPanel: React.FC = () => {
 	}
 
 	function replaceActive(transform: (scenario: PreviewScenario) => PreviewScenario) {
+		const replacement = transform(active);
 		setScenarios(current =>
-			current.map(scenario => (scenario.id === active.id ? transform(scenario) : scenario))
+			current.map(scenario => (scenario.id === active.id ? replacement : scenario))
 		);
 	}
 
