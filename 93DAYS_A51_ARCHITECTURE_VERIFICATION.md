@@ -1,6 +1,6 @@
 # 93 Days Narrative Editor — A51 Architecture & Verification Baseline
 
-Status: **ACTIVE / S3 VERIFIED**  
+Status: **ACTIVE / S4 VERIFIED**  
 Stage: **A51 — Preview / Debug as an Authoring Laboratory**  
 Stable base: `93-days-editor` @ `060633b779f4fda9f72761ba735c2c34342b9991`  
 Feature branch: `feature/a51-preview-debug-laboratory`
@@ -14,7 +14,7 @@ A51 provides an author/developer laboratory that can answer four questions witho
 1. What happens in this preview state?
 2. Why is a Move available, blocked, or resolved to a particular Outcome?
 3. What runtime consequences followed?
-4. Can the author compare, reset, fork, watch and later reproduce an investigation safely?
+4. Can the author compare, reset, fork, watch, carry authoring focus into Preview and later reproduce an investigation safely?
 
 A51 is editor tooling. It is not final player UI and it must not introduce a second narrative runtime.
 
@@ -23,28 +23,34 @@ A51 is editor tooling. It is not final player UI and it must not introduce a sec
 ```text
 Author
   ↓
+NarrativeWorkspace authoring focus
+  ├─ View Cursor
+  └─ selected Story context
+        ↓ explicit Preview-from-here request
 PreviewLaboratoryPanel (UI / local investigation state)
   ├─ PreviewTypedWatches (local read-only Watch collection)
+  └─ Preview-from-here read-only focus context
   ↓
-preview-laboratory.ts / preview-watches.ts (application orchestration + read projections)
+preview-laboratory.ts / preview-watches.ts / preview-from-here.ts
   ↓
-existing canonical runtime APIs
+existing canonical runtime APIs / projections
   ├─ resolveNarrativeProjectMove
   ├─ resolveAndApplyNarrativeProjectMove
   ├─ applyNarrativeProjectOutcome
   ├─ advanceNarrativeProjectSimulation
-  └─ narrativeRuntimeStoryNodes
+  ├─ narrativeRuntimeStoryNodes
+  └─ storyWorldNavigationContext
   ↓
 NarrativeProject sandbox clone
 
 Authoring store/history ───────────────┐
   execute / Undo / Redo               │ MUST NOT receive preview actions
 Live runtime replacement              │ MUST NOT receive sandbox actions
-Persistence repository                │ MUST NOT persist preview scenarios/Watches
-                                      └─────────────────────────────────────────
+Persistence repository                │ MUST NOT persist preview scenarios/Watches/focus
+                                      └──────────────────────────────────────────────
 ```
 
-The important direction is one-way: Preview reads the current Narrative Project as a source, then works on isolated sandbox values. Sandbox actions never flow back into authoring history or live runtime implicitly. Watches only read the current sandbox and remain local investigation state.
+The important direction is one-way: Preview reads the current Narrative Project as a source, then works on isolated sandbox values. Sandbox actions never flow back into authoring history or live runtime implicitly. Watches only read the current sandbox. Preview-from-here focus is UI investigation metadata and never becomes runtime truth merely because an author is viewing another Story/time context.
 
 ## 3. State ownership map
 
@@ -57,6 +63,7 @@ The important direction is one-way: Preview reads the current Narrative Project 
 | Preview action provenance | A51 application/UI | investigation | no | no | append-only investigation log |
 | Typed Watch definitions | A51 UI local state | investigation | no | no | yes, UI-only add/remove |
 | Typed Watch values | derived read projection | render/read | no | no | **no** |
+| Preview-from-here focus/context | NarrativeWorkspace UI session + read projection | request/investigation | no | no | replace only by explicit request |
 | View Cursor/editor navigation | editor | editor session | editor rules | not narrative state | A51 must not conflate with Simulation Playhead |
 
 ## 4. Non-negotiable invariants
@@ -75,6 +82,8 @@ The important direction is one-way: Preview reads the current Narrative Project 
 - **A51-I12 — Stable serialization semantics:** a logically equivalent preview state must not change merely because an extra clone/serialization roundtrip occurred.
 - **A51-I13 — Typed Watch boundary:** Watches name reviewed runtime concepts with typed entity references; A51 does not expose arbitrary object/JSON paths as a Watch API.
 - **A51-I14 — Watch purity:** evaluating a Watch cannot mutate the sandbox, append preview provenance, persist state or dispatch authoring/live-runtime writes.
+- **A51-I15 — Focus is not runtime truth:** Preview-from-here focus must not implicitly move Simulation Playhead, set Actual Presence, synthesize Knowledge or alter Story runtime state.
+- **A51-I16 — Fresh Preview-from-here source:** each explicit Preview-from-here request establishes a fresh current-live snapshot boundary; prior arbitrary sandbox overrides are not silently carried into the new focus.
 
 ## 5. Current components
 
@@ -146,9 +155,31 @@ Must not:
 - write to authoring/live runtime;
 - reconstruct canonical effective Story state.
 
+### COMP-A51-06 Preview-From-Here Focus Adapter
+
+Current files:
+- `src/application/narrative/preview-from-here.ts`;
+- `src/components/narrative/workspace/preview-from-here-controls.tsx`;
+- focused handoff wiring in `narrative-workspace.tsx` and `cross-workspace-navigator.tsx`.
+
+Responsibilities:
+- validate the finite `story-node | view-moment` focus union;
+- derive read-only context from authoring focus;
+- reuse canonical `storyWorldNavigationContext()` for Story/presence comparison;
+- open Playtest/Debug from explicit View Cursor or selected Story context actions;
+- establish a fresh live-sourced Preview boundary for each request;
+- surface `aligned`, `different-moment` or `unscheduled` before explicit test overrides.
+
+Must not:
+- persist focus into Narrative Project;
+- move Simulation Playhead from View Cursor/authored placement;
+- materialize authored/scheduled location as Actual Presence;
+- reconstruct Knowledge for another moment;
+- persist generic Story Canvas selection merely for cross-component communication.
+
 ## 6. AS-IS / TO-BE / KEEP / DEFER
 
-### AS-IS through S3
+### AS-IS through S4
 
 - local isolated scenarios;
 - Set from live / Fork / Reset;
@@ -162,12 +193,14 @@ Must not:
 - progressive Preview → Analysis → Deep Debug disclosure;
 - stale derived diagnostics invalidated when their source state/input changes;
 - finite typed Watches for moment, Actual Presence, knowledge, relationship axes and effective Story state;
-- local Watch collections that re-evaluate against the current sandbox without persistence or Undo/Redo.
+- local Watch collections that re-evaluate against the current sandbox without persistence or Undo/Redo;
+- typed Preview-from-here focus for View Cursor and selected Story context;
+- visible focus/playhead mismatch without implicit runtime state fabrication;
+- fresh live-sourced sandbox boundary on each explicit Preview-from-here request.
 
-### TO-BE after S3
+### TO-BE after S4
 
-- safe Preview from here after semantic contract PASS;
-- preview checkpoints/time travel after storage/replay ADR;
+- preview checkpoints/time travel only after storage/replay ADR;
 - reproduction metadata where actual randomness requires it.
 
 ### KEEP
@@ -178,12 +211,13 @@ Must not:
 - Authored Story Definition != Runtime Story State;
 - authoring Undo/Redo separated from runtime/playtest changes;
 - existing canonical resolver/effect/simulation semantics;
-- Watch definitions finite and typed.
+- Watch definitions finite and typed;
+- Preview-from-here focus finite, typed and non-persisted.
 
 ### DEFER / requires separate contract decision
 
-- Preview from here when selected context does not determine time/presence/knowledge;
 - checkpoint representation: snapshot vs replay vs hybrid;
+- checkpoint lifetime, memory limits and invalidation rules;
 - generic arbitrary object-path Watches;
 - deterministic random replay token until a real random-source contract exists.
 
@@ -201,9 +235,9 @@ Must not:
 | REQ-008 downstream/provenance | UC-005,006,008 | Diff reader + actions | occurrence linkage tests | PARTIAL: concept-level downstream presentation remains future work |
 | REQ-009 no authoring Undo/Redo | UC-009 | panel + runtime-history boundary | UI no-dispatch plus existing runtime-history tests | PASS |
 | REQ-010 progressive disclosure | UC-010 | Preview presentation | Preview/Analysis/Deep Debug UI regression + raw-debug isolation + stale-diagnostic invalidation; run #430 | PASS |
-| REQ-011 Preview from here | UC-011 | future navigation adapter | semantic contract unresolved; must preserve View Cursor != Simulation Playhead and Scheduled != Actual Presence | BLOCKED from implementation; S4 contract gate NEXT |
+| REQ-011 Preview from here | UC-011 | preview-from-here.ts + NarrativeWorkspace/CrossWorkspace handoff | semantic contract #435; no-hidden-state application/UI regressions; run #438 | PASS |
 | REQ-012 Watches | UC-012 | preview-watches.ts + PreviewTypedWatches | pure read tests, typed-reference validation, sandbox recomputation, effective Story-state projection, UI typed-selector regressions; run #433 | PASS |
-| REQ-013 checkpoints | UC-013 | future preview history | storage semantics unresolved | BLOCKED from implementation |
+| REQ-013 checkpoints | UC-013 | future preview history | storage/replay semantics unresolved | BLOCKED from implementation; S5 ADR NEXT |
 | REQ-014 reproduction metadata | UC-014 | future replay descriptor | explicit skill inputs exist; randomness contract absent | CONDITIONAL |
 
 ## 8. Contract tests required before expanding A51
@@ -231,6 +265,17 @@ S3 additionally tests:
 - Story-state Watch uses canonical effective runtime state;
 - UI exposes no generic path input and preserves a local Watch collection across laboratory layers.
 
+S4 additionally tests:
+- Story focus creates the same live-sourced sandbox as normal Preview capture;
+- authored Story moment/location do not overwrite sandbox Playhead or Actual Presence;
+- aligned Story focus uses canonical presence comparability;
+- partial placement remains unscheduled rather than inventing time;
+- View Cursor mismatch remains context only;
+- invalid typed focus is atomic/read-only;
+- View and selected Story entry points emit typed focus;
+- mismatch is visible before explicit sandbox overrides;
+- opening from View focus does not dispatch an authoring command.
+
 ## 9. Failure-mode review (FMEA-lite)
 
 | Failure mode | Impact | Likelihood | Detection | Mitigation / gate |
@@ -244,8 +289,10 @@ S3 additionally tests:
 | stale trace survives changed sandbox/input | misleading author diagnosis | low after S2 | stale-diagnostic UI regressions | S2 PASS |
 | Watch accepts arbitrary object path | couples author tool to private serialization and bypasses reviewed semantics | low after S3 | API/type review + UI no-path regression | S3 PASS |
 | Watch evaluation mutates sandbox | investigation changes what it observes | low after S3 | whole-scenario immutability tests | S3 PASS |
-| Preview from here fabricates missing world state | false conclusions | medium | unresolved-prerequisite contract | BLOCKER for S4 |
+| Preview from here fabricates missing world state | false conclusions | low after S4 | focus-not-state contract + regressions | S4 PASS |
+| stale prior sandbox overrides survive a new from-here request | ambiguous source state | low after S4 | fresh-request/remount boundary | S4 PASS |
 | checkpoints reuse authoring Undo/Redo | history corruption/confusion | low | architecture review + integration tests | BLOCKER for S5 |
+| checkpoint replay diverges from captured state | misleading time travel | unknown | S5 ADR + replay/snapshot contract tests | BLOCKER for S5 |
 | force Outcome becomes normal execution shortcut | author confusion / invalid testing | medium | Deep Debug-only UI + provenance `forced=true` | HIGH |
 | test coverage lowered to get green | hidden regressions | medium | CI policy | BLOCKER |
 
@@ -268,7 +315,8 @@ A regression test proves that unset presence is identical before and after a sub
 - imports point from A51 application code to canonical runtime, never to duplicate evaluator;
 - no A51 sandbox path imports persistence/repository write APIs;
 - panel sandbox actions do not call authoring store mutators;
-- Watch API is a finite discriminated union, not string/object-path evaluation.
+- Watch API is a finite discriminated union, not string/object-path evaluation;
+- Preview-from-here focus API is a finite discriminated union and carries no runtime-write authority.
 
 ### Unit
 - scenario lifecycle;
@@ -276,18 +324,22 @@ A regression test proves that unset presence is identical before and after a sub
 - atomic failures;
 - diff/provenance;
 - serialization stability;
-- Watch identity and typed read projection.
+- Watch identity and typed read projection;
+- typed Preview-from-here focus validation/alignment.
 
 ### Contract
 - canonical resolver status/outcome contract;
 - canonical effect application/provenance;
 - runtime projection families remain aligned with editor runtime boundary;
-- Watch evaluation is pure and effective Story state delegates to canonical projection.
+- Watch evaluation is pure and effective Story state delegates to canonical projection;
+- Story Preview-from-here presence comparison delegates to canonical navigation semantics;
+- focus creation never mutates source/runtime truth.
 
 ### Integration
 - authoring Undo/Redo remains independent while preview exists;
 - source/live runtime remain unchanged by sandbox actions;
-- Watch collection remains local investigation state.
+- Watch collection remains local investigation state;
+- Preview-from-here request stays in UI-session state and establishes a fresh Preview source boundary.
 
 ### UI
 - explicit test-only labels;
@@ -298,7 +350,8 @@ A regression test proves that unset presence is identical before and after a sub
 - raw traces and Force Outcome remain Deep Debug-only;
 - diagnostics invalidate when sandbox state or resolver inputs change;
 - Typed Watches expose typed selectors and no free-form object-path input;
-- Watch values follow the current sandbox.
+- Watch values follow the current sandbox;
+- View Cursor / selected Story Preview-from-here controls expose mismatch before explicit overrides.
 
 ### System / CI
 Required full branch gate:
@@ -313,12 +366,12 @@ Required full branch gate:
 
 No threshold weakening or coverage exclusions are accepted as a fix.
 
-## 12. Completed verification checklist through S3
+## 12. Completed verification checklist through S4
 
-S1–S3 have established the following verified baseline:
+S1–S4 have established the following verified baseline:
 
-- architecture invariants I01–I14 reviewed against actual files;
-- traceability has ownership for REQ-001..012, with REQ-011 intentionally blocked pending S4 semantics;
+- architecture invariants I01–I16 reviewed against actual files;
+- traceability has ownership for REQ-001..012, with REQ-011 now PASS and REQ-013 intentionally blocked pending S5 ADR;
 - unset-presence serialization defect fixed;
 - negative/atomicity contract tests retained;
 - existing runtime-history boundary tests retained;
@@ -328,8 +381,14 @@ S1–S3 have established the following verified baseline:
 - stale trace presentation is explicitly invalidated;
 - Typed Watches are finite, read-only and local;
 - generic arbitrary object-path Watches remain deferred;
+- Preview-from-here focus is finite, typed and non-persisted;
+- authored/View focus cannot silently become Playhead, Actual Presence, Knowledge or Story runtime truth;
+- each explicit Preview-from-here request establishes a fresh live-sourced boundary;
 - run #432 failure was diagnosed as an ambiguous test selector and corrected without product-code changes;
-- full `93 Days Branch Check` passed on S3 exact code head `8851d8978e6b90b999f75d6ccd84d85455de84b7` in run #433: 326/326 suites, 2008 passed tests, Vite/Electron smoke PASS.
+- S3 code head `8851d8978e6b90b999f75d6ccd84d85455de84b7` passed run #433: 326/326 suites, 2008 passed tests, Vite/Electron smoke PASS;
+- S4 semantic contract head `469816a963415214f1e3442ba6cc068fb1b33b0f` passed run #435 before implementation;
+- S4 run #437 failure was an incomplete test fixture and was corrected test-only;
+- S4 exact code head `cdbd446c8674efe072f4c58a636cbd23700c12cb` passed run #438: 329/329 suites, 2019 passed tests, Vite/Electron smoke PASS.
 
 ## 13. Slice order after S1
 
@@ -340,13 +399,13 @@ A51-S2 Progressive disclosure + human-readable diagnostics — DONE
   ↓
 A51-S3 Typed Watches — DONE
   ↓
-A51-S4 Preview from here — NEXT: semantic contract gate before implementation
+A51-S4 Preview from here — DONE
   ↓
-A51-S5 Checkpoints/time travel (only after storage/replay ADR)
+A51-S5 Checkpoints/time travel — NEXT: storage/replay ADR before implementation
   ↓
 A51-S6 Reproduction metadata (only where real randomness exists)
   ↓
 Final full gate → roadmap DONE → merge → verify stable head
 ```
 
-The purpose of this order is to keep every change small enough to diagnose in one or two passes instead of combining architecture, UI, state semantics and CI failures in a single batch. S4 is explicitly a contract-first slice: implementation is not allowed to infer runtime time, Actual Presence or knowledge merely from editor focus/navigation.
+The purpose of this order is to keep every change small enough to diagnose in one or two passes instead of combining architecture, UI, state semantics and CI failures in a single batch. S5 is explicitly ADR-first: implementation is not allowed until snapshot vs replay vs hybrid semantics, checkpoint ownership/lifetime and invalidation rules are decided and verified against the existing sandbox/history boundaries.

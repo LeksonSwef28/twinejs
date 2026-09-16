@@ -1,6 +1,6 @@
 # A51-S4 Contract — Preview From Here
 
-Status: **SEMANTIC CONTRACT PASS / IMPLEMENTATION NOT YET VERIFIED**  
+Status: **VERIFIED / DONE**  
 Requirement: **REQ-011 Preview from here**  
 Stage: **A51-S4**
 
@@ -113,13 +113,14 @@ fresh live-sourced Preview Scenario + read-only focus context
 
 This avoids persisting ephemeral selection merely to let sibling components communicate.
 
-Initial entry points may include:
+Verified S4 entry points are:
 
-- selected Story node inspector → `Preview from here`;
 - Story ↔ WORLD/TIME navigator selected Story node → `Preview from here`;
 - top-level View Cursor → `Preview this view`.
 
-Opening from these controls may open the Playtest/Debug panel, but it does not start simulation playback.
+The component-local Story Canvas inspector selection remains local and was deliberately not persisted merely to create a third entry point.
+
+Opening from these controls opens the Playtest/Debug panel but does not start simulation playback.
 
 ## 8. Context states authors must be able to distinguish
 
@@ -164,12 +165,12 @@ Application/contract tests:
 
 UI/integration tests:
 
-10. Story inspector explicit action opens Playtest/Debug with the requested Story focus.
+10. Selected Story context explicit action emits the requested typed Story focus.
 11. View Cursor explicit action opens Preview with requested view focus.
 12. Focus mismatch is visible to the author before any explicit test override.
-13. Focused Story may preselect an authored Move but does not apply it.
+13. Focused Story may expose/prefer an authored Move but does not apply it.
 14. Handoff does not call live `replaceRuntimeProject` and creates no authoring Undo/Redo entry for runtime state.
-15. Repeated Preview-from-here requests reset the active sandbox from the latest live source rather than carrying old overrides.
+15. Repeated Preview-from-here requests establish a new UI request/remount boundary so prior preview overrides are not treated as the new source.
 
 ## 10. Explicit non-goals
 
@@ -190,6 +191,25 @@ Time travel/checkpoint semantics remain A51-S5 and require their own ADR/contrac
 
 The semantic blocker is resolved by the focus-not-state rule above.
 
-**S4 semantic contract: PASS. Implementation is permitted only if it preserves this contract.**
+**S4 semantic contract: PASS and implementation VERIFIED.**
 
-Any implementation that sets sandbox moment/presence/knowledge merely because the author is viewing or selecting a different context violates this gate and must not merge.
+Any future change that sets sandbox moment/presence/knowledge merely because the author is viewing or selecting a different context violates this gate.
+
+## 12. Verification evidence
+
+Semantic contract commit `469816a963415214f1e3442ba6cc068fb1b33b0f` passed the full `93 Days Branch Check` in workflow #435 before implementation.
+
+Verified code head: `cdbd446c8674efe072f4c58a636cbd23700c12cb`.
+
+Workflow #438 completed SUCCESS with:
+
+- install, production audit and lint PASS;
+- web and Electron builds PASS;
+- Jest/coverage PASS;
+- Vite and Electron smoke PASS;
+- Test Suites: **329/329 passed**;
+- Tests: **2019 passed, 23 skipped, 42 todo / 2084 total**.
+
+The only red implementation run (#437) was an incomplete test fixture missing required `effects: []`; the exact TS2741 evidence was fixed test-only without changing product semantics.
+
+Detailed closure evidence: `93DAYS_A51_CHANGE_RECORD_S4.md`.
