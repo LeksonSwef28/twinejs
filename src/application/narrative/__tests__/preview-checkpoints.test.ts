@@ -35,7 +35,7 @@ function checkpointProject() {
 	const move: NarrativeMoveDefinition = {
 		id: 'wait',
 		storyNodeId: 'opening',
-		kind: 'wait',
+		kind: 'inform',
 		label: 'Подождать',
 		actorCharacterId: 'player',
 		targetCharacterIds: [],
