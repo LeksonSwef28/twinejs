@@ -60,7 +60,9 @@ describe('<PreviewTypedWatches>', () => {
 		expect(screen.queryByLabelText(/path/i)).not.toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole('button', {name: 'Add watch'}));
-		expect(screen.getByText(/Simulation moment/)).toBeInTheDocument();
+		expect(screen.getByRole('list', {name: 'Typed watch values'})).toHaveTextContent(
+			'Simulation moment'
+		);
 
 		fireEvent.change(screen.getByLabelText('Watch type'), {
 			target: {value: 'actual-location'}
