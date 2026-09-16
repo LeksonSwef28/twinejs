@@ -8,7 +8,6 @@ import {
 	PreviewFromHereContextCard,
 	PreviewThisViewButton
 } from '../preview-from-here-controls';
-import {PreviewFromHereSessionContext} from '../preview-from-here-session';
 
 const mockExecute = jest.fn();
 let mockProject = createProject();
@@ -58,17 +57,17 @@ describe('A51 Preview from here controls', () => {
 	});
 
 	it('emits typed View Cursor focus instead of changing runtime state', () => {
-		const requestPreviewFromHere = jest.fn();
+		const onPreviewFromHere = jest.fn();
 		render(
-			<PreviewFromHereSessionContext.Provider
-				value={{requestPreviewFromHere}}
-			>
-				<PreviewThisViewButton day={4} minuteOfDay={900} />
-			</PreviewFromHereSessionContext.Provider>
+			<PreviewThisViewButton
+				day={4}
+				minuteOfDay={900}
+				onPreviewFromHere={onPreviewFromHere}
+			/>
 		);
 
 		fireEvent.click(screen.getByRole('button', {name: 'Preview this view'}));
-		expect(requestPreviewFromHere).toHaveBeenCalledWith({
+		expect(onPreviewFromHere).toHaveBeenCalledWith({
 			type: 'view-moment',
 			day: 4,
 			minuteOfDay: 900
@@ -76,17 +75,11 @@ describe('A51 Preview from here controls', () => {
 	});
 
 	it('emits the selected Story node as typed authoring focus', () => {
-		const requestPreviewFromHere = jest.fn();
-		render(
-			<PreviewFromHereSessionContext.Provider
-				value={{requestPreviewFromHere}}
-			>
-				<CrossWorkspaceNavigator />
-			</PreviewFromHereSessionContext.Provider>
-		);
+		const onPreviewFromHere = jest.fn();
+		render(<CrossWorkspaceNavigator onPreviewFromHere={onPreviewFromHere} />);
 
 		fireEvent.click(screen.getByRole('button', {name: 'Preview from here'}));
-		expect(requestPreviewFromHere).toHaveBeenCalledWith({
+		expect(onPreviewFromHere).toHaveBeenCalledWith({
 			type: 'story-node',
 			storyNodeId: 'meeting'
 		});

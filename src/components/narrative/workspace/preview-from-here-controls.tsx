@@ -1,7 +1,9 @@
 import * as React from 'react';
-import {PreviewFromHereRequest} from '../../../application/narrative/preview-from-here';
+import {
+	PreviewFromHereFocus,
+	PreviewFromHereRequest
+} from '../../../application/narrative/preview-from-here';
 import {formatMinuteOfDay} from '../../../domain/narrative/calendar';
-import {usePreviewFromHereSession} from './preview-from-here-session';
 
 function momentLabel(day: number, minuteOfDay: number) {
 	return `День ${day} · ${formatMinuteOfDay(minuteOfDay)}`;
@@ -18,22 +20,24 @@ function alignmentCopy(alignment: PreviewFromHereRequest['context']['alignment']
 	}
 }
 
-export const PreviewThisViewButton: React.FC<{
+export interface PreviewThisViewButtonProps {
 	day: number;
 	minuteOfDay: number;
-}> = ({day, minuteOfDay}) => {
-	const {requestPreviewFromHere} = usePreviewFromHereSession();
-	return (
-		<button
-			type="button"
-			onClick={() =>
-				requestPreviewFromHere({type: 'view-moment', day, minuteOfDay})
-			}
-		>
-			Preview this view
-		</button>
-	);
-};
+	onPreviewFromHere(focus: PreviewFromHereFocus): void;
+}
+
+export const PreviewThisViewButton: React.FC<PreviewThisViewButtonProps> = ({
+	day,
+	minuteOfDay,
+	onPreviewFromHere
+}) => (
+	<button
+		type="button"
+		onClick={() => onPreviewFromHere({type: 'view-moment', day, minuteOfDay})}
+	>
+		Preview this view
+	</button>
+);
 
 export const PreviewFromHereContextCard: React.FC<{
 	request: PreviewFromHereRequest;
