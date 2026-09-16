@@ -64,7 +64,8 @@ function projectForPreviewFromHere() {
 				id: 'accepted',
 				key: 'success',
 				label: 'Принято',
-				effectStoryNodeIds: []
+				effectStoryNodeIds: [],
+				effects: []
 			}
 		]
 	};
