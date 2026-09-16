@@ -14,6 +14,7 @@ export type PreviewLaboratoryActionKind =
 	| 'set-source'
 	| 'fork'
 	| 'reset'
+	| 'checkpoint-restore'
 	| 'test-input'
 	| 'advance'
 	| 'resolved-outcome'
