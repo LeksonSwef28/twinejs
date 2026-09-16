@@ -16,6 +16,7 @@ import {NarrativeProjectMoveResolutionTrace} from '../../../application/narrativ
 import {formatMinuteOfDay} from '../../../domain/narrative/calendar';
 import {KnowledgeAttitude} from '../../../domain/narrative/knowledge';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {PreviewTypedWatches} from './preview-typed-watches';
 import './preview-laboratory-panel.css';
 
 const knowledgeAttitudes: KnowledgeAttitude[] = [
@@ -276,6 +277,7 @@ export const PreviewLaboratoryPanel: React.FC = () => {
 			</nav>
 
 			{error && <p className="preview-lab__error">{error}</p>}
+			<PreviewTypedWatches scenario={active} hidden={layer !== 'analysis'} />
 
 			{layer === 'preview' && (
 				<div className="preview-lab__grid" role="tabpanel" aria-label="Preview">
