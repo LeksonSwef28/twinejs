@@ -1,6 +1,6 @@
 # 93 Days Narrative Editor — A51 Architecture & Verification Baseline
 
-Status: **ACTIVE / S2 VERIFIED**  
+Status: **ACTIVE / S3 VERIFIED**  
 Stage: **A51 — Preview / Debug as an Authoring Laboratory**  
 Stable base: `93-days-editor` @ `060633b779f4fda9f72761ba735c2c34342b9991`  
 Feature branch: `feature/a51-preview-debug-laboratory`
@@ -14,7 +14,7 @@ A51 provides an author/developer laboratory that can answer four questions witho
 1. What happens in this preview state?
 2. Why is a Move available, blocked, or resolved to a particular Outcome?
 3. What runtime consequences followed?
-4. Can the author compare, reset, fork, and later reproduce an investigation safely?
+4. Can the author compare, reset, fork, watch and later reproduce an investigation safely?
 
 A51 is editor tooling. It is not final player UI and it must not introduce a second narrative runtime.
 
@@ -24,25 +24,27 @@ A51 is editor tooling. It is not final player UI and it must not introduce a sec
 Author
   ↓
 PreviewLaboratoryPanel (UI / local investigation state)
+  ├─ PreviewTypedWatches (local read-only Watch collection)
   ↓
-preview-laboratory.ts (application orchestration)
+preview-laboratory.ts / preview-watches.ts (application orchestration + read projections)
   ↓
 existing canonical runtime APIs
   ├─ resolveNarrativeProjectMove
   ├─ resolveAndApplyNarrativeProjectMove
   ├─ applyNarrativeProjectOutcome
-  └─ advanceNarrativeProjectSimulation
+  ├─ advanceNarrativeProjectSimulation
+  └─ narrativeRuntimeStoryNodes
   ↓
 NarrativeProject sandbox clone
 
 Authoring store/history ───────────────┐
   execute / Undo / Redo               │ MUST NOT receive preview actions
 Live runtime replacement              │ MUST NOT receive sandbox actions
-Persistence repository                │ MUST NOT persist preview scenarios
-                                      └───────────────────────────────────
+Persistence repository                │ MUST NOT persist preview scenarios/Watches
+                                      └─────────────────────────────────────────
 ```
 
-The important direction is one-way: Preview reads the current Narrative Project as a source, then works on isolated sandbox values. Sandbox actions never flow back into authoring history or live runtime implicitly.
+The important direction is one-way: Preview reads the current Narrative Project as a source, then works on isolated sandbox values. Sandbox actions never flow back into authoring history or live runtime implicitly. Watches only read the current sandbox and remain local investigation state.
 
 ## 3. State ownership map
 
@@ -53,6 +55,8 @@ The important direction is one-way: Preview reads the current Narrative Project 
 | Preview scenario baseline | A51 application/UI | investigation | no | no | immutable after scenario creation |
 | Preview scenario current project | A51 application/UI | investigation | no | no | yes, only through preview helpers |
 | Preview action provenance | A51 application/UI | investigation | no | no | append-only investigation log |
+| Typed Watch definitions | A51 UI local state | investigation | no | no | yes, UI-only add/remove |
+| Typed Watch values | derived read projection | render/read | no | no | **no** |
 | View Cursor/editor navigation | editor | editor session | editor rules | not narrative state | A51 must not conflate with Simulation Playhead |
 
 ## 4. Non-negotiable invariants
@@ -60,7 +64,7 @@ The important direction is one-way: Preview reads the current Narrative Project 
 - **A51-I01 — Source isolation:** any A51 action leaves the source authored project unchanged.
 - **A51-I02 — No authoring history pollution:** A51 sandbox actions never call authoring `execute` and never create Undo/Redo entries.
 - **A51-I03 — No implicit live-runtime write:** A51 sandbox actions never call `replaceRuntimeProject`.
-- **A51-I04 — Canonical semantics:** Move guards/resolution, Outcome effects and simulation advancement come from existing runtime functions; A51 does not duplicate them.
+- **A51-I04 — Canonical semantics:** Move guards/resolution, Outcome effects, effective Story state and simulation advancement come from existing runtime functions; A51 does not duplicate them.
 - **A51-I05 — Trace is read-only:** inspecting a Move cannot mutate scenario state.
 - **A51-I06 — Failed operation is atomic:** invalid override, missing entity, blocked/input-required execution or invalid forced Outcome leaves the prior scenario usable and unchanged.
 - **A51-I07 — Baseline stability:** reset restores the exact scenario baseline; fork reset restores the fork point, not the parent's original baseline.
@@ -69,6 +73,8 @@ The important direction is one-way: Preview reads the current Narrative Project 
 - **A51-I10 — Deterministic explicit inputs:** with the same scenario and explicit resolver inputs, A51 returns the same resolver result unless the canonical runtime itself defines randomness.
 - **A51-I11 — Runtime diff completeness:** A51 change inspection must track the same runtime families that the editor recognizes as runtime state; additions to canonical runtime projection require review of A51 projection.
 - **A51-I12 — Stable serialization semantics:** a logically equivalent preview state must not change merely because an extra clone/serialization roundtrip occurred.
+- **A51-I13 — Typed Watch boundary:** Watches name reviewed runtime concepts with typed entity references; A51 does not expose arbitrary object/JSON paths as a Watch API.
+- **A51-I14 — Watch purity:** evaluating a Watch cannot mutate the sandbox, append preview provenance, persist state or dispatch authoring/live-runtime writes.
 
 ## 5. Current components
 
@@ -121,9 +127,28 @@ Current state after S2:
 - human-readable diagnostics are projections of canonical runtime trace data, not a second evaluator;
 - derived Move diagnostics are invalidated whenever sandbox state, selected Move or explicit resolver inputs change, so stale explanations are not presented as current facts.
 
+### COMP-A51-05 Typed Watch Projection
+
+Current files:
+- `src/application/narrative/preview-watches.ts`;
+- `src/components/narrative/workspace/preview-typed-watches.tsx`.
+
+Responsibilities:
+- expose a finite typed union for approved Watch concepts;
+- read moment, Actual Presence, character knowledge, relationship axis and effective Story state from the current sandbox;
+- derive stable Watch identity from typed fields rather than object paths;
+- keep selected Watches local to the Preview UI;
+- recompute values when the sandbox changes.
+
+Must not:
+- accept arbitrary JSON/object paths;
+- persist Watches into Narrative Project;
+- write to authoring/live runtime;
+- reconstruct canonical effective Story state.
+
 ## 6. AS-IS / TO-BE / KEEP / DEFER
 
-### AS-IS through S2
+### AS-IS through S3
 
 - local isolated scenarios;
 - Set from live / Fork / Reset;
@@ -135,13 +160,14 @@ Current state after S2:
 - panel tests asserting no authoring/live-runtime dispatch;
 - human-readable Move diagnostics sourced from canonical trace summaries;
 - progressive Preview → Analysis → Deep Debug disclosure;
-- stale derived diagnostics invalidated when their source state/input changes.
+- stale derived diagnostics invalidated when their source state/input changes;
+- finite typed Watches for moment, Actual Presence, knowledge, relationship axes and effective Story state;
+- local Watch collections that re-evaluate against the current sandbox without persistence or Undo/Redo.
 
-### TO-BE after S2
+### TO-BE after S3
 
-- typed Watches;
-- safe Preview from here;
-- preview checkpoints/time travel;
+- safe Preview from here after semantic contract PASS;
+- preview checkpoints/time travel after storage/replay ADR;
 - reproduction metadata where actual randomness requires it.
 
 ### KEEP
@@ -151,7 +177,8 @@ Current state after S2:
 - Scheduled Presence != Actual Presence;
 - Authored Story Definition != Runtime Story State;
 - authoring Undo/Redo separated from runtime/playtest changes;
-- existing canonical resolver/effect/simulation semantics.
+- existing canonical resolver/effect/simulation semantics;
+- Watch definitions finite and typed.
 
 ### DEFER / requires separate contract decision
 
@@ -174,8 +201,8 @@ Current state after S2:
 | REQ-008 downstream/provenance | UC-005,006,008 | Diff reader + actions | occurrence linkage tests | PARTIAL: concept-level downstream presentation remains future work |
 | REQ-009 no authoring Undo/Redo | UC-009 | panel + runtime-history boundary | UI no-dispatch plus existing runtime-history tests | PASS |
 | REQ-010 progressive disclosure | UC-010 | Preview presentation | Preview/Analysis/Deep Debug UI regression + raw-debug isolation + stale-diagnostic invalidation; run #430 | PASS |
-| REQ-011 Preview from here | UC-011 | future navigation adapter | contract unresolved | BLOCKED from implementation |
-| REQ-012 Watches | UC-012 | future watch projection | typed union not defined | TO-BE S3 |
+| REQ-011 Preview from here | UC-011 | future navigation adapter | semantic contract unresolved; must preserve View Cursor != Simulation Playhead and Scheduled != Actual Presence | BLOCKED from implementation; S4 contract gate NEXT |
+| REQ-012 Watches | UC-012 | preview-watches.ts + PreviewTypedWatches | pure read tests, typed-reference validation, sandbox recomputation, effective Story-state projection, UI typed-selector regressions; run #433 | PASS |
 | REQ-013 checkpoints | UC-013 | future preview history | storage semantics unresolved | BLOCKED from implementation |
 | REQ-014 reproduction metadata | UC-014 | future replay descriptor | explicit skill inputs exist; randomness contract absent | CONDITIONAL |
 
@@ -196,6 +223,14 @@ The S1 baseline explicitly tests these contracts in addition to happy paths:
 
 S2 additionally tests progressive disclosure and derived-diagnostic invalidation at the UI boundary.
 
+S3 additionally tests:
+- Watch evaluation is read-only and leaves the whole scenario unchanged;
+- every supported Watch kind uses typed references/fields;
+- invalid references fail without mutation;
+- Watch values re-evaluate from current sandbox state;
+- Story-state Watch uses canonical effective runtime state;
+- UI exposes no generic path input and preserves a local Watch collection across laboratory layers.
+
 ## 9. Failure-mode review (FMEA-lite)
 
 | Failure mode | Impact | Likelihood | Detection | Mitigation / gate |
@@ -207,6 +242,8 @@ S2 additionally tests progressive disclosure and derived-diagnostic invalidation
 | `undefined` ghost keys change after clone | unstable diffs/checkpoints | medium | serialization-stability test | HIGH |
 | raw traces dominate default UI | unusable authoring tool | low after S2 | UI progressive-disclosure tests | S2 PASS |
 | stale trace survives changed sandbox/input | misleading author diagnosis | low after S2 | stale-diagnostic UI regressions | S2 PASS |
+| Watch accepts arbitrary object path | couples author tool to private serialization and bypasses reviewed semantics | low after S3 | API/type review + UI no-path regression | S3 PASS |
+| Watch evaluation mutates sandbox | investigation changes what it observes | low after S3 | whole-scenario immutability tests | S3 PASS |
 | Preview from here fabricates missing world state | false conclusions | medium | unresolved-prerequisite contract | BLOCKER for S4 |
 | checkpoints reuse authoring Undo/Redo | history corruption/confusion | low | architecture review + integration tests | BLOCKER for S5 |
 | force Outcome becomes normal execution shortcut | author confusion / invalid testing | medium | Deep Debug-only UI + provenance `forced=true` | HIGH |
@@ -230,23 +267,27 @@ A regression test proves that unset presence is identical before and after a sub
 ### Static / architecture review
 - imports point from A51 application code to canonical runtime, never to duplicate evaluator;
 - no A51 sandbox path imports persistence/repository write APIs;
-- panel sandbox actions do not call authoring store mutators.
+- panel sandbox actions do not call authoring store mutators;
+- Watch API is a finite discriminated union, not string/object-path evaluation.
 
 ### Unit
 - scenario lifecycle;
 - typed validation;
 - atomic failures;
 - diff/provenance;
-- serialization stability.
+- serialization stability;
+- Watch identity and typed read projection.
 
 ### Contract
 - canonical resolver status/outcome contract;
 - canonical effect application/provenance;
-- runtime projection families remain aligned with editor runtime boundary.
+- runtime projection families remain aligned with editor runtime boundary;
+- Watch evaluation is pure and effective Story state delegates to canonical projection.
 
 ### Integration
 - authoring Undo/Redo remains independent while preview exists;
-- source/live runtime remain unchanged by sandbox actions.
+- source/live runtime remain unchanged by sandbox actions;
+- Watch collection remains local investigation state.
 
 ### UI
 - explicit test-only labels;
@@ -255,7 +296,9 @@ A regression test proves that unset presence is identical before and after a sub
 - Preview/Analysis/Deep Debug disclosure;
 - canonical guard summaries rendered without duplicating evaluation;
 - raw traces and Force Outcome remain Deep Debug-only;
-- diagnostics invalidate when sandbox state or resolver inputs change.
+- diagnostics invalidate when sandbox state or resolver inputs change;
+- Typed Watches expose typed selectors and no free-form object-path input;
+- Watch values follow the current sandbox.
 
 ### System / CI
 Required full branch gate:
@@ -270,12 +313,12 @@ Required full branch gate:
 
 No threshold weakening or coverage exclusions are accepted as a fix.
 
-## 12. Completed stabilization checklist
+## 12. Completed verification checklist through S3
 
-S1 and S2 have established the following verified baseline:
+S1–S3 have established the following verified baseline:
 
-- architecture invariants I01–I12 reviewed against actual files;
-- traceability has ownership for REQ-001..010 behavior;
+- architecture invariants I01–I14 reviewed against actual files;
+- traceability has ownership for REQ-001..012, with REQ-011 intentionally blocked pending S4 semantics;
 - unset-presence serialization defect fixed;
 - negative/atomicity contract tests retained;
 - existing runtime-history boundary tests retained;
@@ -283,7 +326,10 @@ S1 and S2 have established the following verified baseline:
 - current human-readable diagnostics are derived from canonical trace data;
 - raw debug data is opt-in;
 - stale trace presentation is explicitly invalidated;
-- full `93 Days Branch Check` passed on S2 exact code head `5c496cb00dcac0e64370340ef1b33497504656a4` in run #430.
+- Typed Watches are finite, read-only and local;
+- generic arbitrary object-path Watches remain deferred;
+- run #432 failure was diagnosed as an ambiguous test selector and corrected without product-code changes;
+- full `93 Days Branch Check` passed on S3 exact code head `8851d8978e6b90b999f75d6ccd84d85455de84b7` in run #433: 326/326 suites, 2008 passed tests, Vite/Electron smoke PASS.
 
 ## 13. Slice order after S1
 
@@ -292,9 +338,9 @@ A51-S1 Stabilize architecture + contracts + CI — DONE
   ↓
 A51-S2 Progressive disclosure + human-readable diagnostics — DONE
   ↓
-A51-S3 Typed Watches — NEXT
+A51-S3 Typed Watches — DONE
   ↓
-A51-S4 Preview from here (only after semantic contract PASS)
+A51-S4 Preview from here — NEXT: semantic contract gate before implementation
   ↓
 A51-S5 Checkpoints/time travel (only after storage/replay ADR)
   ↓
@@ -303,4 +349,4 @@ A51-S6 Reproduction metadata (only where real randomness exists)
 Final full gate → roadmap DONE → merge → verify stable head
 ```
 
-The purpose of this order is to keep every change small enough to diagnose in one or two passes instead of combining architecture, UI, state semantics and CI failures in a single batch.
+The purpose of this order is to keep every change small enough to diagnose in one or two passes instead of combining architecture, UI, state semantics and CI failures in a single batch. S4 is explicitly a contract-first slice: implementation is not allowed to infer runtime time, Actual Presence or knowledge merely from editor focus/navigation.

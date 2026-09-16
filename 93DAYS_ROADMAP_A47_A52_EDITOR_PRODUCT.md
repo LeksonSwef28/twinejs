@@ -89,7 +89,7 @@ Deliverables:
 
 ## A51 — Preview / Debug as an Authoring Laboratory
 
-**Status:** IN PROGRESS (2026-09-16). **A51-S1 baseline stabilization is DONE** and **A51-S2 progressive disclosure + human-readable diagnostics is DONE**. S2 separates Preview / Analysis / Deep Debug, derives author-facing explanations from canonical runtime traces, keeps raw trace/Force Outcome in explicit Deep Debug, and invalidates diagnostics whenever their sandbox state or resolver inputs change. Exact code-head workflow run #430 passed the full branch gate on `5c496cb00dcac0e64370340ef1b33497504656a4` (324/324 suites; 2002 passed tests; Vite and Electron smoke PASS). The next permitted slice is **A51-S3 — Typed Watches**. The overall A51 stage is not DONE and has not been merged.
+**Status:** IN PROGRESS (2026-09-16). **A51-S1 baseline stabilization is DONE**, **A51-S2 progressive disclosure + human-readable diagnostics is DONE**, and **A51-S3 Typed Watches is DONE**. S3 adds finite read-only Watches for simulation moment, Actual Presence, character knowledge, relationship axes and effective Story state; the Watch API uses typed entity references and explicitly does not expose arbitrary JSON/object paths. The first S3 run #432 exposed one ambiguous Testing Library selector only; the minimal test-only correction then passed the full exact-head branch gate in run #433 on `8851d8978e6b90b999f75d6ccd84d85455de84b7` (326/326 suites; 2008 passed tests; Vite and Electron smoke PASS). The next permitted slice is **A51-S4 — Preview from here semantic contract gate**. The overall A51 stage is not DONE and has not been merged.
 
 **Goal:** let an author test assumptions and consequences without pretending the editor is the final game UI.
 
@@ -101,7 +101,9 @@ Deliverables:
 - force/select Outcomes for authoring inspection where safe;
 - compare alternative preview scenarios;
 - inspect downstream state changes and occurrence provenance;
-- keep preview state isolated from authoring Undo/Redo.
+- use finite typed Watches for focused runtime facts without coupling authoring UI to arbitrary object paths;
+- keep preview state isolated from authoring Undo/Redo;
+- define Preview-from-here semantics before implementation so editor navigation never fabricates runtime time/presence/knowledge.
 
 ## A52 — Export / Compiler Boundary
 
