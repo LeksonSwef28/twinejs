@@ -145,6 +145,10 @@ function selectContainingOption(container: HTMLElement, optionValue: string) {
 	return select;
 }
 
+function openLayer(name: 'Preview' | 'Analysis' | 'Deep Debug') {
+	fireEvent.click(screen.getByRole('tab', {name}));
+}
+
 describe('<PreviewLaboratoryPanel>', () => {
 	beforeEach(() => {
 		mockProject = createProject();
@@ -152,12 +156,38 @@ describe('<PreviewLaboratoryPanel>', () => {
 		mockReplaceRuntimeProject.mockClear();
 	});
 
-	it('edits explicit sandbox inputs without dispatching authoring or live-runtime commands', () => {
+	it('progressively discloses human-readable analysis and raw deep-debug traces', () => {
 		render(<PreviewLaboratoryPanel />);
 
+		expect(screen.getByRole('tab', {name: 'Preview'})).toHaveAttribute('aria-selected', 'true');
+		expect(screen.getByText('Move preview')).toBeInTheDocument();
+		expect(screen.queryByText('Test-only runtime inputs')).not.toBeInTheDocument();
+		expect(screen.queryByText('Raw Move trace')).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole('button', {name: 'Trace only'}));
+		expect(
+			screen.getByText('Move заблокирован текущим runtime-состоянием.')
+		).toBeInTheDocument();
+		expect(screen.queryByText(/"status": "blocked"/)).not.toBeInTheDocument();
+
+		openLayer('Analysis');
+		expect(screen.getByText('Move analysis')).toBeInTheDocument();
+		expect(screen.getByText(/Персонажи находятся в разных локациях/)).toBeInTheDocument();
+		expect(screen.getByText('Test-only runtime inputs')).toBeInTheDocument();
+		expect(screen.queryByText(/"status": "blocked"/)).not.toBeInTheDocument();
+
+		openLayer('Deep Debug');
+		expect(screen.getByText('Raw Move trace')).toBeInTheDocument();
+		expect(screen.getByText(/"status": "blocked"/)).toBeInTheDocument();
+		expect(screen.getByText(/Force authored Outcome/)).toBeInTheDocument();
+	});
+
+	it('edits explicit sandbox inputs without dispatching authoring or live-runtime commands', () => {
+		render(<PreviewLaboratoryPanel />);
 		expect(screen.getByText('Изолированные авторские сценарии')).toBeInTheDocument();
 		expect(screen.getByText(/не создаёт authoring Undo\/Redo entries/)).toBeInTheDocument();
 
+		openLayer('Analysis');
 		fireEvent.change(screen.getByLabelText('Day'), {target: {value: '2'}});
 		fireEvent.change(screen.getByLabelText('Minute'), {target: {value: '600'}});
 		fireEvent.click(screen.getByRole('button', {name: 'Set test moment'}));
@@ -180,9 +210,8 @@ describe('<PreviewLaboratoryPanel>', () => {
 		fireEvent.click(screen.getByRole('button', {name: 'Set test knowledge'}));
 		expect(screen.getByText('runtime.simulation.characterKnowledge')).toBeInTheDocument();
 		fireEvent.click(screen.getByRole('button', {name: 'Forget in sandbox'}));
-
 		fireEvent.click(screen.getByRole('button', {name: '+1 мин'}));
-		expect(screen.getByText(/Preview advanced 1 minute/)).toBeInTheDocument();
+		expect(screen.getByText(/lab actions:/)).toBeInTheDocument();
 
 		expect(mockExecute).not.toHaveBeenCalled();
 		expect(mockReplaceRuntimeProject).not.toHaveBeenCalled();
@@ -192,16 +221,25 @@ describe('<PreviewLaboratoryPanel>', () => {
 		const {container} = render(<PreviewLaboratoryPanel />);
 
 		fireEvent.click(screen.getByRole('button', {name: 'Trace only'}));
-		expect(screen.getByText(/"status": "blocked"/)).toBeInTheDocument();
+		expect(
+			screen.getByText('Move заблокирован текущим runtime-состоянием.')
+		).toBeInTheDocument();
 
+		openLayer('Analysis');
 		fireEvent.change(screen.getByLabelText('Actual location'), {
 			target: {value: 'station'}
 		});
 		fireEvent.click(screen.getByRole('button', {name: 'Set test presence'}));
-		fireEvent.click(screen.getByRole('button', {name: 'Trace only'}));
-		expect(screen.getByText(/"status": "resolved"/)).toBeInTheDocument();
 
+		openLayer('Preview');
+		fireEvent.click(screen.getByRole('button', {name: 'Trace only'}));
+		expect(screen.getByText(/Move доступен/)).toBeInTheDocument();
+		expect(screen.getByText('accepted')).toBeInTheDocument();
 		fireEvent.click(screen.getByRole('button', {name: 'Resolve + apply authored'}));
+
+		openLayer('Analysis');
+		expect(screen.getByText(/выполнен/)).toBeInTheDocument();
+		openLayer('Deep Debug');
 		expect(screen.getByText(/resolved-outcome/)).toBeInTheDocument();
 		expect(screen.getAllByText(/occurrence:promise:accepted/).length).toBeGreaterThan(0);
 
@@ -220,12 +258,14 @@ describe('<PreviewLaboratoryPanel>', () => {
 
 		fireEvent.click(screen.getByRole('button', {name: 'Fork current'}));
 		expect(screen.getByLabelText('Active scenario')).toHaveValue('preview-fork-1');
-		expect(screen.getByLabelText('Compare with')).toHaveValue('preview-main');
 
+		openLayer('Analysis');
+		expect(screen.getByLabelText('Compare with')).toHaveValue('preview-main');
 		fireEvent.change(screen.getByLabelText('Day'), {target: {value: '3'}});
 		fireEvent.click(screen.getByRole('button', {name: 'Set test moment'}));
 		expect(screen.getAllByText('runtime.simulation.day').length).toBeGreaterThan(0);
 
+		openLayer('Preview');
 		const moveSelect = selectContainingOption(container, 'skill-promise');
 		fireEvent.change(moveSelect, {target: {value: 'skill-promise'}});
 		expect(screen.getByLabelText('Skill value')).toBeInTheDocument();
@@ -233,10 +273,11 @@ describe('<PreviewLaboratoryPanel>', () => {
 		fireEvent.change(screen.getByLabelText('Skill value'), {target: {value: '4'}});
 		fireEvent.change(screen.getByLabelText('Roll total'), {target: {value: '2'}});
 		fireEvent.click(screen.getByRole('button', {name: 'Trace only'}));
-		expect(screen.getByText(/"outcomeId": "skill-accepted"/)).toBeInTheDocument();
+		expect(screen.getByText('skill-accepted')).toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole('button', {name: 'Reset'}));
 		fireEvent.click(screen.getByRole('button', {name: 'Set from live runtime'}));
+		openLayer('Analysis');
 		expect(screen.getByText(/Runtime не отличается от baseline/)).toBeInTheDocument();
 
 		expect(mockExecute).not.toHaveBeenCalled();
@@ -245,6 +286,8 @@ describe('<PreviewLaboratoryPanel>', () => {
 
 	it('shows validation errors for invalid test-only values', () => {
 		render(<PreviewLaboratoryPanel />);
+		openLayer('Analysis');
+
 		fireEvent.change(screen.getByLabelText('Day'), {target: {value: '0'}});
 		fireEvent.click(screen.getByRole('button', {name: 'Set test moment'}));
 		expect(screen.getByText('Preview day is outside the project template.')).toBeInTheDocument();
