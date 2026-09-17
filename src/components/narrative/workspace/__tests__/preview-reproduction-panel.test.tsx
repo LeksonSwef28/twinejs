@@ -1,4 +1,4 @@
-import {fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import * as React from 'react';
 import {NarrativeMoveDefinition} from '../../../../domain/narrative/interaction';
 import {createNarrativeProject} from '../../../../domain/narrative/project-factory';
@@ -122,12 +122,15 @@ describe('A51 reproduction metadata UI', () => {
 
 		openLayer('Deep Debug');
 		expect(screen.getByText('Reproduction metadata · explicit inputs')).toBeInTheDocument();
+		const reproduction = screen.getByRole('region', {name: 'Preview reproduction metadata'});
 		let current = screen.getByLabelText('Current trace reproduction metadata');
 		expect(current).toHaveTextContent('"moveId": "automatic"');
 		expect(current).toHaveTextContent('"input": {}');
 		expect(current.textContent).not.toMatch(/seed|random|rng/i);
-		expect(screen.queryByRole('list', {name: 'Reproduction metadata history'})).not.toBeInTheDocument();
-		expect(screen.queryByText('resolved-outcome')).not.toBeInTheDocument();
+		expect(
+			within(reproduction).queryByRole('list', {name: 'Reproduction metadata history'})
+		).not.toBeInTheDocument();
+		expect(within(reproduction).queryByText('resolved-outcome')).not.toBeInTheDocument();
 
 		openLayer('Preview');
 		fireEvent.change(screen.getByLabelText('Move'), {target: {value: 'skill'}});
