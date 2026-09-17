@@ -68,7 +68,8 @@ export function restorePreviewCheckpoint(
 	const restoreAction: PreviewLaboratoryAction = {
 		id: `${scenario.id}:action:${scenario.actions.length + 1}`,
 		kind: 'checkpoint-restore',
-		summary: `Restored preview checkpoint ${checkpoint.label}.`
+		summary: `Restored preview checkpoint ${checkpoint.label}.`,
+		reproduction: {type: 'checkpoint-restore', checkpointId: checkpoint.id}
 	};
 	return {
 		...scenario,

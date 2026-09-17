@@ -8,6 +8,11 @@ import {
 	resolveAndApplyNarrativeProjectMove,
 	resolveNarrativeProjectMove
 } from './living-simulation';
+import {
+	PreviewLaboratoryReproductionMetadata,
+	clonePreviewMoveResolutionInput,
+	clonePreviewRuntimeInput
+} from './preview-reproduction';
 import {advanceNarrativeProjectSimulation} from './simulation';
 
 export type PreviewLaboratoryActionKind =
@@ -28,6 +33,7 @@ export interface PreviewLaboratoryAction {
 	outcomeId?: string;
 	occurrenceId?: string;
 	forced?: boolean;
+	reproduction?: PreviewLaboratoryReproductionMetadata;
 }
 
 export interface PreviewScenario {
@@ -238,7 +244,9 @@ export function setPreviewRuntimeInput(
 	return withProjectAndAction(
 		scenario,
 		project,
-		action(scenario, 'test-input', summary)
+		action(scenario, 'test-input', summary, {
+			reproduction: {type: 'test-input', input: clonePreviewRuntimeInput(input)}
+		})
 	);
 }
 
@@ -272,7 +280,13 @@ export function executePreviewMove(
 				moveId,
 				outcomeId: result.outcomeTrace.outcomeId,
 				occurrenceId: result.outcomeTrace.occurrenceId,
-				forced: false
+				forced: false,
+				reproduction: {
+					type: 'resolved-move',
+					moveId,
+					input: clonePreviewMoveResolutionInput(input),
+					outcomeId: result.outcomeTrace.outcomeId
+				}
 			}
 		)
 	);
@@ -302,7 +316,8 @@ export function forcePreviewOutcome(
 					moveId,
 					outcomeId,
 					occurrenceId: result.trace.occurrenceId,
-					forced: true
+					forced: true,
+					reproduction: {type: 'forced-outcome', moveId, outcomeId}
 				}
 			)
 		),
@@ -321,7 +336,14 @@ export function advancePreviewScenario(
 		action(
 			scenario,
 			'advance',
-			`Preview advanced ${result.trace.appliedMinutes} minute(s).`
+			`Preview advanced ${result.trace.appliedMinutes} minute(s).`,
+			{
+				reproduction: {
+					type: 'advance',
+					requestedMinutes: result.trace.requestedMinutes,
+					appliedMinutes: result.trace.appliedMinutes
+				}
+			}
 		)
 	);
 }
