@@ -140,7 +140,9 @@ describe('A51 checkpoint UI integration', () => {
 		expect(within(watchList).getByText(/Дом/)).toBeInTheDocument();
 
 		fireEvent.click(screen.getByRole('tab', {name: 'Deep Debug'}));
-		expect(screen.getByText(/checkpoint-restore/)).toBeInTheDocument();
+		expect(screen.getByText('Preview provenance').closest('section')).toHaveTextContent(
+			'checkpoint-restore'
+		);
 		expect(mockExecute).not.toHaveBeenCalled();
 		expect(mockReplaceRuntimeProject).not.toHaveBeenCalled();
 	});

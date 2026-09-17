@@ -178,7 +178,9 @@ describe('<PreviewLaboratoryPanel>', () => {
 
 		openLayer('Deep Debug');
 		expect(screen.getByText('Raw Move trace')).toBeInTheDocument();
-		expect(screen.getByText(/"status": "blocked"/)).toBeInTheDocument();
+		expect(screen.getByText('Raw Move trace').closest('section')).toHaveTextContent(
+			'"status": "blocked"'
+		);
 		expect(screen.getByText(/Force authored Outcome/)).toBeInTheDocument();
 
 		openLayer('Preview');
@@ -245,7 +247,9 @@ describe('<PreviewLaboratoryPanel>', () => {
 		openLayer('Analysis');
 		expect(screen.getByText(/выполнен/)).toBeInTheDocument();
 		openLayer('Deep Debug');
-		expect(screen.getByText(/resolved-outcome/)).toBeInTheDocument();
+		expect(screen.getByText('Preview provenance').closest('section')).toHaveTextContent(
+			'resolved-outcome'
+		);
 		expect(screen.getAllByText(/occurrence:promise:accepted/).length).toBeGreaterThan(0);
 
 		const outcomeSelect = selectContainingOption(container, 'declined');
