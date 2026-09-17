@@ -1,19 +1,20 @@
 # A51-S5 ADR — Preview Checkpoints / Time Travel
 
-Status: **ADR PASS / IMPLEMENTATION NOT YET VERIFIED**  
+Status: **ADR PASS / IMPLEMENTATION VERIFIED / S5 DONE**  
 Requirement: **REQ-013 checkpoints / time travel**  
 Stage: **A51-S5**  
-Decision date: **2026-09-16**
+Decision date: **2026-09-16**  
+Verification date: **2026-09-17**
 
 ## 1. Decision summary
 
-A51-S5 will use **manual, immutable snapshot checkpoints** inside an isolated Preview Scenario.
+A51-S5 uses **manual, immutable snapshot checkpoints** inside an isolated Preview Scenario.
 
-S5 will **not** implement replay-only time travel and will not treat the existing `PreviewLaboratoryAction[]` as an event-sourcing log.
+S5 does **not** implement replay-only time travel and does not treat the existing `PreviewLaboratoryAction[]` as an event-sourcing log.
 
 A checkpoint captures the exact current `NarrativeProject` sandbox value by deep clone. Restoring a checkpoint replaces only the current sandbox project for the same Preview Scenario. The scenario baseline remains unchanged, authoring Undo/Redo remains untouched, live runtime remains untouched and no checkpoint is persisted into the Narrative Project.
 
-Replay/hybrid reconstruction is deferred until A51 has a structured reproduction contract that records every required input, including resolver inputs and any future real randomness metadata.
+Replay/hybrid reconstruction remains deferred until A51 has a structured reproduction contract that records every required input, including resolver inputs and any future real randomness metadata.
 
 ## 2. Repository evidence
 
@@ -30,14 +31,7 @@ This gives S5 a known exact-state representation without adding a second runtime
 
 ### Existing action log is provenance, not replay
 
-`PreviewLaboratoryAction` currently records:
-
-- action id/kind;
-- human-readable summary;
-- optional Move/Outcome/occurrence ids;
-- optional forced flag.
-
-It does **not** structurally retain every input required to reconstruct the state transition. In particular, typed test inputs and skill-check resolver inputs are not represented as a complete replay command stream.
+`PreviewLaboratoryAction` records action id/kind, a human-readable summary, optional Move/Outcome/occurrence ids and an optional forced flag. It does **not** structurally retain every input required to reconstruct the transition. Typed test inputs and skill-check resolver inputs are not represented as a complete replay command stream.
 
 Therefore replaying `actions` cannot be claimed to reproduce arbitrary sandbox state exactly.
 
@@ -47,25 +41,19 @@ Current Move resolution does not hide randomness: skill checks require caller-su
 
 ### Runtime history is a separate boundary
 
-`runtime-history.ts` deliberately keeps live runtime replacement outside authoring Undo/Redo. Preview checkpoints must preserve that separation and must not reuse the authoring `past/present/future` stack.
+`runtime-history.ts` deliberately keeps live runtime replacement outside authoring Undo/Redo. Preview checkpoints preserve that separation and do not reuse the authoring `past/present/future` stack.
 
 ## 3. Alternatives considered
 
 ### A. Replay-only — REJECTED for S5
 
-Idea: rebuild checkpoint state from scenario baseline + `PreviewLaboratoryAction[]`.
-
-Rejected because the action list is intentionally descriptive provenance, not a complete typed event log. Converting summaries back into commands would be brittle and semantically false. Expanding all A51 actions into a versioned replay protocol would be a larger architecture change and overlaps A51-S6 reproduction metadata.
+Rebuilding checkpoint state from scenario baseline + `PreviewLaboratoryAction[]` was rejected because the action list is descriptive provenance, not a complete typed event log. Converting summaries back into commands would be brittle and semantically false. Expanding every A51 action into a versioned replay protocol would be a larger architecture change and overlaps A51-S6 reproduction metadata.
 
 ### B. Hybrid snapshot + replay — DEFERRED
 
-Idea: occasional snapshots with replay commands between them.
-
-This can reduce memory for very long histories, but it still requires a trustworthy replay command schema. S5 does not have that prerequisite. Hybrid storage may be reconsidered after S6 if real reproduction metadata justifies it.
+Hybrid storage still requires a trustworthy replay command schema. S5 does not have that prerequisite. It may be reconsidered later only if an actual reproduction requirement justifies it.
 
 ### C. Full sandbox snapshot — ACCEPTED
-
-Idea: capture the exact current `NarrativeProject` sandbox clone.
 
 Advantages:
 
@@ -73,32 +61,32 @@ Advantages:
 - no duplicate runtime evaluator;
 - no dependence on incomplete action summaries;
 - automatically includes every current runtime family without maintaining a second runtime projection list;
-- reuses the clone semantics already verified by S1–S4;
+- reuses clone semantics already verified by S1–S4;
 - simple atomic restore contract.
 
-Cost: full project snapshots duplicate authored definitions as well as runtime state. S5 therefore requires a finite per-scenario checkpoint limit and manual capture only; no automatic checkpoint on every action.
+Cost: full snapshots duplicate authored definitions as well as runtime state. S5 therefore uses manual capture only and a finite per-scenario limit.
 
-## 4. Checkpoint model
+## 4. Implemented checkpoint model
 
-The implementation should use a shape equivalent to:
+`src/application/narrative/preview-checkpoints.ts` defines:
 
 ```text
 PreviewCheckpoint
   id
   scenarioId
-  name / label
+  label
   projectSnapshot: NarrativeProject
   sourceActionCount
 ```
 
 Rules:
 
-- `projectSnapshot` is an immutable deep clone of `scenario.project` at capture time;
-- checkpoint metadata is local A51 investigation state;
+- `projectSnapshot` is a deep clone of `scenario.project` at capture time;
+- checkpoint metadata is local investigation state;
 - `sourceActionCount` is descriptive provenance only, not a replay cursor;
 - checkpoint identity is stable within the UI session;
 - no wall-clock timestamp is required for correctness or ordering;
-- implementation must enforce a finite per-scenario checkpoint count and surface the limit to the author.
+- `PREVIEW_CHECKPOINT_LIMIT = 8` bounds each scenario collection.
 
 ## 5. Capture semantics
 
@@ -110,9 +98,9 @@ Creating a checkpoint:
 - does not dispatch authoring `execute`;
 - does not persist anything;
 - does not change selected Move, typed Watches, compare target or Preview-from-here focus;
-- produces an immutable deep clone that cannot be changed by later sandbox mutations.
+- produces a deep-independent snapshot that cannot be changed by later sandbox mutations.
 
-Checkpoint creation itself is metadata capture, not a runtime event. It does not need to append a runtime occurrence.
+Checkpoint creation is metadata capture, not a runtime event. It does not append a runtime occurrence.
 
 ## 6. Restore semantics
 
@@ -122,24 +110,24 @@ Restoring a checkpoint:
 2. deep-clones the checkpoint snapshot into `scenario.project`;
 3. leaves `scenario.baselineProject` unchanged;
 4. leaves existing investigation actions intact and appends a `checkpoint-restore` laboratory action;
-5. invalidates derived Move/Outcome traces in the UI exactly like other sandbox state changes;
+5. invalidates derived Move/Outcome traces through the existing `replaceActive()` UI path;
 6. does not call live `replaceRuntimeProject`;
 7. does not create an authoring Undo/Redo entry;
 8. does not alter the checkpoint snapshot itself.
 
 This is **sandbox state restore**, not reverse simulation and not authoring Undo.
 
-`Reset` after a checkpoint restore still returns to the scenario's original baseline/fork point. This distinction is intentional and must be visible in tests.
+`Reset` after a checkpoint restore still returns to the scenario's original baseline/fork point. This distinction is verified by the application regressions.
 
 ## 7. Scenario lineage / invalidation rules
 
 ### Set from live runtime
 
-Replacing a scenario source with **Set from live runtime** establishes a new baseline/source lineage. Existing checkpoints for that scenario must be discarded because their snapshots belong to the old source lineage.
+Replacing a scenario source with **Set from live runtime** establishes a new baseline/source lineage. Existing checkpoints for that scenario are discarded.
 
 ### Fork current
 
-A newly forked scenario starts with an empty checkpoint collection. Its baseline is already the fork point. Checkpoints are not inherited implicitly from the parent.
+A newly forked scenario starts with an empty checkpoint collection. Its baseline is the fork point. Parent checkpoints are not inherited.
 
 ### Reset
 
@@ -155,11 +143,9 @@ Checkpoint collections are keyed by scenario id. Switching active scenario shows
 
 ## 8. UI placement
 
-Checkpoint controls belong in **Analysis**, not default Preview and not raw Deep Debug.
+Checkpoint controls live only in **Analysis**, not default Preview and not raw Deep Debug.
 
-Reason: checkpoints are an explicit investigation tool. They change sandbox state but do not expose raw runtime internals.
-
-Minimum author workflow:
+The implemented workflow is:
 
 ```text
 Analysis
@@ -170,15 +156,11 @@ Analysis
     [Remove]
 ```
 
-The UI must explicitly state that restore affects only the isolated sandbox and is not authoring Undo/Redo or live Playtest rewind.
-
-No third workspace or separate global history surface is introduced.
+The UI explicitly states that restore affects only the isolated sandbox and is not authoring Undo/Redo or live Playtest rewind.
 
 ## 9. What a checkpoint does NOT capture
 
-A checkpoint captures sandbox project state, not the entire editor UI session.
-
-It does not restore:
+A checkpoint captures sandbox project state, not the entire editor UI session. It does not restore:
 
 - current Preview/Analysis/Deep Debug tab;
 - selected Move/Outcome;
@@ -189,26 +171,26 @@ It does not restore:
 - uncommitted skill-check input fields;
 - error/trace presentation state.
 
-Those are UI/investigation controls and should remain independent. Derived traces must be invalidated after restore and can be recomputed against the restored sandbox.
+Those remain UI/investigation controls. Derived traces are invalidated after restore and Typed Watches re-evaluate against the restored sandbox.
 
 ## 10. Memory / lifecycle boundary
 
-S5 must not create unbounded full-project history.
+S5 does not create unbounded full-project history.
 
-Requirements:
+Verified requirements:
 
 - manual checkpoints only;
-- explicit finite per-scenario limit;
-- create control disabled or rejected clearly at the limit;
-- removing a checkpoint releases it from local state;
+- explicit finite per-scenario limit of 8;
+- Create is disabled at the limit and the count is visible;
+- removing a checkpoint releases a slot from local state;
 - closing/remounting the laboratory drops all checkpoints;
 - checkpoints are not serialized into project persistence.
 
-Automatic every-action snapshots are out of scope.
+Automatic every-action snapshots remain out of scope.
 
-## 11. Required regression tests before S5 can close
+## 11. Regression verification
 
-Application/contract tests:
+Application/contract tests verify:
 
 1. capture is read-only with respect to the source scenario;
 2. checkpoint snapshot is deep-independent from later scenario mutations;
@@ -219,40 +201,60 @@ Application/contract tests:
 7. restore appends investigation provenance without truncating earlier actions;
 8. restoring a checkpoint from another scenario fails atomically;
 9. authored Move/Outcome definitions remain identical through capture/restore;
-10. serialization-stable states remain stable after capture/restore.
+10. serialization-stable states remain stable after capture/restore;
+11. the finite checkpoint limit and immutable removal contract are enforced;
+12. mixed-scenario checkpoint collections are rejected.
 
-UI/integration tests:
+UI/integration tests verify:
 
-11. Analysis exposes checkpoint controls; default Preview does not;
-12. create → mutate sandbox → restore returns visible/runtime state to the captured snapshot;
-13. restore invalidates stale Move/Outcome diagnostics;
-14. Set from live runtime clears checkpoints for that scenario;
-15. Fork current starts with no inherited checkpoints;
-16. Reset keeps checkpoints for the same lineage;
-17. scenario switching isolates checkpoint lists by scenario id;
-18. finite checkpoint limit is enforced and visible;
-19. capture/remove do not call authoring `execute` or live `replaceRuntimeProject`;
-20. restore does not call authoring `execute` or live `replaceRuntimeProject`;
-21. typed Watches re-evaluate from restored sandbox state rather than storing checkpoint values themselves.
+- Analysis exposes checkpoint controls while default Preview does not;
+- create → mutate sandbox → restore returns Watch/runtime state to the captured snapshot;
+- restore invalidates stale Move diagnostics;
+- Set from live runtime clears checkpoints for that lineage;
+- Fork current starts without inherited checkpoints;
+- Reset keeps checkpoints for the same lineage;
+- scenario switching isolates checkpoint lists;
+- the finite limit is visible and enforced;
+- Remove frees a slot;
+- checkpoint operations do not call authoring `execute` or live `replaceRuntimeProject`;
+- Typed Watches re-evaluate from restored sandbox state rather than storing checkpoint values.
 
-System gate remains full install/audit/lint/web-build/Electron-build/Jest+coverage/Vite-smoke/Electron-smoke.
+## 12. CI evidence
 
-## 12. FMEA-lite
+ADR head `84e2de4ce46285b21e8a234f035fca33815ef80c` passed workflow #440.
 
-| Failure mode | Impact | Mitigation |
+Application checkpoint contract reached GREEN on `0b50579498bb6b3c7937d8547312c0bb26f41956` in workflow #443 after a test-fixture-only correction (`wait` → valid `inform`).
+
+UI wiring head `a109a70544a7ec748544bd87ea4e02481f4eeaa4` failed workflow #444 at web build because `preview-laboratory-panel.tsx` referenced a missing `./preview-checkpoint-controls` module; TypeScript also reported the callback parameter as implicit `any`. The component and focused UI regressions were then added without changing canonical runtime semantics.
+
+Final S5 code head `5fdecf08f4204c5d6e714575e02e4e4b609706fe` passed workflow **#445**. Install, production audit, lint, web build, Electron build, Jest/coverage, diagnostics upload, Vite smoke and Electron smoke all passed.
+
+Exact Jest evidence from the downloaded `93-days-test-diagnostics` artifact:
+
+```text
+Test Suites: 331 passed, 331 total
+Tests:       23 skipped, 42 todo, 2030 passed, 2095 total
+Snapshots:   0 total
+Time:        103.879 s
+Ran all test suites.
+```
+
+## 13. FMEA-lite
+
+| Failure mode | Impact | Mitigation / verified gate |
 |---|---|---|
-| checkpoint mutates after capture | false time-travel state | deep clone on capture + immutability regression |
-| restore aliases stored snapshot | later actions corrupt history | deep clone on every restore |
-| checkpoint from wrong scenario restored | lineage corruption | scenario-id validation + atomic failure |
-| restore changes baseline | Reset semantics become ambiguous | baseline preservation regression |
-| Set-from-live keeps old checkpoints | old lineage presented as current | explicit checkpoint invalidation |
-| replay inferred from prose summaries | divergent state | replay-only rejected |
-| checkpoints enter authoring Undo/Redo | history corruption | local A51 state + no-dispatch tests |
-| checkpoints persist in Narrative Project | project/schema pollution | no persistence path + lifecycle tests |
-| unbounded snapshots consume memory | editor degradation | finite per-scenario limit; manual capture only |
-| stale trace survives restore | misleading diagnosis | restore follows existing derived-trace invalidation path |
+| checkpoint mutates after capture | false time-travel state | deep clone on capture + regression PASS |
+| restore aliases stored snapshot | later actions corrupt history | deep clone on every restore + regression PASS |
+| checkpoint from wrong scenario restored | lineage corruption | scenario-id validation + atomic failure PASS |
+| restore changes baseline | Reset semantics become ambiguous | baseline-preservation + Reset-after-Restore PASS |
+| Set-from-live keeps old checkpoints | old lineage presented as current | lineage invalidation UI regression PASS |
+| replay inferred from prose summaries | divergent state | replay-only remains rejected |
+| checkpoints enter authoring Undo/Redo | history corruption | UI-local state + no-dispatch regression PASS |
+| checkpoints persist in Narrative Project | project/schema pollution | no persistence/store path introduced |
+| unbounded snapshots consume memory | editor degradation | manual capture + limit 8 PASS |
+| stale trace survives restore | misleading diagnosis | existing `replaceActive()` invalidation path + UI regression PASS |
 
-## 13. Non-goals
+## 14. Non-goals
 
 S5 does not implement:
 
@@ -266,12 +268,12 @@ S5 does not implement:
 - replay from `PreviewLaboratoryAction.summary` strings;
 - random seed/token management.
 
-Random/reproduction metadata remains A51-S6.
+Random/reproduction metadata remains A51-S6 and must be justified by actual repository evidence.
 
-## 14. Gate decision
+## 15. Gate decision
 
-**S5 storage/replay ADR: PASS.**
+**A51-S5 = DONE / VERIFIED.**
 
-Implementation is permitted only under the snapshot-first contract above.
+The checkpoint remains an isolated, bounded, immutable sandbox snapshot. It is not authoring Undo, live-runtime history or a disguised replay log.
 
-The key constraint is that a checkpoint is an isolated, bounded, immutable sandbox snapshot. It is not authoring Undo, live-runtime history or a disguised replay log.
+PR #24 remains open. A51 itself remains IN PROGRESS until later permitted slices and the final full gate are complete.
