@@ -1,6 +1,6 @@
 # 93 Days Narrative Editor — A51 Architecture & Verification Baseline
 
-Status: **ACTIVE / S5 VERIFIED**  
+Status: **A51 VERIFIED / S6 DONE**  
 Stage: **A51 — Preview / Debug as an Authoring Laboratory**  
 Stable base: `93-days-editor` @ `060633b779f4fda9f72761ba735c2c34342b9991`  
 Feature branch: `feature/a51-preview-debug-laboratory`
@@ -14,7 +14,7 @@ A51 provides an author/developer laboratory that can answer four questions witho
 1. What happens in this preview state?
 2. Why is a Move available, blocked, or resolved to a particular Outcome?
 3. What runtime consequences followed?
-4. Can the author compare, reset, fork, watch, carry authoring focus into Preview, checkpoint an investigation and later reproduce it safely?
+4. Can the author compare, reset, fork, watch, carry authoring focus into Preview, checkpoint an investigation and later reproduce its explicit inputs safely?
 
 A51 is editor tooling. It is not final player UI and it must not introduce a second narrative runtime.
 
@@ -30,9 +30,11 @@ NarrativeWorkspace authoring focus
 PreviewLaboratoryPanel (UI / local investigation state)
   ├─ PreviewTypedWatches (local read-only Watch collection)
   ├─ PreviewCheckpointControls (local bounded checkpoint collections)
+  ├─ PreviewReproductionDebug (Deep Debug explicit-input projection)
   └─ Preview-from-here read-only focus context
   ↓
-preview-laboratory.ts / preview-watches.ts / preview-checkpoints.ts / preview-from-here.ts
+preview-laboratory.ts / preview-watches.ts / preview-checkpoints.ts /
+preview-from-here.ts / preview-reproduction.ts
   ↓
 existing canonical runtime APIs / projections
   ├─ resolveNarrativeProjectMove
@@ -47,11 +49,11 @@ NarrativeProject sandbox clone
 Authoring store/history ───────────────┐
   execute / Undo / Redo               │ MUST NOT receive preview actions
 Live runtime replacement              │ MUST NOT receive sandbox actions
-Persistence repository                │ MUST NOT persist preview scenarios/Watches/checkpoints/focus
+Persistence repository                │ MUST NOT persist preview scenarios/Watches/checkpoints/focus/reproduction metadata
                                       └──────────────────────────────────────────────
 ```
 
-The direction remains one-way: Preview reads the current Narrative Project as a source and then works on isolated sandbox values. Sandbox actions never flow back into authoring history or live runtime implicitly. Watches only read the current sandbox. Checkpoints snapshot/restore only that sandbox. Preview-from-here focus remains UI investigation metadata and never becomes runtime truth merely because an author is viewing another Story/time context.
+The direction remains one-way: Preview reads the current Narrative Project as a source and then works on isolated sandbox values. Sandbox actions never flow back into authoring history or live runtime implicitly. Watches only read the current sandbox. Checkpoints snapshot/restore only that sandbox. Preview-from-here focus remains UI investigation metadata and never becomes runtime truth merely because an author is viewing another Story/time context. Reproduction metadata records or projects only explicit inputs/results already owned by the Preview/canonical runtime boundary; it is not a replay engine or persisted project state.
 
 ## 3. State ownership map
 
@@ -62,6 +64,8 @@ The direction remains one-way: Preview reads the current Narrative Project as a 
 | Preview scenario baseline | A51 application/UI | investigation | no | no | immutable after scenario creation |
 | Preview scenario current project | A51 application/UI | investigation | no | no | yes, only through preview helpers |
 | Preview action provenance | A51 application/UI | investigation | no | no | append-only investigation log |
+| Preview reproduction metadata on actions | A51 application | investigation | no | no | append only with the owning preview action |
+| Current trace reproduction descriptor | A51 application/UI read projection | render/read | no | no | **no** |
 | Preview checkpoint snapshots | A51 UI/application helper | investigation | no | no | create/remove/restore inside sandbox only |
 | Typed Watch definitions | A51 UI local state | investigation | no | no | yes, UI-only add/remove |
 | Typed Watch values | derived read projection | render/read | no | no | **no** |
@@ -74,7 +78,7 @@ The direction remains one-way: Preview reads the current Narrative Project as a 
 - **A51-I02 — No authoring history pollution:** A51 sandbox actions never call authoring `execute` and never create Undo/Redo entries.
 - **A51-I03 — No implicit live-runtime write:** A51 sandbox actions never call `replaceRuntimeProject`.
 - **A51-I04 — Canonical semantics:** Move guards/resolution, Outcome effects, effective Story state and simulation advancement come from existing runtime functions; A51 does not duplicate them.
-- **A51-I05 — Trace is read-only:** inspecting a Move cannot mutate scenario state.
+- **A51-I05 — Trace is read-only:** inspecting a Move cannot mutate scenario state or append provenance merely to describe the trace.
 - **A51-I06 — Failed operation is atomic:** invalid override, missing entity, blocked/input-required execution, invalid forced Outcome or invalid checkpoint lineage leaves the prior scenario usable and unchanged.
 - **A51-I07 — Baseline stability:** reset restores the exact scenario baseline; fork reset restores the fork point, not the parent's original baseline; checkpoint restore never rewrites the baseline.
 - **A51-I08 — Authored definitions are immutable inside sandbox execution:** runtime consequences and checkpoint restore may change runtime projection only; authored Move/Outcome definitions remain equal.
@@ -87,6 +91,8 @@ The direction remains one-way: Preview reads the current Narrative Project as a 
 - **A51-I15 — Focus is not runtime truth:** Preview-from-here focus must not implicitly move Simulation Playhead, set Actual Presence, synthesize Knowledge or alter Story runtime state.
 - **A51-I16 — Fresh Preview-from-here source:** each explicit Preview-from-here request establishes a fresh current-live snapshot boundary; prior arbitrary sandbox overrides/checkpoints are not silently carried into the new focus.
 - **A51-I17 — Checkpoint boundary:** checkpoints are bounded local sandbox snapshots, never authoring Undo/Redo, live-runtime history, persisted project state or replay cursors.
+- **A51-I18 — Typed reproduction fidelity:** reproduction metadata is a finite discriminated union containing defensive copies of concrete explicit inputs/results, not prose replay instructions or mutable caller aliases.
+- **A51-I19 — No fabricated randomness:** A51 must not invent a seed/RNG token when the canonical runtime exposes no hidden random source; current skill checks reproduce through explicit `skillValue` + `rollTotal`.
 
 ## 5. Current components
 
@@ -98,7 +104,8 @@ Responsibilities:
 - create/fork/reset isolated scenarios;
 - validate and apply typed test-only inputs;
 - advance sandbox time;
-- keep preview action provenance.
+- keep preview action provenance;
+- attach finite reproduction metadata to completed actions where a concrete explicit input/result exists.
 
 Must not dispatch authoring commands, persist scenarios or silently manufacture authored/world facts.
 
@@ -129,7 +136,7 @@ Current file: `src/components/narrative/workspace/preview-laboratory-panel.tsx`.
 Current state:
 - Preview = default compact Move result/current context, without raw JSON;
 - Analysis = canonical guard reasons, comparisons, runtime changes, explicit test-only overrides, Typed Watches and Checkpoints;
-- Deep Debug = raw traces, provenance and Force Outcome;
+- Deep Debug = raw traces, provenance, reproduction metadata and Force Outcome;
 - human-readable diagnostics are projections of canonical runtime trace data, not a second evaluator;
 - derived Move diagnostics are invalidated whenever sandbox state, selected Move, explicit resolver inputs or checkpoint restore changes the source state.
 
@@ -177,7 +184,7 @@ Responsibilities:
 - enforce `PREVIEW_CHECKPOINT_LIMIT = 8` per scenario;
 - validate checkpoint/scenario lineage;
 - restore through a fresh clone while preserving the scenario baseline and prior provenance;
-- append finite `checkpoint-restore` provenance;
+- append finite `checkpoint-restore` provenance and its stable reproduction id;
 - keep collections local and keyed by `scenario.id`;
 - clear checkpoints only when a scenario receives a new source lineage;
 - keep Reset checkpoints and start Fork checkpoints empty;
@@ -190,9 +197,33 @@ Must not:
 - treat `sourceActionCount` or prose summaries as a replay cursor/log;
 - carry checkpoints into a fresh Preview-from-here remount.
 
+### COMP-A51-08 Reproduction Metadata Projection
+
+Current files:
+- `src/application/narrative/preview-reproduction.ts`;
+- `src/components/narrative/workspace/preview-reproduction-debug.tsx`;
+- `src/application/narrative/__tests__/preview-reproduction.test.ts`;
+- `src/components/narrative/workspace/__tests__/preview-reproduction-panel.test.tsx`.
+
+Responsibilities:
+- define a finite typed union for explicit reproduction metadata;
+- defensively copy `PreviewRuntimeInput` and Move resolution input before storing/projecting them;
+- retain requested/applied time advance values;
+- retain exact Move/Outcome/checkpoint ids needed to describe completed laboratory operations;
+- derive a read-only descriptor for the currently displayed Move trace without appending an action;
+- expose raw structured metadata only in Deep Debug.
+
+Must not:
+- generate rolls, seeds or RNG tokens;
+- infer a seed from `rollTotal`;
+- duplicate checkpoint snapshots into provenance;
+- turn `PreviewLaboratoryAction[]` into an event-sourcing/replay log;
+- persist metadata into Narrative Project;
+- alter canonical resolver/effect/simulation semantics.
+
 ## 6. AS-IS / TO-BE / KEEP / DEFER
 
-### AS-IS through S5
+### AS-IS through S6
 
 - local isolated scenarios;
 - Set from live / Fork / Reset;
@@ -209,11 +240,15 @@ Must not:
 - typed Preview-from-here focus for View Cursor and selected Story context;
 - visible focus/playhead mismatch without implicit runtime state fabrication;
 - fresh live-sourced sandbox boundary on each explicit Preview-from-here request;
-- manual snapshot-first Preview checkpoints with same-scenario restore, bounded local lifetime, lineage isolation and existing trace invalidation.
+- manual snapshot-first Preview checkpoints with same-scenario restore, bounded local lifetime, lineage isolation and existing trace invalidation;
+- finite typed reproduction metadata for exact explicit laboratory inputs/results;
+- read-only current-trace reproduction descriptors;
+- Deep Debug-only raw reproduction presentation;
+- explicit absence of a fabricated RNG/seed contract under the current deterministic resolver boundary.
 
-### TO-BE after S5
+### TO-BE after S6
 
-- reproduction metadata only where repository/runtime evidence proves it is required.
+A51 has no further planned implementation slice. The next roadmap stage is A52 — Export / Compiler Boundary, after A51 closure gate and explicit branch/PR handling.
 
 ### KEEP
 
@@ -225,12 +260,13 @@ Must not:
 - existing canonical resolver/effect/simulation semantics;
 - Watch definitions finite and typed;
 - Preview-from-here focus finite, typed and non-persisted;
-- checkpoint snapshots bounded, local and non-persisted.
+- checkpoint snapshots bounded, local and non-persisted;
+- reproduction metadata finite, typed, non-persisted and derived only from concrete explicit inputs/results.
 
 ### DEFER / requires separate evidence or contract decision
 
 - generic arbitrary object-path Watches;
-- deterministic random seed/token or replay descriptor unless an actual hidden/random runtime source exists;
+- deterministic random seed/token unless a future canonical runtime introduces an actual hidden/random source with explicit ownership;
 - replay/hybrid checkpoint reconstruction until a complete structured replay command contract exists.
 
 ## 7. Requirement traceability
@@ -250,7 +286,7 @@ Must not:
 | REQ-011 Preview from here | UC-011 | preview-from-here.ts + NarrativeWorkspace/CrossWorkspace handoff | semantic contract #435; no-hidden-state application/UI regressions; run #438 | PASS |
 | REQ-012 Watches | UC-012 | preview-watches.ts + PreviewTypedWatches | pure read tests, typed-reference validation, sandbox recomputation, effective Story-state projection, UI typed-selector regressions; run #433 | PASS |
 | REQ-013 checkpoints | UC-013 | preview-checkpoints.ts + PreviewCheckpointControls | snapshot/restore/lineage/boundary regressions; exact code gate #445 | PASS |
-| REQ-014 reproduction metadata | UC-014 | future reproduction descriptor if justified | explicit skill inputs exist; hidden randomness not yet evidenced | CONDITIONAL / S6 EVIDENCE NEXT |
+| REQ-014 reproduction metadata | UC-014 | preview-reproduction.ts + PreviewReproductionDebug | exact typed metadata/read-only trace/no-RNG/no-dispatch regressions; exact code gate #452 | PASS |
 
 ## 8. Contract tests required before expanding A51
 
@@ -291,6 +327,22 @@ S5 additionally tests:
 - Create is disabled at `8 / 8`, Remove frees a slot;
 - capture/restore/remove never dispatch authoring `execute` or live `replaceRuntimeProject`.
 
+S6 additionally tests:
+
+- exact typed test-input metadata and defensive copy semantics;
+- resolved skill-check metadata retains exact `skillValue` + `rollTotal`;
+- automatic resolution records no fabricated seed/random/RNG field;
+- metadata capture leaves canonical resolver results unchanged;
+- forced Outcome metadata retains exact Move / Outcome ids;
+- advance metadata retains requested and canonical applied minutes;
+- checkpoint restore metadata keeps the stable id without embedding snapshots;
+- metadata remains JSON-serialization-stable;
+- invalid inputs remain atomic;
+- Preview and Analysis hide raw reproduction metadata;
+- Deep Debug exposes completed-action metadata and read-only current-trace descriptors;
+- Trace only appends no provenance action;
+- reproduction UI never dispatches authoring `execute` or live `replaceRuntimeProject`.
+
 ## 9. Failure-mode review (FMEA-lite)
 
 | Failure mode | Impact | Detection | Mitigation / gate |
@@ -312,7 +364,10 @@ S5 additionally tests:
 | Set-from-live retains old lineage checkpoints | stale state shown as current | UI lineage invalidation | S5 PASS |
 | checkpoints reuse authoring Undo/Redo/live history | history corruption/confusion | UI no-dispatch + ownership review | S5 PASS |
 | unbounded checkpoints consume memory | editor degradation | visible finite limit | S5 PASS |
-| replay inferred from prose summaries | divergent state | ADR review | REJECTED / DEFERRED |
+| reproduction metadata aliases caller input | historical metadata silently changes | mutation regression + clone helpers | S6 PASS |
+| reproduction UI appends action on Trace only | inspection mutates provenance | read-only trace regression | S6 PASS |
+| fabricated seed/RNG token implies nonexistent runtime contract | false reproducibility guarantee | resolver evidence review + no-RNG regression | S6 PASS |
+| replay inferred from prose summaries | divergent state | ADR/contract review | REJECTED / DEFERRED |
 | force Outcome becomes normal execution shortcut | author confusion | Deep Debug-only UI + forced provenance | HIGH |
 | test coverage lowered to get green | hidden regressions | CI policy | BLOCKER |
 
@@ -333,18 +388,21 @@ The regression remains part of the green suite.
 
 ### Static / architecture review
 - A51 application code delegates runtime semantics to canonical runtime APIs;
-- no A51 sandbox/checkpoint path imports persistence/repository write APIs;
-- panel sandbox/checkpoint actions do not call authoring store mutators;
+- no A51 sandbox/checkpoint/reproduction path imports persistence/repository write APIs;
+- panel sandbox/checkpoint/reproduction actions do not call authoring store mutators;
 - Watch API is finite typed, not string/object-path evaluation;
 - Preview-from-here focus is finite typed and carries no runtime-write authority;
-- checkpoint collections are local UI investigation state and bounded.
+- checkpoint collections are local UI investigation state and bounded;
+- reproduction metadata is finite typed and records only explicit inputs/results owned by the current runtime contract;
+- no seed/RNG token is introduced without canonical random-source ownership.
 
 ### Unit / contract
 - scenario lifecycle, typed validation, atomic failures, diff/provenance and serialization stability;
 - Watch identity and typed read projection;
 - typed Preview-from-here focus validation/alignment;
 - canonical resolver/effect application contracts;
-- checkpoint capture/restore/lineage/baseline/immutability contracts.
+- checkpoint capture/restore/lineage/baseline/immutability contracts;
+- reproduction metadata cloning, exact skill inputs, advance values, checkpoint ids and no-fabricated-RNG contracts.
 
 ### Integration / UI
 - authoring Undo/Redo and live runtime stay independent while Preview exists;
@@ -354,7 +412,10 @@ The regression remains part of the green suite.
 - restore uses the existing scenario replacement path and invalidates stale traces;
 - Watch values follow restored sandbox state;
 - Set from live / Fork / Reset / scenario switching obey checkpoint lineage rules;
-- checkpoint operations never dispatch authoring/live-runtime writes.
+- checkpoint operations never dispatch authoring/live-runtime writes;
+- reproduction data appears only in Deep Debug;
+- Trace only can show a reproduction descriptor without adding an action;
+- skill-check descriptors expose exact explicit input values and automatic resolution exposes no seed/random token.
 
 ### System / CI
 Required full branch gate:
@@ -370,12 +431,12 @@ Required full branch gate:
 
 No threshold weakening or coverage exclusions are accepted as a fix.
 
-## 12. Completed verification checklist through S5
+## 12. Completed verification checklist through S6
 
-S1–S5 have established the following verified baseline:
+S1–S6 have established the following verified baseline:
 
-- architecture invariants I01–I17 reviewed against actual files;
-- REQ-001..013 have concrete ownership/evidence, with REQ-013 now PASS;
+- architecture invariants I01–I19 reviewed against actual files;
+- REQ-001..014 have concrete ownership/evidence, with REQ-014 now PASS;
 - unset-presence serialization defect remains fixed;
 - negative/atomicity and runtime-history boundary tests remain retained;
 - progressive disclosure does not alter runtime semantics;
@@ -386,6 +447,9 @@ S1–S5 have established the following verified baseline:
 - each explicit Preview-from-here request establishes a fresh live-sourced boundary;
 - Checkpoints are snapshot-first, bounded to 8 per scenario, local/non-persisted and separated from authoring Undo/Redo/live history;
 - Reset after Restore returns to the original scenario baseline; Fork and Set-from-live lineage rules are explicit;
+- reproduction metadata is finite, typed, defensive-copy based and non-persisted;
+- current-trace reproduction metadata is read-only presentation state and does not append an action;
+- skill checks reproduce through explicit `skillValue` + `rollTotal`; no hidden seed/RNG ownership was found or fabricated;
 - run #432 was an ambiguous S3 test selector and was corrected without product-code semantics changes;
 - S3 code head `8851d8978e6b90b999f75d6ccd84d85455de84b7` passed #433: 326/326 suites, 2008 passed tests;
 - S4 semantic contract head `469816a963415214f1e3442ba6cc068fb1b33b0f` passed #435 before implementation;
@@ -395,9 +459,12 @@ S1–S5 have established the following verified baseline:
 - S5 application run #442 exposed only an invalid test fixture Move kind (`wait`), corrected test-only to `inform`; application head `0b50579498bb6b3c7937d8547312c0bb26f41956` passed #443;
 - S5 UI wiring head `a109a70544a7ec748544bd87ea4e02481f4eeaa4` failed #444 at web build with exact missing `./preview-checkpoint-controls` module / resulting implicit-any callback error;
 - final S5 code head `5fdecf08f4204c5d6e714575e02e4e4b609706fe` passed #445: **331/331 suites**, **2030 passed tests** (23 skipped, 42 todo; 2095 total), diagnostics artifact uploaded, Vite smoke PASS and Electron smoke PASS;
-- PR #24 closure review-thread check found zero inline review threads.
+- S6 contract head `b344618c168e8da590a3e3d7686f1ea3b7a4ed83` established evidence-first no-fabricated-RNG semantics;
+- S6 implementation heads `1d93361e50461a9130a92c4e4fcbfc6a4c55fc42` and `40ce2fa972839c9e602417f7f8ecd6e43be4d35d` added typed metadata and Deep Debug projection;
+- runs #450 and #451 exposed only ambiguous legacy Testing Library selectors after the second legitimate Deep Debug representation appeared; corrections were test-only scoped assertions;
+- final S6 code head `2aa3e6f63b29ae2f80515ad8e4c09b780b101aeb` passed #452: **333/333 suites**, **2037 passed tests** (23 skipped, 42 todo; 2102 total), diagnostics artifact uploaded, Vite smoke PASS and Electron smoke PASS.
 
-## 13. Slice order after S1
+## 13. Slice order and closure
 
 ```text
 A51-S1 Stabilize architecture + contracts + CI — DONE
@@ -410,9 +477,11 @@ A51-S4 Preview from here — DONE
   ↓
 A51-S5 Checkpoints/time travel — DONE (snapshot-first, code gate #445)
   ↓
-A51-S6 Reproduction metadata — NEXT: repository evidence first; add RNG metadata only if a real random source exists
+A51-S6 Reproduction metadata — DONE (explicit-input model, code gate #452)
   ↓
-Final full gate → roadmap DONE → merge → verify stable head
+A51 bookkeeping/final exact-head full gate
+  ↓
+Explicit PR closure/merge decision → A52 Export / Compiler Boundary
 ```
 
-The purpose of this order remains to keep each architectural slice independently diagnosable. S6 must begin by inspecting the actual runtime/resolver contracts rather than assuming a random-seed design that the repository may not need.
+The purpose of the slice order was to keep each architectural change independently diagnosable. S6 completed the planned A51 implementation surface without inventing a random-seed or replay design unsupported by the current canonical runtime. The bookkeeping head must pass the same full exact-head gate before final A51 closure evidence is recorded.

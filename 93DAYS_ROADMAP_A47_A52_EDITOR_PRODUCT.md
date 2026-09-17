@@ -89,21 +89,27 @@ Deliverables:
 
 ## A51 — Preview / Debug as an Authoring Laboratory
 
-**Status:** IN PROGRESS (2026-09-17). **A51-S1 baseline stabilization, A51-S2 progressive disclosure + human-readable diagnostics, A51-S3 Typed Watches, A51-S4 Preview from here and A51-S5 Checkpoints / Time Travel are DONE.**
+**Status:** DONE (2026-09-17). **A51-S1 through A51-S6 are implementation-verified.** The final bookkeeping head still receives the same exact-head full branch gate before closure evidence is considered final.
 
-S4 preserves the core navigation/runtime boundary: Preview-from-here transfers typed authoring focus from the View Cursor or selected Story context into a fresh live-sourced sandbox, while never silently changing Simulation Playhead, Actual Presence, Knowledge or Story runtime state. The final S4 code head `cdbd446c8674efe072f4c58a636cbd23700c12cb` passed workflow #438 with 329/329 suites and 2019 passed tests.
+A51 turns Preview/Debug into an isolated authoring laboratory rather than final player UI. Sandbox work stays outside authored source, authoring Undo/Redo, live runtime replacement and project persistence while continuing to delegate narrative semantics to the canonical runtime.
 
-S5 uses **snapshot-first, bounded, manual checkpoints** because `PreviewLaboratoryAction[]` is provenance rather than a complete deterministic replay log. Checkpoints are local to the Preview investigation, keyed by scenario id, capped by `PREVIEW_CHECKPOINT_LIMIT = 8`, isolated from authoring Undo/Redo/live runtime/persistence, and exposed only in Analysis. Restore preserves the scenario baseline, appends `checkpoint-restore` provenance, reuses existing stale-trace invalidation and causes Typed Watches to re-read restored sandbox state. Set from live clears the old source lineage, Reset keeps checkpoints, and Fork starts empty.
+S1 stabilized architecture/contracts and CI boundaries. S2 established Preview → Analysis → Deep Debug progressive disclosure with human-readable diagnostics sourced from canonical traces. S3 added finite typed Watches. S4 added Preview from here while preserving View Cursor != Simulation Playhead and refusing to fabricate Actual Presence, Knowledge or Story runtime state. S5 added snapshot-first, bounded manual Checkpoints with same-scenario lineage, baseline-preserving restore and typed Watch re-evaluation.
 
-The final S5 code head `5fdecf08f4204c5d6e714575e02e4e4b609706fe` passed workflow **#445**: **331/331 suites**, **2030 passed tests** (23 skipped, 42 todo; 2095 total), diagnostics upload PASS, Vite smoke PASS and Electron smoke PASS. S5 closure is recorded in `93DAYS_A51_CHANGE_RECORD_S5.md` and `93DAYS_A51_S5_CHECKPOINT_TIME_TRAVEL_ADR.md`.
+S6 closes the stage with **finite typed reproduction metadata for explicit inputs that really exist in the canonical runtime**. Repository/runtime evidence found no hidden random source in Move resolution: skill checks already receive explicit `skillValue` + `rollTotal`. S6 therefore records exact typed test inputs, requested/applied advance minutes, resolved Move input/outcome, forced Outcome ids and checkpoint restore id; `Trace only` derives a read-only descriptor instead of appending provenance. Raw reproduction metadata is Deep Debug-only. No seed, RNG token, replay engine or event-sourcing contract was invented.
 
-The next permitted slice is **A51-S6 — Reproduction metadata**, but it is evidence-first: inspect the repository/runtime for an actual hidden/random source before adding any random seed/token contract. Current skill checks already take explicit `skillValue` + `rollTotal`; if no hidden randomness exists, S6 must reflect that actual model rather than invent RNG infrastructure.
+The final S6 code head `2aa3e6f63b29ae2f80515ad8e4c09b780b101aeb` passed workflow **#452**: **333/333 suites**, **2037 passed tests** (23 skipped, 42 todo; 2102 total), diagnostics upload PASS, Vite smoke PASS and Electron smoke PASS. Workflows #450 and #451 exposed only legacy UI selectors that became ambiguous after the second valid Deep Debug representation was added; fixes were scoped test-only corrections with no production semantic change.
 
-The overall A51 stage is **not DONE** and PR #24 remains open/unmerged.
+S6 closure evidence is recorded in:
+
+- `93DAYS_A51_S6_REPRODUCTION_METADATA_CONTRACT.md`;
+- `93DAYS_A51_CHANGE_RECORD_S6.md`;
+- `93DAYS_A51_ARCHITECTURE_VERIFICATION.md`.
+
+PR #24 remains open/unmerged pending explicit closure/merge handling after the bookkeeping head passes its own full gate.
 
 **Goal:** let an author test assumptions and consequences without pretending the editor is the final game UI.
 
-Deliverables:
+Delivered:
 
 - set/fork/reset preview state;
 - inspect and modify test-only runtime inputs explicitly;
@@ -115,8 +121,8 @@ Deliverables:
 - transfer explicit Story/View authoring focus into a fresh sandbox without fabricating runtime time/presence/knowledge;
 - create/restore/remove bounded snapshot checkpoints inside the isolated sandbox without using authoring Undo/Redo or live-runtime history;
 - preserve checkpoint lineage semantics across Set from live / Reset / Fork / scenario switching / Preview-from-here remount;
-- keep preview/checkpoint state isolated from project persistence;
-- add reproduction metadata only where actual runtime evidence requires it.
+- keep preview/checkpoint/reproduction state isolated from project persistence;
+- expose finite typed reproduction metadata for actual explicit runtime inputs without fabricating RNG ownership.
 
 ## A52 — Export / Compiler Boundary
 

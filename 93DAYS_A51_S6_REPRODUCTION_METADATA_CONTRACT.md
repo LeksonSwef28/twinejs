@@ -1,13 +1,13 @@
 # A51-S6 Contract — Reproduction Metadata
 
-Status: **CONTRACT PASS / IMPLEMENTATION NOT YET VERIFIED**  
+Status: **IMPLEMENTATION VERIFIED / S6 DONE**  
 Requirement: **REQ-014 reproduction metadata**  
 Stage: **A51-S6**  
 Decision date: **2026-09-17**
 
 ## 1. Decision summary
 
-A51-S6 will record **structured reproduction metadata for explicit Preview Laboratory inputs**. It will **not** introduce a random seed, RNG token, hidden dice service or replay engine because the current canonical runtime does not contain a hidden random source in Move resolution.
+A51-S6 records **structured reproduction metadata for explicit Preview Laboratory inputs**. It does **not** introduce a random seed, RNG token, hidden dice service or replay engine because the current canonical runtime does not contain a hidden random source in Move resolution.
 
 The current model is deterministic from an exact sandbox state plus explicit inputs:
 
@@ -50,13 +50,13 @@ Repository code search found no current uses of `Math.random`, `getRandomValues`
 
 ### Existing provenance gap
 
-`PreviewLaboratoryAction[]` is currently descriptive provenance. It records ids / summaries but drops some structured inputs after an action completes. Examples:
+`PreviewLaboratoryAction[]` was descriptive provenance. It recorded ids / summaries but dropped some structured inputs after an action completed. Examples before S6:
 
-- `setPreviewRuntimeInput()` stores only a human summary, not the full typed input;
-- `executePreviewMove()` stores Move / Outcome ids but not explicit skill-check input;
-- `advancePreviewScenario()` stores a summary but not structured requested/applied minutes.
+- `setPreviewRuntimeInput()` stored only a human summary, not the full typed input;
+- `executePreviewMove()` stored Move / Outcome ids but not explicit skill-check input;
+- `advancePreviewScenario()` stored a summary but not structured requested/applied minutes.
 
-That is sufficient for human provenance but insufficient for trustworthy reproduction metadata.
+That was sufficient for human provenance but insufficient for trustworthy reproduction metadata.
 
 ## 3. S6 boundary
 
@@ -75,12 +75,10 @@ A checkpoint answers **what exact sandbox state existed**. Reproduction metadata
 
 ## 4. Typed metadata contract
 
-`PreviewLaboratoryAction` may gain one optional finite reproduction metadata field. The metadata must be a discriminated union, not arbitrary JSON.
-
-Conceptually:
+`PreviewLaboratoryAction` has one optional finite reproduction metadata field. The metadata is a discriminated union, not arbitrary JSON.
 
 ```text
-PreviewReproductionMetadata
+PreviewLaboratoryReproductionMetadata
   test-input
     input: PreviewRuntimeInput
 
@@ -101,33 +99,33 @@ PreviewReproductionMetadata
     checkpointId
 ```
 
-Lifecycle actions such as source capture / reset / fork may remain without reproduction metadata unless a concrete reproduction fact is required. S6 must not invent fields merely for schema symmetry.
+Lifecycle actions such as source capture / reset / fork remain without reproduction metadata because no concrete reproduction fact is required. S6 does not invent fields merely for schema symmetry.
 
 ## 5. Explicit skill-check rule
 
-For a skill-check Move, reproduction metadata must retain the exact caller-supplied:
+For a skill-check Move, reproduction metadata retains the exact caller-supplied:
 
 - `skillValue`;
 - `rollTotal`.
 
-For automatic or condition resolution, metadata must not synthesize a fake skill input, roll, RNG token or seed.
+For automatic or condition resolution, metadata does not synthesize a fake skill input, roll, RNG token or seed.
 
 The absence of a seed is a deliberate representation of the current runtime contract, not missing implementation.
 
 ## 6. Typed test-input rule
 
-For `test-input` actions, metadata must retain the exact finite `PreviewRuntimeInput` variant that passed validation:
+For `test-input` actions, metadata retains the exact finite `PreviewRuntimeInput` variant that passed validation:
 
 - moment;
 - Actual Presence;
 - Knowledge;
 - forget-claim.
 
-The stored metadata must be independent from any caller-owned object so later mutation cannot rewrite prior provenance.
+The stored metadata is independent from any caller-owned object so later mutation cannot rewrite prior provenance.
 
 ## 7. Advance rule
 
-Time-advance metadata must distinguish:
+Time-advance metadata distinguishes:
 
 - requested minutes;
 - actual applied minutes reported by canonical simulation.
@@ -138,17 +136,17 @@ S6 does not reproduce simulation by implementing its own time rules; it records 
 
 ## 8. Checkpoint restore rule
 
-Checkpoint restore metadata may retain the stable checkpoint id used for the restore.
+Checkpoint restore metadata retains the stable checkpoint id used for the restore.
 
-It must **not** copy the checkpoint snapshot into every provenance action. The exact sandbox state remains owned by the bounded S5 checkpoint collection.
+It does **not** copy the checkpoint snapshot into every provenance action. The exact sandbox state remains owned by the bounded S5 checkpoint collection.
 
 If a checkpoint is later removed, historical provenance may still say which checkpoint id was restored, but that action is not thereby a self-contained replay command.
 
 ## 9. Trace-only / read-only inspection
 
-`Trace only` must remain read-only and must not append a laboratory action merely to preserve metadata.
+`Trace only` remains read-only and does not append a laboratory action merely to preserve metadata.
 
-The UI may derive a read-only reproduction descriptor for the currently displayed trace from:
+The UI derives a read-only reproduction descriptor for the currently displayed trace from:
 
 - active scenario id;
 - current action count;
@@ -162,22 +160,22 @@ That descriptor is presentation/investigation state only. It does not mutate the
 
 Reproduction metadata belongs in **Deep Debug**, alongside raw trace and provenance, because it is structured diagnostic material rather than the default author workflow.
 
-Default Preview and Analysis should not gain raw reproduction JSON.
+Default Preview and Analysis do not expose raw reproduction JSON.
 
-Minimum Deep Debug behavior:
+Verified Deep Debug behavior:
 
 - provenance entries with structured metadata expose it clearly;
-- a current read-only Move trace can expose the explicit reproduction input used for that trace;
+- a current read-only Move trace exposes the explicit reproduction input used for that trace;
 - no seed/random-token field is shown when the runtime has no such source.
 
 ## 11. Determinism and stable serialization
 
-Requirements:
+Requirements retained by implementation:
 
 - reproduction metadata is JSON-serializable;
 - equivalent explicit inputs serialize equivalently;
 - metadata capture cannot mutate scenario state;
-- metadata must not retain mutable aliases to caller-owned input objects;
+- metadata does not retain mutable aliases to caller-owned input objects;
 - metadata is not persisted into Narrative Project serialization;
 - adding metadata does not change canonical resolver/effect/simulation semantics.
 
@@ -230,4 +228,27 @@ If a future canonical runtime introduces a real hidden/random source, that chang
 
 **A51-S6 reproduction metadata contract: PASS.**
 
-Implementation is permitted only as structured recording/projection of explicit inputs that already exist in the canonical runtime and Preview Laboratory. No RNG/seed contract is permitted under current repository evidence.
+Implementation is restricted to structured recording/projection of explicit inputs that already exist in the canonical runtime and Preview Laboratory. No RNG/seed contract is permitted under current repository evidence.
+
+## 15. Implementation verification
+
+Implementation chain:
+
+- contract: `b344618c168e8da590a3e3d7686f1ea3b7a4ed83`;
+- application metadata: `1d93361e50461a9130a92c4e4fcbfc6a4c55fc42`;
+- Deep Debug projection: `40ce2fa972839c9e602417f7f8ecd6e43be4d35d`;
+- final test-only selector correction/code head: `2aa3e6f63b29ae2f80515ad8e4c09b780b101aeb`.
+
+Exact code gate **#452** is GREEN:
+
+- install / production audit / lint PASS;
+- web and Electron builds PASS;
+- **333/333 Jest suites PASS**;
+- **2037 passed tests**, 23 skipped, 42 todo, 2102 total;
+- diagnostics upload PASS;
+- Vite smoke PASS;
+- Electron smoke PASS.
+
+Workflows #450 and #451 exposed only legacy Testing Library selectors that became ambiguous after a second legitimate Deep Debug representation was added. Corrections were test-only and scoped assertions to their intended semantic panels; runtime/product semantics were not weakened.
+
+**S6 implementation verification: PASS.**
