@@ -17,6 +17,7 @@ import {formatMinuteOfDay} from '../../../domain/narrative/calendar';
 import {KnowledgeAttitude} from '../../../domain/narrative/knowledge';
 import {useNarrativeProject} from '../../../store/narrative-project';
 import {PreviewCheckpointControls} from './preview-checkpoint-controls';
+import {PreviewReproductionDebug} from './preview-reproduction-debug';
 import {PreviewTypedWatches} from './preview-typed-watches';
 import './preview-laboratory-panel.css';
 
@@ -665,6 +666,13 @@ export const PreviewLaboratoryPanel: React.FC = () => {
 							<p className="simulation-debug__empty">Trace ещё не запускался.</p>
 						)}
 					</section>
+
+					<PreviewReproductionDebug
+						scenario={active}
+						trace={trace}
+						moveId={selectedMoveId}
+						input={resolutionInput()}
+					/>
 
 					<section className="simulation-debug__card">
 						<h3>Force authored Outcome · inspection only</h3>
