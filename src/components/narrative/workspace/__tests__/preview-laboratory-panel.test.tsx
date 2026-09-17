@@ -255,7 +255,9 @@ describe('<PreviewLaboratoryPanel>', () => {
 		const outcomeSelect = selectContainingOption(container, 'declined');
 		fireEvent.change(outcomeSelect, {target: {value: 'declined'}});
 		fireEvent.click(screen.getByRole('button', {name: 'Force Outcome'}));
-		expect(screen.getByText(/forced-outcome/)).toBeInTheDocument();
+		expect(screen.getByText('Preview provenance').closest('section')).toHaveTextContent(
+			'forced-outcome'
+		);
 		expect(screen.getByText(/Forced authored outcome promise → declined/)).toBeInTheDocument();
 
 		expect(mockExecute).not.toHaveBeenCalled();
