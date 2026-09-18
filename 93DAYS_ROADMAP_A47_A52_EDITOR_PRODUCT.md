@@ -89,7 +89,7 @@ Deliverables:
 
 ## A51 — Preview / Debug as an Authoring Laboratory
 
-**Status:** DONE (2026-09-17). **A51-S1 through A51-S6 are implementation-verified.** The final bookkeeping head still receives the same exact-head full branch gate before closure evidence is considered final.
+**Status:** DONE (2026-09-18). **A51-S1 through A51-S6 are merged and post-merge verified.** PR #24 merged into `93-days-editor` as `3d0f59219fca29d3338034777d8343b03c74cc45`; stable workflow **#454** passed 333/333 suites, 2037 tests, diagnostics upload, Vite smoke and Electron smoke.
 
 A51 turns Preview/Debug into an isolated authoring laboratory rather than final player UI. Sandbox work stays outside authored source, authoring Undo/Redo, live runtime replacement and project persistence while continuing to delegate narrative semantics to the canonical runtime.
 
@@ -105,7 +105,7 @@ S6 closure evidence is recorded in:
 - `93DAYS_A51_CHANGE_RECORD_S6.md`;
 - `93DAYS_A51_ARCHITECTURE_VERIFICATION.md`.
 
-PR #24 remains open/unmerged pending explicit closure/merge handling after the bookkeeping head passes its own full gate.
+PR #24 is merged. A51 is closed; the exact merge head has its own successful post-merge verification.
 
 **Goal:** let an author test assumptions and consequences without pretending the editor is the final game UI.
 
@@ -125,6 +125,8 @@ Delivered:
 - expose finite typed reproduction metadata for actual explicit runtime inputs without fabricating RNG ownership.
 
 ## A52 — Export / Compiler Boundary
+
+**Status:** IN PROGRESS (2026-09-18). A52-S1 architecture/artifact/validation contract is being established on `feature/a52-export-compiler-boundary` from the post-merge verified A51 stable head `3d0f59219fca29d3338034777d8343b03c74cc45`. Implementation has not yet been verified.
 
 **Goal:** prove that an authored Narrative Project can produce a runnable story artifact without maintaining a second hand-authored Passage graph.
 
