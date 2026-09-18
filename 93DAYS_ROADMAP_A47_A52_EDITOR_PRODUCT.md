@@ -141,7 +141,7 @@ Deliverables:
 
 S1 established the single-source, versioned artifact and validation contract. S2 now compiles a deterministic `narrative-runtime-artifact` v1 from the existing authored persistence projection plus a fresh authored initial runtime; current editor/live/Preview state is excluded. Story Brain findings are projected into explicit blocker/advisory export diagnostics, and canonical JSON sorting preserves authored array order.
 
-S2 exact code head `8278cbb40bc64978e8a72c8716fe2957878f2133` passed workflow **#458** with **334/334 suites**, **2044 passed tests** (23 skipped, 42 todo; 2109 total), diagnostics upload PASS and both smoke checks PASS. The next permitted slice is **A52-S3 — transient export adapter + source-linked export diagnostics/UI**. Generated Passage data must remain disposable compiler output and existing Twine publishing must be reused.
+S2 exact code head `8278cbb40bc64978e8a72c8716fe2957878f2133` passed workflow **#458** with **334/334 suites**, **2044 passed tests** (23 skipped, 42 todo; 2109 total), diagnostics upload PASS and both smoke checks PASS. S2 bookkeeping head `2fe6a165734c8ed427dc81f1cad28895fcc3a4ee` then passed exact-head workflow **#459** with the same counts and smoke results. **A52-S3 contract is now active:** transient generated Story/Passage output may use only host packaging identity, must discard legacy host narrative content, reuse existing Twine publishing, remain unpersisted, and expose source-linked diagnostics inside the existing Narrative Workspace.
 
 ## Execution rule
 
