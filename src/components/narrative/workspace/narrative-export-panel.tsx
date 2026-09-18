@@ -5,6 +5,7 @@ import {
 	prepareNarrativeStoryExport
 } from '../../../application/narrative/export-story-adapter';
 import {storyCanvasViewportForNode} from '../../../domain/narrative/workspace-navigation';
+import {narrativeRuntimeProofFilenameExtension} from '../../../application/narrative/runtime-proof';
 import {storyFileName} from '../../../electron/shared';
 import {useNarrativeProject} from '../../../store/narrative-project';
 import {useNarrativePublishing} from '../../../store/use-narrative-publishing';
@@ -46,7 +47,7 @@ function diagnosticKind(diagnostic: NarrativePreparedExportDiagnostic) {
 export const NarrativeExportPanel: React.FC = () => {
 	const {project, execute} = useNarrativeProject();
 	const {stories} = useUndoableStoriesContext();
-	const {publishNarrativeProject} = useNarrativePublishing();
+	const {publishNarrativeProject, publishNarrativeProof} = useNarrativePublishing();
 	const [operationError, setOperationError] = React.useState<string>();
 	const [lastPublishedFile, setLastPublishedFile] = React.useState<string>();
 	const hostStory = React.useMemo(
@@ -116,6 +117,35 @@ export const NarrativeExportPanel: React.FC = () => {
 		});
 	}
 
+	function publishProof() {
+		if (!hostStory || preparation?.status !== 'ready') {
+			return;
+		}
+		setOperationError(undefined);
+		setLastPublishedFile(undefined);
+		try {
+			const result = publishNarrativeProof(project, hostStory);
+			if (result.status === 'blocked') {
+				setOperationError(
+					'Compiler proof был заблокирован повторной проверкой.'
+				);
+				return;
+			}
+			const filename = storyFileName(
+				result.story,
+				narrativeRuntimeProofFilenameExtension
+			);
+			saveHtml(result.html, filename);
+			setLastPublishedFile(filename);
+		} catch (error) {
+			setOperationError(
+				error instanceof Error
+					? error.message
+					: 'Не удалось собрать compiler proof HTML.'
+			);
+		}
+	}
+
 	async function publish() {
 		if (!hostStory || preparation?.status !== 'ready') {
 			return;
@@ -183,8 +213,9 @@ export const NarrativeExportPanel: React.FC = () => {
 			</div>
 
 			<p className="narrative-workspace__export-note">
-				S3 собирает compiler-data HTML через текущий Story Format. Это ещё не
-				player-facing runtime: минимальный runnable proof относится к A52-S4.
+				Обычный HTML связывает artifact с текущим Story Format. Compiler proof
+				 HTML использует validation-only shell A52: он парсит artifact и
+				 показывает стартовое состояние, но не исполняет narrative mechanics.
 			</p>
 
 			{!hostStory && (
@@ -231,16 +262,26 @@ export const NarrativeExportPanel: React.FC = () => {
 			)}
 
 			<div className="narrative-workspace__export-actions">
-				<button
-					type="button"
-					disabled={preparation?.status !== 'ready'}
-					onClick={publish}
-				>
-					Собрать HTML
-				</button>
+				<div className="narrative-workspace__export-action-buttons">
+					<button
+						type="button"
+						disabled={preparation?.status !== 'ready'}
+						onClick={publish}
+					>
+						Собрать HTML
+					</button>
+					<button
+						type="button"
+						disabled={preparation?.status !== 'ready'}
+						onClick={publishProof}
+					>
+						Compiler proof HTML
+					</button>
+				</div>
 				<small>
 					Generated Story/Passage существует только в памяти и не попадает в
-					Undo/Redo или persistence.
+					Undo/Redo или persistence. Compiler proof — только проверка границы
+					компилятора, не финальный player runtime.
 				</small>
 			</div>
 

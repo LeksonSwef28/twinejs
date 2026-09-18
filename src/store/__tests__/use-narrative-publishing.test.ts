@@ -7,6 +7,11 @@ import {
 } from '../story-formats';
 import {fakeLoadedStoryFormat} from '../../test-util';
 import {publishStoryWithFormat} from '../../util/publish';
+import {
+	narrativeRuntimeProofStoryFormatName,
+	narrativeRuntimeProofStoryFormatSource,
+	narrativeRuntimeProofStoryFormatVersion
+} from '../../application/narrative/runtime-proof';
 import {useNarrativePublishing} from '../use-narrative-publishing';
 
 jest.mock('../../util/publish');
@@ -100,6 +105,34 @@ describe('useNarrativePublishing', () => {
 		expect(publishStoryWithFormatMock.mock.calls[0][0]).toBe(published!.story);
 		expect(publishStoryWithFormatMock.mock.calls[0][1]).toBe(
 			'<html>{{STORY_DATA}}</html>'
+		);
+	});
+
+	test('builds compiler proof without loading or depending on the host Story Format', () => {
+		useStoryFormatsContextMock.mockReturnValue({
+			dispatch: jest.fn(),
+			formats: []
+		});
+		publishStoryWithFormatMock.mockReturnValue('<html>proof</html>');
+		const {result} = renderHook(() => useNarrativePublishing());
+
+		const proof = result.current.publishNarrativeProof(
+			project(),
+			hostStory('MissingHostFormat', '99.0.0')
+		);
+
+		expect(proof.status).toBe('ready');
+		if (proof.status !== 'ready') {
+			throw new Error('Expected ready compiler proof');
+		}
+		expect(proof.html).toBe('<html>proof</html>');
+		expect(proof.story.storyFormat).toBe(narrativeRuntimeProofStoryFormatName);
+		expect(proof.story.storyFormatVersion).toBe(
+			narrativeRuntimeProofStoryFormatVersion
+		);
+		expect(publishStoryWithFormatMock).toHaveBeenCalledTimes(1);
+		expect(publishStoryWithFormatMock.mock.calls[0][1]).toBe(
+			narrativeRuntimeProofStoryFormatSource
 		);
 	});
 

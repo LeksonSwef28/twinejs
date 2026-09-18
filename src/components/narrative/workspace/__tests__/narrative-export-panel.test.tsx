@@ -2,6 +2,8 @@ import {fireEvent, render, screen, waitFor, within} from '@testing-library/react
 import {axe} from 'jest-axe';
 import * as React from 'react';
 import {prepareNarrativeStoryExport} from '../../../../application/narrative/export-story-adapter';
+import {prepareNarrativeRuntimeProof} from '../../../../application/narrative/runtime-proof';
+import {fakeAppInfo} from '../../../../test-util';
 import {createNarrativeProject} from '../../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../../domain/narrative/templates/93-days';
 import {Story} from '../../../../store/stories';
@@ -10,6 +12,7 @@ import {NarrativeExportPanel} from '../narrative-export-panel';
 
 const mockExecute = jest.fn();
 const mockPublishNarrativeProject = jest.fn();
+const mockPublishNarrativeProof = jest.fn();
 let mockProject = createProject();
 let mockHostStory = hostStory();
 
@@ -28,7 +31,8 @@ jest.mock('../../../../store/undoable-stories', () => ({
 
 jest.mock('../../../../store/use-narrative-publishing', () => ({
 	useNarrativePublishing: () => ({
-		publishNarrativeProject: mockPublishNarrativeProject
+		publishNarrativeProject: mockPublishNarrativeProject,
+		publishNarrativeProof: mockPublishNarrativeProof
 	})
 }));
 
@@ -66,6 +70,19 @@ function hostStory(): Story {
 	};
 }
 
+function setProofResultForCurrentProject() {
+	const proof = prepareNarrativeRuntimeProof(
+		mockProject,
+		mockHostStory,
+		fakeAppInfo({name: 'Twine', version: '2.12.0'})
+	);
+	if (proof.status !== 'ready') {
+		throw new Error('Expected ready test compiler proof');
+	}
+	mockPublishNarrativeProof.mockReturnValue(proof);
+	return proof;
+}
+
 function setPublishResultForCurrentProject() {
 	const prepared = prepareNarrativeStoryExport(mockProject, mockHostStory);
 	if (prepared.status !== 'ready') {
@@ -86,6 +103,7 @@ describe('<NarrativeExportPanel>', () => {
 		mockHostStory = hostStory();
 		mockExecute.mockClear();
 		mockPublishNarrativeProject.mockReset();
+		mockPublishNarrativeProof.mockReset();
 		saveHtmlMock.mockClear();
 	});
 
@@ -125,6 +143,26 @@ describe('<NarrativeExportPanel>', () => {
 		expect(mockExecute).not.toHaveBeenCalled();
 	});
 
+	test('downloads validation-only compiler proof without dispatching authoring/runtime commands', () => {
+		const proof = setProofResultForCurrentProject();
+		render(<NarrativeExportPanel />);
+
+		fireEvent.click(screen.getByRole('button', {name: 'Compiler proof HTML'}));
+
+		expect(mockPublishNarrativeProof).toHaveBeenCalledWith(
+			mockProject,
+			mockHostStory
+		);
+		expect(saveHtmlMock).toHaveBeenCalledWith(
+			proof.html,
+			'Canonical Export Story.compiler-proof.html'
+		);
+		expect(screen.getByRole('status')).toHaveTextContent(
+			'HTML подготовлен: Canonical Export Story.compiler-proof.html'
+		);
+		expect(mockExecute).not.toHaveBeenCalled();
+	});
+
 	test('blocks publishing and exposes Story Brain source navigation using editor-only commands', () => {
 		mockProject.storyNodes = [
 			{
@@ -147,6 +185,7 @@ describe('<NarrativeExportPanel>', () => {
 
 		expect(screen.getByText('Экспорт заблокирован')).toBeInTheDocument();
 		expect(screen.getByRole('button', {name: 'Собрать HTML'})).toBeDisabled();
+		expect(screen.getByRole('button', {name: 'Compiler proof HTML'})).toBeDisabled();
 
 		const summary = screen.getByText(/отсутствующую сущность character «missing»/);
 		const row = summary.closest('li');
@@ -168,6 +207,7 @@ describe('<NarrativeExportPanel>', () => {
 			)
 		).toBe(true);
 		expect(mockPublishNarrativeProject).not.toHaveBeenCalled();
+		expect(mockPublishNarrativeProof).not.toHaveBeenCalled();
 		expect(saveHtmlMock).not.toHaveBeenCalled();
 	});
 
@@ -177,6 +217,7 @@ describe('<NarrativeExportPanel>', () => {
 
 		expect(screen.getByText('Host Story недоступен')).toBeInTheDocument();
 		expect(screen.getByRole('button', {name: 'Собрать HTML'})).toBeDisabled();
+		expect(screen.getByRole('button', {name: 'Compiler proof HTML'})).toBeDisabled();
 	});
 
 	test('is accessible in the ready state', async () => {

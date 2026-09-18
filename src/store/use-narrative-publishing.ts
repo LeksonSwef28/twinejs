@@ -5,6 +5,10 @@ import {
 	prepareNarrativeStoryExport
 } from '../application/narrative/export-story-adapter';
 import {NarrativeRuntimeArtifactV1} from '../application/narrative/export-compiler';
+import {
+	NarrativeRuntimeProofPreparation,
+	prepareNarrativeRuntimeProof
+} from '../application/narrative/runtime-proof';
 import {publishStoryWithFormat} from '../util/publish';
 import {getAppInfo} from '../util/app-info';
 import {
@@ -32,6 +36,10 @@ export interface UseNarrativePublishingProps {
 		project: NarrativeProject,
 		hostStory: Story
 	): Promise<NarrativePublishResult>;
+	publishNarrativeProof(
+		project: NarrativeProject,
+		hostStory: Story
+	): NarrativeRuntimeProofPreparation;
 }
 
 /**
@@ -43,6 +51,11 @@ export function useNarrativePublishing(): UseNarrativePublishingProps {
 	const {dispatch: storyFormatsDispatch, formats} = useStoryFormatsContext();
 
 	return {
+		publishNarrativeProof: React.useCallback(
+			(project, hostStory) =>
+				prepareNarrativeRuntimeProof(project, hostStory, getAppInfo()),
+			[]
+		),
 		publishNarrativeProject: React.useCallback(
 			async (project, hostStory) => {
 				const prepared = prepareNarrativeStoryExport(project, hostStory);
