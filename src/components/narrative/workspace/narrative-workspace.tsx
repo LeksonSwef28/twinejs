@@ -1,5 +1,10 @@
 import * as React from 'react';
 import {
+	PreviewFromHereFocus,
+	PreviewFromHereRequest,
+	createPreviewFromHereRequest
+} from '../../../application/narrative/preview-from-here';
+import {
 	formatMinuteOfDay,
 	minutesPerDay,
 	weekdayForDay
@@ -13,6 +18,7 @@ import {MemorySaliencePanel} from './memory-salience-panel';
 import {MoveConditionsPanel} from './move-conditions-panel';
 import {NarrativeMovePanel} from './narrative-move-panel';
 import {OutcomeEffectsPanel} from './outcome-effects-panel';
+import {PreviewFromHereContextCard, PreviewThisViewButton} from './preview-from-here-controls';
 import {ProjectIdentityPanel} from './project-identity-panel';
 import {ProjectLibrary} from './project-library';
 import {ProjectSearchPanel} from './project-search-panel';
@@ -46,6 +52,9 @@ export const NarrativeWorkspace: React.FC = () => {
 	const [projectLibraryOpen, setProjectLibraryOpen] = React.useState(false);
 	const [splitView, setSplitView] = React.useState(false);
 	const [simulationDebugOpen, setSimulationDebugOpen] = React.useState(false);
+	const [previewFromHereRequest, setPreviewFromHereRequest] =
+		React.useState<PreviewFromHereRequest>();
+	const previewRequestCounter = React.useRef(1);
 	const selectedPeriod =
 		project.template.periods.find(
 			period => period.id === project.editor.selectedPeriodId
@@ -80,6 +89,16 @@ export const NarrativeWorkspace: React.FC = () => {
 		execute({type: 'editor/selectMoment', day, minuteOfDay});
 	}
 
+	function openPreviewFromHere(focus: PreviewFromHereFocus) {
+		const request = createPreviewFromHereRequest(
+			project,
+			previewRequestCounter.current++,
+			focus
+		);
+		setPreviewFromHereRequest(request);
+		setSimulationDebugOpen(true);
+	}
+
 	return (
 		<section className="narrative-workspace">
 			<header className="narrative-workspace__header">
@@ -111,7 +130,14 @@ export const NarrativeWorkspace: React.FC = () => {
 						type="button"
 						aria-pressed={simulationDebugOpen}
 						className={simulationDebugOpen ? 'is-active' : undefined}
-						onClick={() => setSimulationDebugOpen(open => !open)}
+						onClick={() => {
+							if (simulationDebugOpen) {
+								setSimulationDebugOpen(false);
+								return;
+							}
+							setPreviewFromHereRequest(undefined);
+							setSimulationDebugOpen(true);
+						}}
 					>
 						{simulationDebugOpen ? 'Закрыть Playtest' : 'Playtest / Debug'}
 					</button>
@@ -169,6 +195,11 @@ export const NarrativeWorkspace: React.FC = () => {
 						День {project.editor.selectedDay} · {weekdayLabels[weekday]}
 					</strong>
 					<time>{formatMinuteOfDay(selectedMinuteOfDay)}</time>
+					<PreviewThisViewButton
+						day={project.editor.selectedDay}
+						minuteOfDay={selectedMinuteOfDay}
+						onPreviewFromHere={openPreviewFromHere}
+					/>
 				</div>
 				{workspaceMode === 'story' ? (
 					<>
@@ -233,13 +264,24 @@ export const NarrativeWorkspace: React.FC = () => {
 				</div>
 			</div>
 
+			{simulationDebugOpen && previewFromHereRequest && (
+				<PreviewFromHereContextCard request={previewFromHereRequest} />
+			)}
 			<SimulationDebugPanel
+				key={
+					previewFromHereRequest
+						? `preview-from-here:${previewFromHereRequest.requestId}`
+						: 'manual-playtest'
+				}
 				open={simulationDebugOpen}
 				onClose={() => setSimulationDebugOpen(false)}
 			/>
 
 			<ProjectSearchPanel />
-			<CrossWorkspaceNavigator splitView={splitView} />
+			<CrossWorkspaceNavigator
+				splitView={splitView}
+				onPreviewFromHere={openPreviewFromHere}
+			/>
 			<ProjectLibrary
 				open={projectLibraryOpen}
 				onClose={() => setProjectLibraryOpen(false)}

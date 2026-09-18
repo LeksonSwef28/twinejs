@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {PreviewFromHereFocus} from '../../../application/narrative/preview-from-here';
 import {formatMinuteOfDay} from '../../../domain/narrative/calendar';
 import {
 	storyCanvasViewportForNode,
@@ -11,10 +12,12 @@ import {useNarrativeProject} from '../../../store/narrative-project';
 
 export interface CrossWorkspaceNavigatorProps {
 	splitView?: boolean;
+	onPreviewFromHere?(focus: PreviewFromHereFocus): void;
 }
 
 export const CrossWorkspaceNavigator: React.FC<CrossWorkspaceNavigatorProps> = ({
-	splitView = false
+	splitView = false,
+	onPreviewFromHere
 }) => {
 	const {project, execute} = useNarrativeProject();
 	const [storyNodeId, setStoryNodeId] = React.useState('');
@@ -165,6 +168,21 @@ export const CrossWorkspaceNavigator: React.FC<CrossWorkspaceNavigatorProps> = (
 			<button type="button" onClick={showInWorldTime} disabled={!worldTarget}>
 				Показать во времени
 			</button>
+			{onPreviewFromHere && (
+				<button
+					type="button"
+					disabled={!selectedNode}
+					onClick={() =>
+						selectedNode &&
+						onPreviewFromHere({
+							type: 'story-node',
+							storyNodeId: selectedNode.id
+						})
+					}
+				>
+					Preview from here
+				</button>
+			)}
 
 			{selectedNode && context && (
 				<div className="narrative-workspace__cross-nav-context">

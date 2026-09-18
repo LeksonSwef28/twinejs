@@ -27,7 +27,20 @@ jobs:
       - name: Build Electron main process
         run: npm run build:electron-main
       - name: Run test suite
-        run: npm run test:coverage -- --maxWorkers=2
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:coverage -- --maxWorkers=2 2>&1 | tee jest-ci.log
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 93-days-test-diagnostics
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            jest-ci.log
+            coverage/
       - name: Smoke-start Vite
         shell: bash
         run: |

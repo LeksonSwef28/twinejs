@@ -21,7 +21,7 @@ Runtime work is allowed only when it exists to preview, validate or execute auth
 - InteractionTemplate != Concrete NarrativeMove != Runtime Occurrence.
 - ReactionCandidate != PendingReaction != Executed Action.
 - Story Brain remains read-only authoring intelligence; it must not become an auto-writer.
-- Runtime/playtest changes remain outside authoring Undo/Redo history.
+- Runtime/playtest/checkpoint changes remain outside authoring Undo/Redo history.
 
 ## A47 — Editor Product Audit & Authoring Closure
 
@@ -41,7 +41,7 @@ Deliverables:
 
 ## A48 — Validation & Story Brain 2.0
 
-**Status:** DONE (2026-09-14). A48 now covers project-wide authored-reference validation, Reaction Candidate Set references, isolated/unreachable Story structure, outcome/failure consequence coverage, RoutineRule overlap detection, contradictory and preview-unknown Guards, missing Story participants, partial/invalid exact placements, Story ↔ WORLD/TIME presence/location consistency with ScheduleException priority, suspicious authored schedule gaps, and actionable jump-to-source navigation across both canonical workspaces. The final closure passed the full branch gate; Story Brain remains read-only and navigation never advances the Simulation Playhead.
+**Status:** DONE (2026-09-14). A48 covers project-wide authored-reference validation, Reaction Candidate Set references, isolated/unreachable Story structure, outcome/failure consequence coverage, RoutineRule overlap detection, contradictory and preview-unknown Guards, missing Story participants, partial/invalid exact placements, Story ↔ WORLD/TIME presence/location consistency with ScheduleException priority, suspicious authored schedule gaps, and actionable jump-to-source navigation across both canonical workspaces. The final closure passed the full branch gate; Story Brain remains read-only and navigation never advances the Simulation Playhead.
 
 **Goal:** turn architectural correctness checks into useful author-facing diagnostics.
 
@@ -59,7 +59,7 @@ Deliverables:
 
 ## A49 — Reusable Authoring Templates
 
-**Status:** DONE (2026-09-14). Interaction Templates now support explicit typed Character roles and Claim slots, reusable guards and outcome effects bound through those slots, multi-step EventTemplate-style authoring patterns that materialize into ordinary canonical Narrative Moves, and a read-only pre-commit preview of the exact instantiated structure. The authoring UI can create, bind, inspect, preview, instantiate and remove reusable patterns without editing internal JSON/code; runtime never executes templates directly and no autonomous content generation was introduced. The implementation passed the full 93 Days branch gate before this status update.
+**Status:** DONE (2026-09-14). Interaction Templates support explicit typed Character roles and Claim slots, reusable guards and outcome effects bound through those slots, multi-step EventTemplate-style authoring patterns that materialize into ordinary canonical Narrative Moves, and a read-only pre-commit preview of the exact instantiated structure. The authoring UI can create, bind, inspect, preview, instantiate and remove reusable patterns without editing internal JSON/code; runtime never executes templates directly and no autonomous content generation was introduced. The implementation passed the full 93 Days branch gate before this status update.
 
 **Goal:** let authors reuse structural narrative patterns without copying graph fragments manually.
 
@@ -89,9 +89,27 @@ Deliverables:
 
 ## A51 — Preview / Debug as an Authoring Laboratory
 
+**Status:** DONE (2026-09-17). **A51-S1 through A51-S6 are implementation-verified.** The final bookkeeping head still receives the same exact-head full branch gate before closure evidence is considered final.
+
+A51 turns Preview/Debug into an isolated authoring laboratory rather than final player UI. Sandbox work stays outside authored source, authoring Undo/Redo, live runtime replacement and project persistence while continuing to delegate narrative semantics to the canonical runtime.
+
+S1 stabilized architecture/contracts and CI boundaries. S2 established Preview → Analysis → Deep Debug progressive disclosure with human-readable diagnostics sourced from canonical traces. S3 added finite typed Watches. S4 added Preview from here while preserving View Cursor != Simulation Playhead and refusing to fabricate Actual Presence, Knowledge or Story runtime state. S5 added snapshot-first, bounded manual Checkpoints with same-scenario lineage, baseline-preserving restore and typed Watch re-evaluation.
+
+S6 closes the stage with **finite typed reproduction metadata for explicit inputs that really exist in the canonical runtime**. Repository/runtime evidence found no hidden random source in Move resolution: skill checks already receive explicit `skillValue` + `rollTotal`. S6 therefore records exact typed test inputs, requested/applied advance minutes, resolved Move input/outcome, forced Outcome ids and checkpoint restore id; `Trace only` derives a read-only descriptor instead of appending provenance. Raw reproduction metadata is Deep Debug-only. No seed, RNG token, replay engine or event-sourcing contract was invented.
+
+The final S6 code head `2aa3e6f63b29ae2f80515ad8e4c09b780b101aeb` passed workflow **#452**: **333/333 suites**, **2037 passed tests** (23 skipped, 42 todo; 2102 total), diagnostics upload PASS, Vite smoke PASS and Electron smoke PASS. Workflows #450 and #451 exposed only legacy UI selectors that became ambiguous after the second valid Deep Debug representation was added; fixes were scoped test-only corrections with no production semantic change.
+
+S6 closure evidence is recorded in:
+
+- `93DAYS_A51_S6_REPRODUCTION_METADATA_CONTRACT.md`;
+- `93DAYS_A51_CHANGE_RECORD_S6.md`;
+- `93DAYS_A51_ARCHITECTURE_VERIFICATION.md`.
+
+PR #24 remains open/unmerged pending explicit closure/merge handling after the bookkeeping head passes its own full gate.
+
 **Goal:** let an author test assumptions and consequences without pretending the editor is the final game UI.
 
-Deliverables:
+Delivered:
 
 - set/fork/reset preview state;
 - inspect and modify test-only runtime inputs explicitly;
@@ -99,7 +117,12 @@ Deliverables:
 - force/select Outcomes for authoring inspection where safe;
 - compare alternative preview scenarios;
 - inspect downstream state changes and occurrence provenance;
-- keep preview state isolated from authoring Undo/Redo.
+- use finite typed Watches for focused runtime facts without coupling authoring UI to arbitrary object paths;
+- transfer explicit Story/View authoring focus into a fresh sandbox without fabricating runtime time/presence/knowledge;
+- create/restore/remove bounded snapshot checkpoints inside the isolated sandbox without using authoring Undo/Redo or live-runtime history;
+- preserve checkpoint lineage semantics across Set from live / Reset / Fork / scenario switching / Preview-from-here remount;
+- keep preview/checkpoint/reproduction state isolated from project persistence;
+- expose finite typed reproduction metadata for actual explicit runtime inputs without fabricating RNG ownership.
 
 ## A52 — Export / Compiler Boundary
 
