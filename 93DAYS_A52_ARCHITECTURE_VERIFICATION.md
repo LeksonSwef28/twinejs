@@ -1,6 +1,6 @@
 # 93 Days Narrative Editor — A52 Architecture & Verification Baseline
 
-Status: **ACTIVE / S3 CONTRACT**  
+Status: **ACTIVE / S3 VERIFIED**  
 Stage: **A52 — Export / Compiler Boundary**  
 Stable base: `93-days-editor` @ `3d0f59219fca29d3338034777d8343b03c74cc45`  
 Post-merge base gate: workflow **#454 GREEN** — **333/333 suites**, **2037 passed tests** (23 skipped, 42 todo; 2102 total), diagnostics upload PASS, Vite smoke PASS, Electron smoke PASS.  
@@ -115,11 +115,11 @@ It has no UI, persistence writes, story-format binding, or current-time metadata
 
 Produces stable JSON by recursively sorting object keys while preserving array order.
 
-### COMP-A52-05 Transient export adapter — S3 CONTRACT
+### COMP-A52-05 Transient export adapter — IMPLEMENTED / VERIFIED S3
 
 S3 prepares one deterministic generated artifact Passage and a transient Story in memory. Only host package identity (`id`, `ifid`, story format name/version) may cross from persisted outer Story state. Legacy host Passages/script/style/tags are discarded. Existing `publishStoryWithFormat()` remains the binding owner. Generated Story/Passage data is never dispatched or persisted.
 
-### COMP-A52-06 Export UI / diagnostics — S3 CONTRACT
+### COMP-A52-06 Export UI / diagnostics — IMPLEMENTED / VERIFIED S3
 
 S3 exposes export readiness in a panel/lens inside Narrative Workspace, not a third workspace. Story Brain-derived diagnostics reuse existing source navigation; compiler/adapter project-level blockers do not fabricate navigation. Explicit successful publish may download HTML but cannot mutate authoring/live/persistence state.
 
@@ -234,6 +234,8 @@ S1 is documentation-only and can be reverted directly. Later compiler work remai
 
 ## 12. S1/S2 decision
 
-**A52-S1 contract: PASS. A52-S2 pure compiler: CLOSED on exact-head #459. A52-S3 contract: PASS / implementation pending.**
+**A52-S1 contract: PASS. A52-S2 pure compiler: CLOSED on #459. A52-S3 transient adapter/export UI: VERIFIED on #463.**
 
-S3 implementation is permitted only after the S3 docs head passes its own exact-head full gate.
+S3 final code evidence: `c82d364bc4e486d59210854f478325e0508443ba`, **337/337 suites / 2059 passed tests**, diagnostics upload and both smoke checks PASS.
+
+The next permitted boundary is **A52-S4 — minimal runnable compiler proof**. It must consume the existing versioned artifact and canonical runtime semantics; it must not become a second narrative runtime or a player-UI roadmap.

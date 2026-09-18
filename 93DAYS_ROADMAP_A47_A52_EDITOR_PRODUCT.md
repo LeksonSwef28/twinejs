@@ -126,7 +126,7 @@ Delivered:
 
 ## A52 — Export / Compiler Boundary
 
-**Status:** IN PROGRESS (2026-09-18). **A52-S1 contract and A52-S2 pure artifact compiler are DONE.** The stage runs on `feature/a52-export-compiler-boundary` from post-merge verified A51 stable head `3d0f59219fca29d3338034777d8343b03c74cc45`.
+**Status:** IN PROGRESS (2026-09-18). **A52-S1 contract, A52-S2 pure artifact compiler and A52-S3 transient export adapter/UI are DONE.** The stage runs on `feature/a52-export-compiler-boundary` from post-merge verified A51 stable head `3d0f59219fca29d3338034777d8343b03c74cc45`.
 
 **Goal:** prove that an authored Narrative Project can produce a runnable story artifact without maintaining a second hand-authored Passage graph.
 
@@ -141,7 +141,7 @@ Deliverables:
 
 S1 established the single-source, versioned artifact and validation contract. S2 now compiles a deterministic `narrative-runtime-artifact` v1 from the existing authored persistence projection plus a fresh authored initial runtime; current editor/live/Preview state is excluded. Story Brain findings are projected into explicit blocker/advisory export diagnostics, and canonical JSON sorting preserves authored array order.
 
-S2 exact code head `8278cbb40bc64978e8a72c8716fe2957878f2133` passed workflow **#458** with **334/334 suites**, **2044 passed tests** (23 skipped, 42 todo; 2109 total), diagnostics upload PASS and both smoke checks PASS. S2 bookkeeping head `2fe6a165734c8ed427dc81f1cad28895fcc3a4ee` then passed exact-head workflow **#459** with the same counts and smoke results. **A52-S3 contract is now active:** transient generated Story/Passage output may use only host packaging identity, must discard legacy host narrative content, reuse existing Twine publishing, remain unpersisted, and expose source-linked diagnostics inside the existing Narrative Workspace.
+S2 exact code head `8278cbb40bc64978e8a72c8716fe2957878f2133` passed workflow **#458** with **334/334 suites**, **2044 passed tests** (23 skipped, 42 todo; 2109 total), diagnostics upload PASS and both smoke checks PASS. S2 bookkeeping head `2fe6a165734c8ed427dc81f1cad28895fcc3a4ee` then passed exact-head workflow **#459** with the same counts and smoke results. **A52-S3 is implementation-verified.** The transient adapter uses only host package identity and discards legacy host narrative content; the Narrative-specific publishing hook reuses the existing generic Twine publisher; the Export panel reports blocker/advisory diagnostics, supports source navigation, and downloads derived HTML without persisting generated Passages. Final S3 code head `c82d364bc4e486d59210854f478325e0508443ba` passed workflow **#463** with **337/337 suites**, **2059 passed tests** (23 skipped, 42 todo; 2124 total), diagnostics upload PASS and both smoke checks PASS. The next slice is **A52-S4 — minimal runnable compiler proof**.
 
 ## Execution rule
 

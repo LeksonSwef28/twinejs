@@ -1,6 +1,6 @@
 # A52-S3 Contract — Transient Export Adapter & Source-Linked Export UI
 
-Status: **CONTRACT PASS / IMPLEMENTATION NOT YET VERIFIED**  
+Status: **CONTRACT PASS / IMPLEMENTATION VERIFIED**  
 Stage: **A52-S3**  
 Risk: **HIGH**  
 Verified source: `2fe6a165734c8ed427dc81f1cad28895fcc3a4ee`  
@@ -219,6 +219,33 @@ No persisted author data migration is introduced.
 
 ## 15. Decision
 
-**A52-S3 transient adapter + export UI contract: PASS / IMPLEMENTATION NOT YET VERIFIED.**
+## 16. Implementation verification
 
-Implementation begins only after this docs head passes the exact-head full branch gate.
+S3 was delivered in three isolated code slices:
+
+- pure adapter `0f34cd531ac23dc8f19cd9aa84e84274c7a8ce08` → workflow **#461 GREEN**;
+- Narrative publishing hook `6e994b8d9ced0ad24955001e6cdbd107edfdfcf4` → workflow **#462 GREEN**;
+- export panel/wiring `c82d364bc4e486d59210854f478325e0508443ba` → workflow **#463 GREEN**.
+
+Final S3 code gate #463:
+- **337/337 suites**;
+- **2059 passed**;
+- **23 skipped**;
+- **42 todo**;
+- **2124 total**;
+- diagnostics upload PASS;
+- Vite smoke PASS;
+- Electron smoke PASS.
+
+Verified behavior:
+- legacy host Passages/script/style/tags are discarded;
+- only host package identity crosses the adapter;
+- generated artifact Passage is deterministic and unpersisted;
+- compiler and adapter blockers are atomic;
+- Story Brain advisories remain exportable;
+- generic `publishStoryWithFormat()` is reused unchanged;
+- explicit HTML download uses existing `saveHtml` / Story filename helper;
+- source-linked diagnostics issue editor-only navigation commands;
+- Narrative Export is a panel inside the existing workspace, not a third workspace.
+
+**A52-S3 transient adapter + export UI: DONE / VERIFIED.**
