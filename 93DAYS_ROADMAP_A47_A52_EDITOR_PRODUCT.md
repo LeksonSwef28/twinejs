@@ -89,7 +89,7 @@ Deliverables:
 
 ## A51 — Preview / Debug as an Authoring Laboratory
 
-**Status:** DONE (2026-09-17). **A51-S1 through A51-S6 are implementation-verified.** The final bookkeeping head still receives the same exact-head full branch gate before closure evidence is considered final.
+**Status:** DONE (2026-09-18). **A51-S1 through A51-S6 are merged and post-merge verified.** PR #24 merged into `93-days-editor` as `3d0f59219fca29d3338034777d8343b03c74cc45`; stable workflow **#454** passed 333/333 suites, 2037 tests, diagnostics upload, Vite smoke and Electron smoke.
 
 A51 turns Preview/Debug into an isolated authoring laboratory rather than final player UI. Sandbox work stays outside authored source, authoring Undo/Redo, live runtime replacement and project persistence while continuing to delegate narrative semantics to the canonical runtime.
 
@@ -105,7 +105,7 @@ S6 closure evidence is recorded in:
 - `93DAYS_A51_CHANGE_RECORD_S6.md`;
 - `93DAYS_A51_ARCHITECTURE_VERIFICATION.md`.
 
-PR #24 remains open/unmerged pending explicit closure/merge handling after the bookkeeping head passes its own full gate.
+PR #24 is merged. A51 is closed; the exact merge head has its own successful post-merge verification.
 
 **Goal:** let an author test assumptions and consequences without pretending the editor is the final game UI.
 
@@ -126,6 +126,8 @@ Delivered:
 
 ## A52 — Export / Compiler Boundary
 
+**Status:** DONE (2026-09-18). **A52-S1 contract, A52-S2 pure artifact compiler, A52-S3 transient export adapter/UI and A52-S4 runnable compiler proof are DONE and final exact-head closure is GREEN.** The stage runs on `feature/a52-export-compiler-boundary` from post-merge verified A51 stable head `3d0f59219fca29d3338034777d8343b03c74cc45`.
+
 **Goal:** prove that an authored Narrative Project can produce a runnable story artifact without maintaining a second hand-authored Passage graph.
 
 Deliverables:
@@ -136,6 +138,10 @@ Deliverables:
 - export diagnostics that point back to authoring entities;
 - minimal runnable proof used only as compiler validation, not as a new game-development roadmap;
 - no duplicate source-of-truth story graph.
+
+S1 established the single-source, versioned artifact and validation contract. S2 now compiles a deterministic `narrative-runtime-artifact` v1 from the existing authored persistence projection plus a fresh authored initial runtime; current editor/live/Preview state is excluded. Story Brain findings are projected into explicit blocker/advisory export diagnostics, and canonical JSON sorting preserves authored array order.
+
+S2 exact code head `8278cbb40bc64978e8a72c8716fe2957878f2133` passed workflow **#458** with **334/334 suites**, **2044 passed tests** (23 skipped, 42 todo; 2109 total), diagnostics upload PASS and both smoke checks PASS. S2 bookkeeping head `2fe6a165734c8ed427dc81f1cad28895fcc3a4ee` then passed exact-head workflow **#459** with the same counts and smoke results. **A52-S3 is implementation-verified.** The transient adapter uses only host package identity and discards legacy host narrative content; the Narrative-specific publishing hook reuses the existing generic Twine publisher; the Export panel reports blocker/advisory diagnostics, supports source navigation, and downloads derived HTML without persisting generated Passages. Final S3 code head `c82d364bc4e486d59210854f478325e0508443ba` passed workflow **#463** with **337/337 suites**, **2059 passed tests** (23 skipped, 42 todo; 2124 total), diagnostics upload PASS and both smoke checks PASS. S3 closure head `bcc1fb989701c3048a61b40be8d4b400f341e659` then passed exact-head workflow **#464** with the same counts and smoke results. **A52-S4 is implementation-verified.** The dedicated `93 Days Compiler Proof` shell consumes the same generated artifact Passage, checks only its compatibility envelope, renders authored identity/fresh start state as inert data, and implements no narrative mechanics. Core head `791ff5b30145459bed9606e0ba8268bd38e99ac3` passed **#467**; final S4 code head `45e0fd11356dd6abe94ad7cea07a1d9aa19c9e8d` passed **#468** with **338/338 suites**, **2072 passed tests** (23 skipped, 42 todo; 2137 total), 0 snapshots, diagnostics upload PASS and both smoke checks PASS. All A52 requirements REQ-001..REQ-008 are now implemented. Final closure head `05a69c854ba5b142c566fa4e3ea25bea1305271b` passed workflow **#469** with **338/338 suites**, **2072 passed tests** (23 skipped, 42 todo; 2137 total), 0 snapshots, diagnostics upload PASS and both smoke checks PASS. Only PR merge and mandatory post-merge exact-SHA verification remain.
 
 ## Execution rule
 
