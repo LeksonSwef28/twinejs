@@ -94,8 +94,13 @@ Conceptually:
 
 ```text
 NarrativeExportDiagnostic
-  disposition: blocker | advisory
-  finding: StoryBrainFinding
+  | story-brain
+      disposition: blocker | advisory
+      finding: StoryBrainFinding
+  | compiler
+      disposition: blocker
+      code: missing-template-period | invalid-initial-runtime
+      summary: string
 
 NarrativeCompileResult
   status: compiled | blocked
@@ -103,7 +108,7 @@ NarrativeCompileResult
   artifact?: NarrativeRuntimeArtifactV1
 ```
 
-A blocked result contains no successful artifact.
+A blocked result contains no successful artifact. Expected invalid compiler input is represented as diagnostics, not as a partially built artifact or an uncaught initialization error.
 
 ## 6. V1 blocker policy
 
@@ -126,11 +131,18 @@ This is deliberate:
 - empty/asymmetric consequences are authoring-quality issues;
 - routine overlap and schedule consistency findings do not currently write Actual Presence or constitute a separate executable schedule engine.
 
+Artifact prerequisites not owned by Story Brain are compiler blockers in v1:
+
+- `missing-template-period` when no first period exists to define the authored start moment;
+- `invalid-initial-runtime` when authored initial-state materialization (currently Initial Knowledge) cannot produce a valid fresh runtime.
+
+These diagnostics are project-level and do not invent a fake Story Brain source entity.
+
 A future blocker policy change requires repository evidence, a contract update and regression coverage.
 
 ## 7. Source-linked diagnostics
 
-Every export diagnostic retains the original Story Brain finding. UI/navigation may call the existing `storyBrainNavigationForFinding(project, finding)`.
+Every Story Brain-derived export diagnostic retains the original finding. UI/navigation may call the existing `storyBrainNavigationForFinding(project, finding)`. Compiler-level project blockers have no fabricated entity navigation.
 
 The compiler itself does not mutate editor focus. Navigation remains a user-invoked presentation action.
 
@@ -193,7 +205,8 @@ S2 must prove at minimum:
 - input immutability;
 - explicit blocker/advisory behavior;
 - blocked compilation emits no artifact;
-- source finding identity is retained;
+- invalid initial Knowledge or missing template period becomes a typed compiler blocker instead of an uncaught partial compile;
+- Story Brain source finding identity is retained;
 - no runtime/authoring/persistence side effects.
 
 ## 12. Decision

@@ -74,7 +74,7 @@ A52 must project these diagnostics into an export gate instead of introducing a 
 - **A52-I05 — Versioned artifact:** the runtime artifact has an explicit format id and artifact version independent from Narrative Project schema version.
 - **A52-I06 — Existing ownership split:** compiler input reuses `NarrativeProjectAuthoredProjection`; A52 does not maintain a second manually enumerated authored schema.
 - **A52-I07 — Validation before artifact:** blocking export diagnostics prevent artifact success atomically. Advisory Story Brain findings remain visible but do not become blockers merely because their current severity is `warning`.
-- **A52-I08 — Source-linked diagnostics:** export diagnostics preserve the underlying Story Brain finding identity and can resolve through existing authoring navigation where possible.
+- **A52-I08 — Source-linked diagnostics:** Story Brain-derived export diagnostics preserve the underlying finding identity and can resolve through existing authoring navigation where possible. Compiler-level project blockers remain explicitly typed even when no narrower authoring entity exists.
 - **A52-I09 — No second runtime:** compiler/export code contains no duplicate guard, Move resolution, Outcome effect, simulation, schedule, cognition, body, injury or Story-state evaluator.
 - **A52-I10 — Existing publisher reuse:** Twine story-format binding remains owned by `publishStoryWithFormat()`; any A52 adapter supplies transient generated data and does not fork publishing logic.
 - **A52-I11 — Array semantics preserved:** canonical serialization may sort object keys, but it must preserve authored array order unless a specific collection contract explicitly declares order irrelevant.
@@ -86,7 +86,7 @@ A52 must project these diagnostics into an export gate instead of introducing a 
 
 Input: `NarrativeProject`.  
 Reuses `queryStoryBrainProjectDiagnostics()`.  
-Produces explicit blocker/advisory export diagnostics while preserving source finding ids/kinds.
+Produces explicit blocker/advisory export diagnostics while preserving source finding ids/kinds. It may additionally emit finite compiler-level blockers when artifact initialization itself cannot be constructed safely (for example missing template periods or invalid initial-runtime seeds).
 
 ### COMP-A52-02 Initial runtime initializer
 
@@ -138,6 +138,13 @@ All other existing A48 findings are advisory in artifact v1 unless later reposit
 
 In particular, content-quality findings such as terminal branches, isolated/unreachable nodes, asymmetric/empty outcomes, missing Story participant metadata and line-frontier warnings do not automatically block export. Schedule overlap/consistency findings also remain advisory under the current repository because authored schedules are diagnostic/planning input and do not themselves write Actual Presence.
 
+Compiler-level blockers are also permitted for artifact prerequisites that Story Brain does not own:
+
+- `missing-template-period`;
+- `invalid-initial-runtime`.
+
+These are project-level diagnostics and need not fabricate a Story Brain entity reference.
+
 Any later blocker expansion requires a contract update plus regression proving why the artifact cannot safely execute without it.
 
 ## 7. Requirement traceability
@@ -165,12 +172,13 @@ Before S2 implementation is considered complete:
 6. current runtime Knowledge/memories/relationships/injuries/occurrences/overrides are excluded;
 7. Actual Presence is not synthesized from schedule;
 8. compiler does not mutate input;
-9. blocking finding returns no successful artifact;
-10. advisory-only findings still permit compilation and remain reported;
-11. export diagnostics retain source finding identity;
-12. canonical serialization sorts object keys and preserves array order;
-13. no compiler path calls authoring `execute`, live `replaceRuntimeProject`, or project persistence;
-14. no compiler path calls canonical runtime evaluators to pre-execute authored content.
+9. Story Brain blocking finding returns no successful artifact;
+10. missing template period or invalid initial-runtime materialization returns a typed compiler blocker rather than throwing a partial artifact;
+11. advisory-only findings still permit compilation and remain reported;
+12. Story Brain export diagnostics retain source finding identity;
+13. canonical serialization sorts object keys and preserves array order;
+14. no compiler path calls authoring `execute`, live `replaceRuntimeProject`, or project persistence;
+15. no compiler path calls canonical runtime evaluators to pre-execute authored content.
 
 Later adapter/UI slices add publisher reuse, no-persisted-generated-Passage and runnable-proof integration tests.
 
