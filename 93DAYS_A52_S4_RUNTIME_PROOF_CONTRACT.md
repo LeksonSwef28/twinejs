@@ -299,4 +299,4 @@ The proof shell:
 
 **A52-S4 minimal runnable compiler proof: DONE / VERIFIED.**
 
-A52 final documentation/change-record exact-head gate remains required before merge.
+A52 closure head `05a69c854ba5b142c566fa4e3ea25bea1305271b` passed exact-head workflow **#469 GREEN** with **338/338 suites, 2072 passed tests**, 23 skipped, 42 todo, 2137 total, 0 snapshots, diagnostics upload PASS and both smoke checks PASS. A52 is ready for PR merge-gate review.

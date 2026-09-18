@@ -1,6 +1,6 @@
 # 93 Days Narrative Editor — A52 Architecture & Verification Baseline
 
-Status: **A52 COMPLETE CANDIDATE / FINAL EXACT-HEAD GATE PENDING**  
+Status: **A52 VERIFIED / DONE**  
 Stage: **A52 — Export / Compiler Boundary**  
 Stable base: `93-days-editor` @ `3d0f59219fca29d3338034777d8343b03c74cc45`  
 Post-merge base gate: workflow **#454 GREEN** — **333/333 suites**, **2037 passed tests** (23 skipped, 42 todo; 2102 total), diagnostics upload PASS, Vite smoke PASS, Electron smoke PASS.  
@@ -248,4 +248,4 @@ S4 implementation:
 - proof core `791ff5b30145459bed9606e0ba8268bd38e99ac3` → **#467 GREEN**, **338/338 suites / 2070 passed**;
 - proof download/UI head `45e0fd11356dd6abe94ad7cea07a1d9aa19c9e8d` → **#468 GREEN**, **338/338 suites / 2072 passed**, 23 skipped, 42 todo, 2137 total, 0 snapshots; diagnostics upload and both smoke checks PASS.
 
-REQ-001..REQ-008 are all PASS. The remaining A52 closure action is the exact-head full gate on the documentation/change-record closure commit, followed by PR #25 merge-gate review.
+REQ-001..REQ-008 are all PASS. Final closure head `05a69c854ba5b142c566fa4e3ea25bea1305271b` passed workflow **#469 GREEN** with **338/338 suites / 2072 passed tests**, 23 skipped, 42 todo, 2137 total, 0 snapshots, diagnostics upload PASS and both smoke checks PASS. PR #25 merge-gate review may proceed.
