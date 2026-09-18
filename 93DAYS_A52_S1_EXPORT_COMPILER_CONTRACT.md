@@ -1,6 +1,6 @@
 # A52-S1 Contract — Export Compiler Artifact & Validation
 
-Status: **CONTRACT PASS / IMPLEMENTATION NOT YET VERIFIED**  
+Status: **CONTRACT PASS / S2 PURE COMPILER VERIFIED**  
 Stage: **A52-S1**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `3d0f59219fca29d3338034777d8343b03c74cc45`  
@@ -214,3 +214,26 @@ S2 must prove at minimum:
 **A52-S1 export/compiler artifact + validation contract: PASS.**
 
 S2 may implement only the pure artifact compiler, initializer, validation projection and canonical serializer described here. Publishing/UI/runnable-shell work remains outside S2.
+
+
+## 13. S2 verification
+
+Implementation:
+- `src/application/narrative/export-compiler.ts`;
+- `src/application/narrative/__tests__/export-compiler.test.ts`.
+
+Exact code head: `8278cbb40bc64978e8a72c8716fe2957878f2133`.
+
+Workflow **#458 GREEN**:
+- 334/334 suites;
+- 2044 passed;
+- 23 skipped;
+- 42 todo;
+- 2109 total;
+- diagnostics upload PASS;
+- Vite smoke PASS;
+- Electron smoke PASS.
+
+Run #457 failed only at TypeScript build with TS2339 because the ready/blocked initializer union was not narrowed after appending a blocker. The minimal fix returned immediately from the blocked branch; artifact semantics and regression expectations did not change.
+
+**S2 pure compiler implementation: VERIFIED.**

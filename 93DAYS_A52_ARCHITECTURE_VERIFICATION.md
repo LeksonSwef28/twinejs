@@ -1,6 +1,6 @@
 # 93 Days Narrative Editor — A52 Architecture & Verification Baseline
 
-Status: **ACTIVE / S1 CONTRACT**  
+Status: **ACTIVE / S2 VERIFIED**  
 Stage: **A52 — Export / Compiler Boundary**  
 Stable base: `93-days-editor` @ `3d0f59219fca29d3338034777d8343b03c74cc45`  
 Post-merge base gate: workflow **#454 GREEN** — **333/333 suites**, **2037 passed tests** (23 skipped, 42 todo; 2102 total), diagnostics upload PASS, Vite smoke PASS, Electron smoke PASS.  
@@ -82,13 +82,13 @@ A52 must project these diagnostics into an export gate instead of introducing a 
 
 ## 5. Planned components
 
-### COMP-A52-01 Export validation projection
+### COMP-A52-01 Export validation projection — IMPLEMENTED S2
 
 Input: `NarrativeProject`.  
 Reuses `queryStoryBrainProjectDiagnostics()`.  
 Produces explicit blocker/advisory export diagnostics while preserving source finding ids/kinds. It may additionally emit finite compiler-level blockers when artifact initialization itself cannot be constructed safely (for example missing template periods or invalid initial-runtime seeds).
 
-### COMP-A52-02 Initial runtime initializer
+### COMP-A52-02 Initial runtime initializer — IMPLEMENTED S2
 
 Pure function from authored project baseline to `NarrativeProjectRuntimeProjection`.
 
@@ -102,7 +102,7 @@ V1 baseline:
 
 No field is copied from current live runtime merely because it currently contains data.
 
-### COMP-A52-03 Runtime artifact compiler
+### COMP-A52-03 Runtime artifact compiler — IMPLEMENTED S2
 
 Produces a versioned data artifact from:
 - current project schema version;
@@ -111,7 +111,7 @@ Produces a versioned data artifact from:
 
 It has no UI, persistence writes, story-format binding, or current-time metadata.
 
-### COMP-A52-04 Canonical serializer
+### COMP-A52-04 Canonical serializer — IMPLEMENTED S2
 
 Produces stable JSON by recursively sorting object keys while preserving array order.
 
@@ -152,10 +152,10 @@ Any later blocker expansion requires a contract update plus regression proving w
 | Requirement | Evidence / owner | S1 gate |
 |---|---|---|
 | REQ-001 single source of truth | Narrative Workspace + hostStoryId + A46 replacement of Passage authoring | CONTRACT PASS |
-| REQ-002 deterministic artifact | pure authored projection + canonical serializer contract | CONTRACT PASS |
-| REQ-003 versioned schema | A52 runtime artifact v1 contract | CONTRACT PASS |
-| REQ-004 authored initial runtime | persistence split + InitialKnowledge materializer | CONTRACT PASS |
-| REQ-005 validation gate | Story Brain project diagnostics + explicit export disposition | CONTRACT PASS |
+| REQ-002 deterministic artifact | `export-compiler.ts` + canonical serializer regressions; #458 | PASS |
+| REQ-003 versioned schema | runtime artifact format/version constants + #458 | PASS |
+| REQ-004 authored initial runtime | fresh initializer + InitialKnowledge regressions; #458 | PASS |
+| REQ-005 validation gate | Story Brain + compiler blocker/advisory result regressions; #458 | PASS |
 | REQ-006 source-linked diagnostics | existing Story Brain diagnostic navigation | CONTRACT PASS |
 | REQ-007 Twine publishing reuse | `publishStoryWithFormat()` | CONTRACT PASS |
 | REQ-008 runnable proof | later implementation slice; must not create second runtime | NOT YET VERIFIED |
@@ -182,7 +182,37 @@ Before S2 implementation is considered complete:
 
 Later adapter/UI slices add publisher reuse, no-persisted-generated-Passage and runnable-proof integration tests.
 
-## 9. Slice order
+## 9. S2 verification evidence
+
+S2 code head `8278cbb40bc64978e8a72c8716fe2957878f2133` implements only:
+
+- `src/application/narrative/export-compiler.ts`;
+- `src/application/narrative/__tests__/export-compiler.test.ts`.
+
+The compiler reuses `projectNarrativePersistence(project).authored`, creates a fresh initial runtime, projects Story Brain findings into blocker/advisory export diagnostics, adds finite compiler-level blockers for missing template period / invalid initial-runtime materialization, and canonicalizes JSON without reordering arrays.
+
+Workflow #457 exposed one TypeScript control-flow defect at web build:
+
+```text
+TS2339: Property 'runtime' does not exist on type ready | blocked.
+```
+
+Root cause: the function appended the blocked diagnostic but did not return on the discriminant branch, so TypeScript could not prove the subsequent union member was `ready`. Fix `8278cbb4...` added one immediate blocked return; no compiler semantics/tests were weakened.
+
+Exact S2 code gate **#458 GREEN**:
+
+- **334/334 suites**;
+- **2044 passed tests**;
+- **23 skipped**;
+- **42 todo**;
+- **2109 total**;
+- diagnostics upload PASS;
+- Vite smoke PASS;
+- Electron smoke PASS.
+
+Self-review confirmed no publisher/UI/runtime evaluator changes and no authoring/live/persistence writes.
+
+## 10. Slice order
 
 ```text
 A52-S1 Architecture + artifact + validation contract
@@ -198,12 +228,12 @@ Final full gate → roadmap DONE → merge → exact-SHA post-merge verification
 
 Each slice receives its own exact-head full gate before the next high-risk boundary is expanded.
 
-## 10. Recovery
+## 11. Recovery
 
 S1 is documentation-only and can be reverted directly. Later compiler work remains isolated behind pure functions/adapters; no migration of author data is permitted as a side effect of export. If an artifact contract changes before release, prefer an explicit artifact version bump or a focused roll-forward rather than rewriting saved Narrative Projects.
 
-## 11. S1 decision
+## 12. S1/S2 decision
 
-**A52-S1 architecture/ownership decision: CONTRACT PASS / IMPLEMENTATION NOT YET VERIFIED.**
+**A52-S1 contract: PASS. A52-S2 pure compiler: VERIFIED on #458.**
 
-Implementation may begin only after this docs head passes the exact-head branch gate.
+The next permitted boundary is S3 transient export adapter + source-linked export diagnostics/UI. S3 must not persist generated Passage data or duplicate story-format publishing.

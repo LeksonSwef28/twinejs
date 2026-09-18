@@ -126,7 +126,7 @@ Delivered:
 
 ## A52 — Export / Compiler Boundary
 
-**Status:** IN PROGRESS (2026-09-18). A52-S1 architecture/artifact/validation contract is being established on `feature/a52-export-compiler-boundary` from the post-merge verified A51 stable head `3d0f59219fca29d3338034777d8343b03c74cc45`. Implementation has not yet been verified.
+**Status:** IN PROGRESS (2026-09-18). **A52-S1 contract and A52-S2 pure artifact compiler are DONE.** The stage runs on `feature/a52-export-compiler-boundary` from post-merge verified A51 stable head `3d0f59219fca29d3338034777d8343b03c74cc45`.
 
 **Goal:** prove that an authored Narrative Project can produce a runnable story artifact without maintaining a second hand-authored Passage graph.
 
@@ -138,6 +138,10 @@ Deliverables:
 - export diagnostics that point back to authoring entities;
 - minimal runnable proof used only as compiler validation, not as a new game-development roadmap;
 - no duplicate source-of-truth story graph.
+
+S1 established the single-source, versioned artifact and validation contract. S2 now compiles a deterministic `narrative-runtime-artifact` v1 from the existing authored persistence projection plus a fresh authored initial runtime; current editor/live/Preview state is excluded. Story Brain findings are projected into explicit blocker/advisory export diagnostics, and canonical JSON sorting preserves authored array order.
+
+S2 exact code head `8278cbb40bc64978e8a72c8716fe2957878f2133` passed workflow **#458** with **334/334 suites**, **2044 passed tests** (23 skipped, 42 todo; 2109 total), diagnostics upload PASS and both smoke checks PASS. The next permitted slice is **A52-S3 — transient export adapter + source-linked export diagnostics/UI**. Generated Passage data must remain disposable compiler output and existing Twine publishing must be reused.
 
 ## Execution rule
 
