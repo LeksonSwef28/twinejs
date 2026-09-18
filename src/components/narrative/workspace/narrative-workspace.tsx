@@ -15,6 +15,7 @@ import {useNarrativeProject} from '../../../store/narrative-project';
 import {CrossWorkspaceNavigator} from './cross-workspace-navigator';
 import {InteractionTemplatePanel} from './interaction-template-panel';
 import {MemorySaliencePanel} from './memory-salience-panel';
+import {NarrativeExportPanel} from './narrative-export-panel';
 import {MoveConditionsPanel} from './move-conditions-panel';
 import {NarrativeMovePanel} from './narrative-move-panel';
 import {OutcomeEffectsPanel} from './outcome-effects-panel';
@@ -50,6 +51,7 @@ export const NarrativeWorkspace: React.FC = () => {
 	const {project, execute, undo, redo, canUndo, canRedo, saveStatus} =
 		useNarrativeProject();
 	const [projectLibraryOpen, setProjectLibraryOpen] = React.useState(false);
+	const [exportOpen, setExportOpen] = React.useState(false);
 	const [splitView, setSplitView] = React.useState(false);
 	const [simulationDebugOpen, setSimulationDebugOpen] = React.useState(false);
 	const [previewFromHereRequest, setPreviewFromHereRequest] =
@@ -128,6 +130,14 @@ export const NarrativeWorkspace: React.FC = () => {
 					</button>
 					<button
 						type="button"
+						aria-pressed={exportOpen}
+						className={exportOpen ? 'is-active' : undefined}
+						onClick={() => setExportOpen(current => !current)}
+					>
+						{exportOpen ? 'Закрыть экспорт' : 'Экспорт'}
+					</button>
+					<button
+						type="button"
 						aria-pressed={simulationDebugOpen}
 						className={simulationDebugOpen ? 'is-active' : undefined}
 						onClick={() => {
@@ -159,6 +169,7 @@ export const NarrativeWorkspace: React.FC = () => {
 			</header>
 
 			<ProjectIdentityPanel />
+			{exportOpen && <NarrativeExportPanel />}
 
 			<div
 				className="narrative-workspace__mode-bar"

@@ -1,4 +1,4 @@
-import {act, render, screen} from '@testing-library/react';
+import {act, fireEvent, render, screen} from '@testing-library/react';
 import {createMemoryHistory} from 'history';
 import {axe} from 'jest-axe';
 import * as React from 'react';
@@ -86,6 +86,17 @@ describe('<StoryEditRoute>', () => {
 		expect(screen.getByRole('button', {name: 'День'})).toBeInTheDocument();
 		expect(screen.getByRole('button', {name: 'Вечер'})).toBeInTheDocument();
 		expect(screen.getByRole('button', {name: 'Ночь'})).toBeInTheDocument();
+	});
+
+	it('opens Narrative export as a panel instead of another workspace', async () => {
+		await renderComponent(fakeStory());
+		expect(screen.queryByRole('region', {name: 'Narrative export'})).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole('button', {name: 'Экспорт'}));
+
+		expect(screen.getByRole('region', {name: 'Narrative export'})).toBeInTheDocument();
+		expect(screen.getByRole('tab', {name: 'История'})).toBeInTheDocument();
+		expect(screen.getByRole('tab', {name: 'Время и мир'})).toBeInTheDocument();
 	});
 
 	it('is accessible', async () => {
