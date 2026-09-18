@@ -168,6 +168,7 @@ export function compileNarrativeRuntimeArtifact(
 	const initialRuntime = initialRuntimeForProject(project);
 	if (initialRuntime.status === 'blocked') {
 		diagnostics.push(initialRuntime.diagnostic);
+		return {status: 'blocked', diagnostics};
 	}
 
 	if (diagnostics.some(diagnostic => diagnostic.disposition === 'blocker')) {
