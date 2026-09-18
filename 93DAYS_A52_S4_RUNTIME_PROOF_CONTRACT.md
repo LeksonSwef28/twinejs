@@ -1,6 +1,6 @@
 # A52-S4 Contract — Minimal Runnable Compiler Proof
 
-Status: **CONTRACT PASS / IMPLEMENTATION NOT YET VERIFIED**  
+Status: **CONTRACT PASS / IMPLEMENTATION VERIFIED**  
 Stage: **A52-S4**  
 Risk: **HIGH**  
 Verified source: `bcc1fb989701c3048a61b40be8d4b400f341e659`  
@@ -264,8 +264,39 @@ Rollback:
 - ordinary S3 compiler-data export remains intact;
 - no author data transformation is required.
 
-## 15. Decision
+## 15. Implementation verification
 
-**A52-S4 minimal runnable compiler proof contract: PASS / IMPLEMENTATION NOT YET VERIFIED.**
+Contract heads:
+- `6612e907e702d708c01294092569f9c51b286dcc` → workflow **#465 GREEN**;
+- packaging identity refinement `1e84771f05b6472a9dff1c7ce3986afd1dc72ca3` → workflow **#466 GREEN**.
 
-Implementation begins only after this docs head passes the exact-head full branch gate.
+Code slices:
+- `791ff5b30145459bed9606e0ba8268bd38e99ac3` — proof Story Format source + preparation + browser bootstrap regressions → **#467 GREEN**;
+- `45e0fd11356dd6abe94ad7cea07a1d9aa19c9e8d` — proof publishing/UI download wiring → **#468 GREEN**.
+
+Final S4 code gate **#468 GREEN**:
+- **338/338 suites**;
+- **2072 passed**;
+- **23 skipped**;
+- **42 todo**;
+- **2137 total**;
+- **0 snapshots**;
+- diagnostics upload PASS;
+- Vite smoke PASS;
+- Electron smoke PASS.
+
+The proof shell:
+- consumes the exact S2/S3 artifact Passage;
+- identifies itself as `93 Days Compiler Proof` v1.0.0 in Twine metadata;
+- executes the exact bootstrap against published HTML in regressions;
+- visibly rejects missing/malformed/wrong-format/wrong-version/invalid-start artifacts;
+- renders artifact-derived strings through inert DOM text;
+- contains no narrative evaluator semantics or dynamic-code execution;
+- does not use the host Story Format loader;
+- leaves normal S3 export behavior intact.
+
+## 16. Decision
+
+**A52-S4 minimal runnable compiler proof: DONE / VERIFIED.**
+
+A52 final documentation/change-record exact-head gate remains required before merge.

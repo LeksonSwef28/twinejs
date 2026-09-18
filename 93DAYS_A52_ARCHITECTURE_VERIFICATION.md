@@ -1,6 +1,6 @@
 # 93 Days Narrative Editor — A52 Architecture & Verification Baseline
 
-Status: **ACTIVE / S4 CONTRACT**  
+Status: **A52 COMPLETE CANDIDATE / FINAL EXACT-HEAD GATE PENDING**  
 Stage: **A52 — Export / Compiler Boundary**  
 Stable base: `93-days-editor` @ `3d0f59219fca29d3338034777d8343b03c74cc45`  
 Post-merge base gate: workflow **#454 GREEN** — **333/333 suites**, **2037 passed tests** (23 skipped, 42 todo; 2102 total), diagnostics upload PASS, Vite smoke PASS, Electron smoke PASS.  
@@ -123,7 +123,7 @@ S3 prepares one deterministic generated artifact Passage and a transient Story i
 
 S3 exposes export readiness in a panel/lens inside Narrative Workspace, not a third workspace. Story Brain-derived diagnostics reuse existing source navigation; compiler/adapter project-level blockers do not fabricate navigation. Explicit successful publish may download HTML but cannot mutate authoring/live/persistence state.
 
-### COMP-A52-07 Minimal runtime-proof shell — S4 CONTRACT
+### COMP-A52-07 Minimal runtime-proof shell — IMPLEMENTED / VERIFIED S4
 
 S4 adds a validation-only Story Format source bound through the unchanged `publishStoryWithFormat()`. Its browser bootstrap may locate the generated artifact Passage, `JSON.parse()` the payload, check only the artifact compatibility envelope needed by the proof, and render inert read-only facts. It cannot evaluate Guards/Moves/Outcomes/effects/simulation/schedule/cognition/body/injury or otherwise become a second runtime.
 
@@ -155,14 +155,14 @@ Any later blocker expansion requires a contract update plus regression proving w
 
 | Requirement | Evidence / owner | S1 gate |
 |---|---|---|
-| REQ-001 single source of truth | Narrative Workspace + hostStoryId + A46 replacement of Passage authoring | CONTRACT PASS |
+| REQ-001 single source of truth | Narrative Workspace + hostStoryId; S3 discards legacy host narrative content; #461/#464 | PASS |
 | REQ-002 deterministic artifact | `export-compiler.ts` + canonical serializer regressions; #458 | PASS |
 | REQ-003 versioned schema | runtime artifact format/version constants + #458 | PASS |
 | REQ-004 authored initial runtime | fresh initializer + InitialKnowledge regressions; #458 | PASS |
 | REQ-005 validation gate | Story Brain + compiler blocker/advisory result regressions; #458 | PASS |
 | REQ-006 source-linked diagnostics | S3 Export panel + existing Story Brain navigation; #463/#464 | PASS |
 | REQ-007 Twine publishing reuse | S3 Narrative publishing hook delegates to unchanged `publishStoryWithFormat()`; #462/#464 | PASS |
-| REQ-008 runnable proof | S4 validation-only proof-shell contract; implementation pending | CONTRACT PASS / NOT YET VERIFIED |
+| REQ-008 runnable proof | validation-only proof shell + exact bootstrap execution + UI download; #467/#468 | PASS |
 
 ## 8. Required regression design
 
@@ -238,8 +238,14 @@ S1 is documentation-only and can be reverted directly. Later compiler work remai
 
 ## 12. S1/S2 decision
 
-**A52-S1 contract: PASS. A52-S2 pure compiler: CLOSED on #459. A52-S3 transient adapter/export UI: CLOSED on #464. A52-S4 proof contract: PASS / implementation pending.**
+**A52-S1 contract: PASS. A52-S2 pure compiler: CLOSED on #459. A52-S3 transient adapter/export UI: CLOSED on #464. A52-S4 minimal runnable proof: VERIFIED on #468.**
 
-S3 closure evidence: `bcc1fb989701c3048a61b40be8d4b400f341e659`, workflow **#464 GREEN**, **337/337 suites / 2059 passed tests**, diagnostics upload and both smoke checks PASS.
+S4 contract gates:
+- `6612e907e702d708c01294092569f9c51b286dcc` → **#465 GREEN**;
+- proof packaging identity refinement `1e84771f05b6472a9dff1c7ce3986afd1dc72ca3` → **#466 GREEN**.
 
-S4 is limited to a validation-only browser shell that proves the versioned artifact can be located, parsed, compatibility-checked and rendered after Twine publication. It must not implement canonical narrative mechanics.
+S4 implementation:
+- proof core `791ff5b30145459bed9606e0ba8268bd38e99ac3` → **#467 GREEN**, **338/338 suites / 2070 passed**;
+- proof download/UI head `45e0fd11356dd6abe94ad7cea07a1d9aa19c9e8d` → **#468 GREEN**, **338/338 suites / 2072 passed**, 23 skipped, 42 todo, 2137 total, 0 snapshots; diagnostics upload and both smoke checks PASS.
+
+REQ-001..REQ-008 are all PASS. The remaining A52 closure action is the exact-head full gate on the documentation/change-record closure commit, followed by PR #25 merge-gate review.
