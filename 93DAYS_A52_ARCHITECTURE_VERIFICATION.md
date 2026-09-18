@@ -1,6 +1,6 @@
 # 93 Days Narrative Editor — A52 Architecture & Verification Baseline
 
-Status: **ACTIVE / S3 VERIFIED**  
+Status: **ACTIVE / S4 CONTRACT**  
 Stage: **A52 — Export / Compiler Boundary**  
 Stable base: `93-days-editor` @ `3d0f59219fca29d3338034777d8343b03c74cc45`  
 Post-merge base gate: workflow **#454 GREEN** — **333/333 suites**, **2037 passed tests** (23 skipped, 42 todo; 2102 total), diagnostics upload PASS, Vite smoke PASS, Electron smoke PASS.  
@@ -123,6 +123,10 @@ S3 prepares one deterministic generated artifact Passage and a transient Story i
 
 S3 exposes export readiness in a panel/lens inside Narrative Workspace, not a third workspace. Story Brain-derived diagnostics reuse existing source navigation; compiler/adapter project-level blockers do not fabricate navigation. Explicit successful publish may download HTML but cannot mutate authoring/live/persistence state.
 
+### COMP-A52-07 Minimal runtime-proof shell — S4 CONTRACT
+
+S4 adds a validation-only Story Format source bound through the unchanged `publishStoryWithFormat()`. Its browser bootstrap may locate the generated artifact Passage, `JSON.parse()` the payload, check only the artifact compatibility envelope needed by the proof, and render inert read-only facts. It cannot evaluate Guards/Moves/Outcomes/effects/simulation/schedule/cognition/body/injury or otherwise become a second runtime.
+
 ## 6. Export gate policy
 
 Existing Story Brain severity is author-facing (`info | warning`) and is not an export disposition.
@@ -156,9 +160,9 @@ Any later blocker expansion requires a contract update plus regression proving w
 | REQ-003 versioned schema | runtime artifact format/version constants + #458 | PASS |
 | REQ-004 authored initial runtime | fresh initializer + InitialKnowledge regressions; #458 | PASS |
 | REQ-005 validation gate | Story Brain + compiler blocker/advisory result regressions; #458 | PASS |
-| REQ-006 source-linked diagnostics | existing Story Brain diagnostic navigation | CONTRACT PASS |
-| REQ-007 Twine publishing reuse | `publishStoryWithFormat()` | CONTRACT PASS |
-| REQ-008 runnable proof | later implementation slice; must not create second runtime | NOT YET VERIFIED |
+| REQ-006 source-linked diagnostics | S3 Export panel + existing Story Brain navigation; #463/#464 | PASS |
+| REQ-007 Twine publishing reuse | S3 Narrative publishing hook delegates to unchanged `publishStoryWithFormat()`; #462/#464 | PASS |
+| REQ-008 runnable proof | S4 validation-only proof-shell contract; implementation pending | CONTRACT PASS / NOT YET VERIFIED |
 
 ## 8. Required regression design
 
@@ -234,8 +238,8 @@ S1 is documentation-only and can be reverted directly. Later compiler work remai
 
 ## 12. S1/S2 decision
 
-**A52-S1 contract: PASS. A52-S2 pure compiler: CLOSED on #459. A52-S3 transient adapter/export UI: VERIFIED on #463.**
+**A52-S1 contract: PASS. A52-S2 pure compiler: CLOSED on #459. A52-S3 transient adapter/export UI: CLOSED on #464. A52-S4 proof contract: PASS / implementation pending.**
 
-S3 final code evidence: `c82d364bc4e486d59210854f478325e0508443ba`, **337/337 suites / 2059 passed tests**, diagnostics upload and both smoke checks PASS.
+S3 closure evidence: `bcc1fb989701c3048a61b40be8d4b400f341e659`, workflow **#464 GREEN**, **337/337 suites / 2059 passed tests**, diagnostics upload and both smoke checks PASS.
 
-The next permitted boundary is **A52-S4 — minimal runnable compiler proof**. It must consume the existing versioned artifact and canonical runtime semantics; it must not become a second narrative runtime or a player-UI roadmap.
+S4 is limited to a validation-only browser shell that proves the versioned artifact can be located, parsed, compatibility-checked and rendered after Twine publication. It must not implement canonical narrative mechanics.
