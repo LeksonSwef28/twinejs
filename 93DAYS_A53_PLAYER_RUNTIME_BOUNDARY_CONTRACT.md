@@ -1,6 +1,6 @@
 # A53 Contract — Player Runtime Boundary & Session Bootstrap
 
-Status: **CONTRACT PASS / S1+S2 IMPLEMENTATION VERIFIED / S3 PENDING**  
+Status: **IMPLEMENTATION VERIFIED / MERGE REVIEW READY**  
 Stage: **A53 — Player Runtime Boundary & Session Bootstrap**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `1c8dc69ef25447842533d3ea2852c784f33b3db1`  
@@ -218,6 +218,12 @@ Workflow **#476** exposed only a TypeScript test-union narrowing error; workflow
 
 Prove new game -> canonical mutations -> save -> restore -> continue as one contract integration. Record exact-head verification and only then hand off to A54 player host/packaging.
 
+**Status: IMPLEMENTATION VERIFIED.** `src/application/narrative/__tests__/player-runtime-integration.test.ts` proves the full lifecycle against the real compiler, S1 materializer/session owner, canonical simulation/Actual Presence/Move/effect/item APIs, S2 save codec and a fresh materialization of the same artifact.
+
+The integration starts from empty Actual Presence/relationships/occurrences/item overlays, applies canonical presence + 30 minutes of simulation + a guarded Move/relationship effect + container placement, serializes a player save, materializes the same artifact fresh, restores runtime state, then continues another 45 minutes and applies the same canonical Move again. The restored session preserves the item overlay and previous provenance; relationship trust advances from 1 to 2 and runtime occurrences from 1 to 2. Authored item definitions/instances and the compiled artifact remain unchanged.
+
+No production code was needed for S3. Exact S3 head `3b9e98c6f0d16728154fd4bd3b71ded489aea864` passed workflow **#480 GREEN**: **341/341 suites**, **2082 passed tests** (23 skipped, 42 todo; 2147 total), 0 snapshots, production audit PASS, lint PASS, web build PASS, Electron build PASS, diagnostics upload PASS, Vite smoke PASS and Electron smoke PASS.
+
 ## 11. Blast radius
 
 Expected touch areas:
@@ -260,12 +266,12 @@ Stop and return to architecture review if implementation requires any of the fol
 - E1 Scope / ownership: **PASS**
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
-- E4 Minimal implementation: **PARTIAL — S1/S2 PASS; S3 pending**
-- E5 Exact-head verification: **PARTIAL — S1 #474 GREEN; S2 #478 GREEN; S3/final gate pending**
-- E6 Self-review: **PASS for S1/S2**
-- E7 PR/CI: **PARTIAL — draft PR #26 open; S1/S2 exact heads verified**
-- E8 Merge: **PENDING**
+- E4 Minimal implementation: **PASS — S1/S2 implementation + S3 integration proof**
+- E5 Exact-head verification: **PASS — S1 #474, S2 #478/#479, S3 #480**
+- E6 Self-review: **PASS**
+- E7 PR/CI: **PASS for implementation — draft PR #26 open and mergeable**
+- E8 Merge: **PENDING — explicit merge authorization required**
 - E9 Post-merge: **PENDING**
-- E10 Recovery: **PASS (plan)**
+- E10 Recovery: **PASS**
 
-**Decision:** A53-S1 and A53-S2 are implementation-verified. A53 remains IN PROGRESS; S3 must prove the integrated new-game -> canonical mutations -> save -> restore -> continue flow and pass its own exact-head gate before A53 can enter merge review.
+**Decision:** A53 implementation is VERIFIED and ready for merge review. Do not merge until explicitly authorized. After merge, verify the exact stable SHA before starting A54.
