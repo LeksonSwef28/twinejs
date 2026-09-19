@@ -1,6 +1,6 @@
 # A54 Contract — Canonical Player Host & Standalone Packaging
 
-Status: **ACTIVE / S3 VERIFICATION**  
+Status: **IMPLEMENTATION VERIFIED / MERGE REVIEW READY**  
 Stage: **A54 — Canonical Player Host & Standalone Packaging**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `ea8ba7f03781ead91f63dd3fccd281dfb2a9ad2a`  
@@ -164,10 +164,10 @@ Rollback is code/build-tooling only: remove the player entry/host/package additi
 - E1 Scope / ownership: **PASS**
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
-- E4 Minimal implementation: **PASS — S1/S2 / S3 TEST CLOSURE**
-- E5 Exact-head verification: **PASS — S1 #483, S2 #484 / S3 PENDING**
-- E6 Self-review: **PENDING**
-- E7 PR/CI: **PENDING**
+- E4 Minimal implementation: **PASS — S1/S2/S3**
+- E5 Exact-head verification: **PASS — S1 #483, S2 #484, S3 #489**
+- E6 Self-review: **PASS**
+- E7 PR/CI: **PASS for implementation — draft PR #27 open and mergeable; closure-doc exact-head CI follows this record**
 - E8 Merge: **PENDING — explicit authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
@@ -206,3 +206,54 @@ Exact S2 head `0abb73b02f3104ff21e2c4c84b2b1033b276035f` passed workflow **#484 
 - Electron smoke PASS.
 
 S2 proves editor-to-player ephemeral handoff, direct artifact JSON export, package embedding contract and an independently built player bundle. S3 now closes real-browser boot for both handoff and embedded-package sources.
+
+
+## 13. S3 verification evidence
+
+A54-S3 added a real Chromium gate for both player input paths:
+
+1. **development handoff** — exact serialized A52 artifact is handed from the editor origin to a new dedicated Player window and consumed once;
+2. **standalone package** — exact serialized A52 artifact is embedded in `player.html` and boots without the editor application.
+
+Browser verification exposed three useful failures before the final green implementation:
+
+- workflow **#486** showed the first test reproduced a same-document hash transition rather than the production new-window launch. The test was corrected to open a separate player window.
+- workflow **#487** then showed that `sessionStorage` was not a reliable cross-window handoff boundary for the production launch shape, while the embedded standalone artifact path remained green.
+- workflow **#488** still failed the development path after moving the temporary mailbox to same-origin `localStorage`. Code review identified the remaining ownership defect: the one-shot artifact read/removal occurred inside `PlayerApp` render under `React.StrictMode`, so a development double render could consume the mailbox on the first render and observe it as missing on the second.
+- the final fix moved the destructive artifact-source read to `src/player/index.tsx`, before React rendering. `PlayerApp` now receives an already-resolved source and has no artifact-transport side effect during render.
+
+The development mailbox remains explicitly temporary: it is written only for a development launch, consumed and removed on first successful read, and removed by the editor if opening the player window fails. It is not a save format and carries no editor state.
+
+Exact S3 implementation head `c7ac8c91edf893071255a8fd0753955235890712` passed workflow **#489 GREEN**:
+
+- production dependency audit: **0 vulnerabilities**;
+- lint PASS;
+- web build PASS;
+- dedicated standalone player build PASS;
+- Electron main build PASS;
+- **345/345 Jest suites**;
+- **2093 passed tests** (23 skipped, 42 todo; 2158 total);
+- 0 snapshots;
+- Chromium canonical player smoke: **2/2 passed**:
+  - development handoff boots the dedicated Player;
+  - embedded standalone artifact boots the dedicated Player;
+- Vite smoke PASS — `Vite responded successfully.`;
+- Electron smoke PASS — `Electron stayed alive for the smoke window.`.
+
+S3 therefore proves the A54 exit condition: the dedicated host can load the canonical artifact and execute the shared TypeScript runtime without the editor App and without copying gameplay semantics into Story Format JavaScript.
+
+## 14. Self-review / merge decision
+
+Self-review confirmed:
+
+- no authored Narrative Project schema change;
+- no A52 artifact v1 or A53 save v1 change;
+- no canonical Guard/Move/effect/simulation semantic change;
+- no editor provider, Undo/Redo or persistence ownership added to the Player;
+- no generated Passage persistence;
+- no gameplay implementation in Story Format JavaScript;
+- development transport is separate from player saves;
+- standalone artifact bytes remain the exact compiler serialization;
+- A52 compiler proof remains validation-only.
+
+**Decision:** A54 implementation is VERIFIED and ready for merge review. Merge remains blocked until explicit authorization. After merge, the exact resulting `93-days-editor` SHA must pass the branch gate before A55 starts.

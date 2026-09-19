@@ -1,7 +1,7 @@
 # 93 Days — POST-A52 GAME PRODUCTION ROADMAP
 
 Status: **ACTIVE / GAME PRODUCTION**  
-Stable source reviewed: `93-days-editor` @ `1c8dc69ef25447842533d3ea2852c784f33b3db1`  
+Stable source reviewed: `93-days-editor` @ `ea8ba7f03781ead91f63dd3fccd281dfb2a9ad2a`  
 Decision date: **2026-09-19**
 
 ## 1. Product target
@@ -33,9 +33,9 @@ Therefore the immediate gap is **runtime bootstrap/session/host ownership**, not
 |---|---|---|
 | Canonical mechanics | Broad runtime foundation exists | **Reuse; do not rebuild** |
 | Artifact | Deterministic v1 exists | **Ready input boundary** |
-| Artifact -> live player session | Missing | **A53 runtime gap** |
-| Player save/load ownership | Runtime snapshot primitives exist; editor-local ownership | **A53 boundary gap** |
-| Dedicated player host / standalone packaging | Missing | **A54 runtime-host gap** |
+| Artifact -> live player session | A53 materializer/session boundary verified | **Ready runtime boundary** |
+| Player save/load ownership | A53 runtime-only player save codec verified | **Ready player save boundary** |
+| Dedicated player host / standalone packaging | A54 dedicated entry, package boundary and real-browser boot verified | **Ready host boundary; A55 presentation next** |
 | Scene/dialogue/HUD/inventory UI | Editor/Preview only | **Presentation gap** |
 | Bus-station/day-one world | Concept exists, authored production content not yet present | **Content gap** |
 | Money/economy | Required by slice; no reviewed canonical gameplay contract yet | **Gameplay/content contract gap** |
@@ -60,7 +60,7 @@ Therefore the immediate gap is **runtime bootstrap/session/host ownership**, not
 
 ### A53 — Player Runtime Boundary & Session Bootstrap
 
-**Status:** IMPLEMENTATION VERIFIED — **S1 artifact/session materialization VERIFIED (#474)**, **S2 runtime-only player save codec VERIFIED (#478/#479)**, and **S3 end-to-end lifecycle VERIFIED (#480)**. Merge/post-merge verification remain before A54.
+**Status:** **DONE / STABLE** — S1 #474, S2 #478/#479, S3 #480; merged and exact stable SHA `ea8ba7f03781ead91f63dd3fccd281dfb2a9ad2a` post-merge verified by **#482 GREEN**.
 
 **Goal:** make a compiled artifact materialize into a player-owned session that can invoke the existing canonical runtime and can be saved/restored without the editor shell.
 
@@ -76,6 +76,8 @@ Deliverables:
 Exit proof: a test can compile authored data, bootstrap a fresh player session, advance meaningful time, apply a canonical Move/effect, save runtime state, restore it and continue with authored definitions unchanged.
 
 ### A54 — Canonical Player Host & Standalone Packaging
+
+**Status:** **IMPLEMENTATION VERIFIED / MERGE REVIEW READY** — S1 **#483 GREEN**, S2 **#484 GREEN**, S3 real-browser closure **#489 GREEN**. Merge and post-merge exact-SHA verification remain before A55.
 
 **Goal:** run A53 through a dedicated player entry/host instead of Twine editor play/test routes.
 
