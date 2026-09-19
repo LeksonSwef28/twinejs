@@ -30,7 +30,7 @@ test('boots the dedicated player from the ephemeral development handoff', async 
 }) => {
 	const source = artifact('A54 Development Player', 'a54-development-player');
 
-	await page.goto('http://localhost:5173/player.html');
+	await page.goto('http://localhost:5173/');
 	await page.evaluate(
 		({key, value}) => window.sessionStorage.setItem(key, value),
 		{
@@ -38,14 +38,28 @@ test('boots the dedicated player from the ephemeral development handoff', async 
 			value: serializeNarrativeRuntimeArtifact(source)
 		}
 	);
-	await page.goto('http://localhost:5173/player.html#handoff=session');
+	await page.evaluate(() => {
+		const link = document.createElement('a');
+		link.id = 'a54-player-launch';
+		link.href = '/player.html#handoff=session';
+		link.target = '_blank';
+		link.textContent = 'Launch player';
+		document.body.appendChild(link);
+	});
 
-	await expect(page.locator('[data-player-status="ready"]')).toBeVisible();
+	const playerPagePromise = page.context().waitForEvent('page');
+	await page.locator('#a54-player-launch').click();
+	const playerPage = await playerPagePromise;
+	await playerPage.waitForLoadState();
+
 	await expect(
-		page.getByRole('heading', {name: 'A54 Development Player'})
+		playerPage.locator('[data-player-status="ready"]')
 	).toBeVisible();
-	await expect(page.getByText('Canonical runtime ready')).toBeVisible();
-	await expect(page.getByText('a54-development-player')).toBeVisible();
+	await expect(
+		playerPage.getByRole('heading', {name: 'A54 Development Player'})
+	).toBeVisible();
+	await expect(playerPage.getByText('Canonical runtime ready')).toBeVisible();
+	await expect(playerPage.getByText('a54-development-player')).toBeVisible();
 });
 
 test('boots the standalone player when exact artifact JSON is embedded in its HTML', async ({
