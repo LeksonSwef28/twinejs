@@ -1,5 +1,5 @@
-export const narrativePlayerArtifactElementId =
-	'narrative-runtime-artifact';
+import {narrativePlayerArtifactScriptId} from '../application/narrative/player-package';
+
 export const narrativePlayerDevelopmentHandoffKey =
 	'93-days:narrative-player-artifact';
 
@@ -24,7 +24,7 @@ export function readNarrativePlayerArtifactSource(
 	const locationRef = options.locationRef ?? window.location;
 	const storage = options.storage ?? window.sessionStorage;
 	const embedded = documentRef
-		.getElementById(narrativePlayerArtifactElementId)
+		.getElementById(narrativePlayerArtifactScriptId)
 		?.textContent?.trim();
 
 	if (embedded) {

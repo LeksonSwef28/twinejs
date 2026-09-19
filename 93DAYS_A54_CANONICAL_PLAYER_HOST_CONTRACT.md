@@ -1,6 +1,6 @@
 # A54 Contract — Canonical Player Host & Standalone Packaging
 
-Status: **ACTIVE / S1 IMPLEMENTATION**  
+Status: **ACTIVE / S2 IMPLEMENTATION**  
 Stage: **A54 — Canonical Player Host & Standalone Packaging**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `ea8ba7f03781ead91f63dd3fccd281dfb2a9ad2a`  
@@ -164,10 +164,27 @@ Rollback is code/build-tooling only: remove the player entry/host/package additi
 - E1 Scope / ownership: **PASS**
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
-- E4 Minimal implementation: **IN PROGRESS — S1**
-- E5 Exact-head verification: **PENDING**
+- E4 Minimal implementation: **PASS — S1 / IN PROGRESS — S2**
+- E5 Exact-head verification: **PASS — S1 #483 / S2 PENDING**
 - E6 Self-review: **PENDING**
 - E7 PR/CI: **PENDING**
 - E8 Merge: **PENDING — explicit authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
+
+
+## 11. S1 verification evidence
+
+Exact S1 head `f3b836308bd5fe0c8be6d583fa3c53531d615062` passed workflow **#483 GREEN**:
+
+- production dependency audit: 0 vulnerabilities;
+- lint PASS;
+- web build PASS;
+- Electron main build PASS;
+- **343/343 suites**;
+- **2087 passed tests** (23 skipped, 42 todo; 2152 total);
+- 0 snapshots;
+- Vite smoke PASS;
+- Electron smoke PASS.
+
+S1 therefore proves the dedicated host/source boundary without an editor-provider dependency. S2 may proceed.

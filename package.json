@@ -129,7 +129,8 @@
 		"start:electron:boot": "electron electron-build/main/src/electron/main-process/index.js",
 		"test": "jest --watch",
 		"test:coverage": "jest --coverage",
-		"build:player": "tsc && vite build --config vite.player.config.mts"
+		"build:player": "tsc && vite build --config vite.player.config.mts",
+		"package:player": "npm run build:player && node scripts/package-narrative-player.cjs"
 	},
 	"homepage": "./",
 	"main": "electron-build/electron/src/electron/main-process/index.js"

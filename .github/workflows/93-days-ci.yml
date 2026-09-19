@@ -24,6 +24,8 @@ jobs:
         run: npm run lint
       - name: Build web application
         run: npm run build:web
+      - name: Build standalone player host
+        run: npm run build:player
       - name: Build Electron main process
         run: npm run build:electron-main
       - name: Run test suite

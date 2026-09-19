@@ -1,5 +1,5 @@
+import {narrativePlayerArtifactScriptId} from '../../application/narrative/player-package';
 import {
-	narrativePlayerArtifactElementId,
 	narrativePlayerDevelopmentHandoffKey,
 	readNarrativePlayerArtifactSource
 } from '../artifact-source';
@@ -13,7 +13,7 @@ describe('A54 browser artifact source', () => {
 
 	test('prefers the artifact embedded in standalone player HTML', () => {
 		const element = document.createElement('script');
-		element.id = narrativePlayerArtifactElementId;
+		element.id = narrativePlayerArtifactScriptId;
 		element.type = 'application/json';
 		element.textContent = '{"format":"embedded"}';
 		document.body.appendChild(element);
