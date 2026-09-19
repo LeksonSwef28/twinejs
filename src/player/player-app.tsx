@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {bootstrapNarrativePlayerHost} from '../application/narrative/player-host';
 import {advanceNarrativeProjectSimulation} from '../application/narrative/simulation';
-import {readNarrativePlayerArtifactSource} from './artifact-source';
+import {NarrativePlayerArtifactSource} from './artifact-source';
 import './player-app.css';
 
 function formatMinute(minuteOfDay: number) {
@@ -12,11 +12,11 @@ function formatMinute(minuteOfDay: number) {
 	return `${hours}:${minutes}`;
 }
 
-export const PlayerApp: React.FC = () => {
-	const artifactSource = React.useMemo(
-		() => readNarrativePlayerArtifactSource(),
-		[]
-	);
+export interface PlayerAppProps {
+	artifactSource: NarrativePlayerArtifactSource;
+}
+
+export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 	const bootstrap = React.useMemo(
 		() =>
 			bootstrapNarrativePlayerHost(
