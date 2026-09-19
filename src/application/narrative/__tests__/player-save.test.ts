@@ -231,6 +231,9 @@ describe('A53 player save codec', () => {
 		});
 
 		expect(invalid.status).toBe('rejected');
+		if (invalid.status !== 'rejected') {
+			throw new Error('Expected malformed runtime save to be rejected.');
+		}
 		expect(invalid.reason).toBe('invalid-runtime');
 		expect(invalid.session).toBe(fresh);
 		expect(fresh.currentProject.simulation.actualLocationByCharacter).toEqual(
