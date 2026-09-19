@@ -43,6 +43,10 @@ jobs:
           path: |
             jest-ci.log
             coverage/
+      - name: Install canonical player smoke browser
+        run: npx playwright install --with-deps chromium
+      - name: Smoke canonical player host
+        run: npx playwright test e2e/player-host.spec.ts --project=chromium --reporter=line
       - name: Smoke-start Vite
         shell: bash
         run: |
