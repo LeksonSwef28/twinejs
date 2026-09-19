@@ -1,6 +1,6 @@
 # A53 Contract — Player Runtime Boundary & Session Bootstrap
 
-Status: **CONTRACT PASS / PRE-IMPLEMENTATION CI PENDING**  
+Status: **CONTRACT PASS / S1+S2 IMPLEMENTATION VERIFIED / S3 PENDING**  
 Stage: **A53 — Player Runtime Boundary & Session Bootstrap**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `1c8dc69ef25447842533d3ea2852c784f33b3db1`  
@@ -200,9 +200,19 @@ Before A53 implementation can be called verified, tests must prove at minimum:
 
 Implement compatibility validation, deterministic materialization and one player-session mutation boundary. Prove canonical simulation/Move/physical calls can operate on the bootstrapped project. No UI.
 
+**Status: IMPLEMENTATION VERIFIED.** `src/application/narrative/player-runtime.ts` materializes a defensive player session from artifact v1 and only owns compatibility/session replacement. Canonical simulation, Move/effect and physical item APIs are exercised directly by regression tests; the artifact remains unchanged and Actual Presence is not fabricated at bootstrap.
+
+Exact S1 head `88de25859f21fc1287e3554c44709f3e38452f94` passed workflow **#474 GREEN**: **339/339 suites**, **2076 passed tests** (23 skipped, 42 todo; 2141 total), 0 snapshots, diagnostics upload PASS, Vite smoke PASS and Electron smoke PASS.
+
 ### A53-S2 — Player save codec
 
 Reuse or extract runtime snapshot projection semantics into a player-usable pure codec; prove identity-safe runtime-only round trip. No storage-provider UI.
+
+**Status: IMPLEMENTATION VERIFIED.** `src/application/narrative/player-save.ts` wraps the already reviewed runtime snapshot projection/validation semantics in a player-specific versioned envelope. Saves contain only runtime projection plus artifact/project/build identity; authored definitions, editor state, Preview state and generated export data are absent. Restore materializes the current artifact first, rejects identity/build mismatches, overlays runtime only, and returns the original session on rejection.
+
+The S2 verification fixture proves runtime-only serialization, same-artifact restore, continued canonical simulation after restore, artifact immutability, authored/editor preservation, identity/build mismatch rejection, malformed-runtime atomicity, unsupported envelope rejection and invalid-JSON rejection.
+
+Workflow **#476** exposed only a TypeScript test-union narrowing error; workflow **#477** then exposed a fixture bug where a malformed-runtime test accidentally compiled a different project and correctly triggered `artifact-mismatch`. Both fixes were test-only and did not change production save semantics. Final exact S2 head `d59e72bd909f12ab1b430c20ad619caed7cfa80f` passed workflow **#478 GREEN**: **340/340 suites**, **2081 passed tests** (23 skipped, 42 todo; 2146 total), 0 snapshots, diagnostics upload PASS, Vite smoke PASS and Electron smoke PASS.
 
 ### A53-S3 — Session integration closure
 
@@ -249,13 +259,13 @@ Stop and return to architecture review if implementation requires any of the fol
 - E0 Evidence: **PASS**
 - E1 Scope / ownership: **PASS**
 - E2 Contract / invariants: **PASS**
-- E3 Verification design: **PASS (design only)**
-- E4 Minimal implementation: **PENDING**
-- E5 Exact-head verification: **PENDING**
-- E6 Self-review: **PENDING**
-- E7 PR/CI: **PENDING**
+- E3 Verification design: **PASS**
+- E4 Minimal implementation: **PARTIAL — S1/S2 PASS; S3 pending**
+- E5 Exact-head verification: **PARTIAL — S1 #474 GREEN; S2 #478 GREEN; S3/final gate pending**
+- E6 Self-review: **PASS for S1/S2**
+- E7 PR/CI: **PARTIAL — draft PR #26 open; S1/S2 exact heads verified**
 - E8 Merge: **PENDING**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS (plan)**
 
-**Decision:** A53 is justified by repository evidence. Implementation may begin only after this contract head passes the pre-implementation exact-head CI gate requested for the post-A52 phase.
+**Decision:** A53-S1 and A53-S2 are implementation-verified. A53 remains IN PROGRESS; S3 must prove the integrated new-game -> canonical mutations -> save -> restore -> continue flow and pass its own exact-head gate before A53 can enter merge review.

@@ -60,6 +60,8 @@ Therefore the immediate gap is **runtime bootstrap/session/host ownership**, not
 
 ### A53 — Player Runtime Boundary & Session Bootstrap
 
+**Status:** IN PROGRESS — **S1 artifact/session materialization VERIFIED (#474)** and **S2 runtime-only player save codec VERIFIED (#478)**. S3 integration closure remains.
+
 **Goal:** make a compiled artifact materialize into a player-owned session that can invoke the existing canonical runtime and can be saved/restored without the editor shell.
 
 Deliverables:
