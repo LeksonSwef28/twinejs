@@ -32,7 +32,7 @@ test('boots the dedicated player from the ephemeral development handoff', async 
 
 	await page.goto('http://localhost:5173/');
 	await page.evaluate(
-		({key, value}) => window.sessionStorage.setItem(key, value),
+		({key, value}) => window.localStorage.setItem(key, value),
 		{
 			key: narrativePlayerDevelopmentHandoffKey,
 			value: serializeNarrativeRuntimeArtifact(source)
@@ -41,7 +41,7 @@ test('boots the dedicated player from the ephemeral development handoff', async 
 	await page.evaluate(() => {
 		const link = document.createElement('a');
 		link.id = 'a54-player-launch';
-		link.href = '/player.html#handoff=session';
+		link.href = '/player.html#handoff=development';
 		link.target = '_blank';
 		link.textContent = 'Launch player';
 		document.body.appendChild(link);
@@ -60,6 +60,14 @@ test('boots the dedicated player from the ephemeral development handoff', async 
 	).toBeVisible();
 	await expect(playerPage.getByText('Canonical runtime ready')).toBeVisible();
 	await expect(playerPage.getByText('a54-development-player')).toBeVisible();
+	await expect
+		.poll(() =>
+			page.evaluate(
+				key => window.localStorage.getItem(key),
+				narrativePlayerDevelopmentHandoffKey
+			)
+		)
+		.toBeNull();
 });
 
 test('boots the standalone player when exact artifact JSON is embedded in its HTML', async ({

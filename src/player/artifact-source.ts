@@ -6,7 +6,7 @@ export const narrativePlayerDevelopmentHandoffKey =
 export type NarrativePlayerArtifactSource =
 	| {
 			status: 'found';
-			source: 'inline' | 'session-handoff';
+			source: 'inline' | 'development-handoff';
 			serializedArtifact: string;
 	  }
 	| {status: 'missing'; summary: string};
@@ -14,7 +14,7 @@ export type NarrativePlayerArtifactSource =
 export interface NarrativePlayerArtifactSourceOptions {
 	documentRef?: Document;
 	locationRef?: Location;
-	storage?: Storage;
+	storage?: Pick<Storage, 'getItem' | 'removeItem'>;
 }
 
 export function readNarrativePlayerArtifactSource(
@@ -22,7 +22,6 @@ export function readNarrativePlayerArtifactSource(
 ): NarrativePlayerArtifactSource {
 	const documentRef = options.documentRef ?? document;
 	const locationRef = options.locationRef ?? window.location;
-	const storage = options.storage ?? window.sessionStorage;
 	const embedded = documentRef
 		.getElementById(narrativePlayerArtifactScriptId)
 		?.textContent?.trim();
@@ -36,32 +35,35 @@ export function readNarrativePlayerArtifactSource(
 	}
 
 	const hash = new URLSearchParams(locationRef.hash.replace(/^#/, ''));
-	if (hash.get('handoff') !== 'session') {
+	if (hash.get('handoff') !== 'development') {
 		return {
 			status: 'missing',
 			summary:
-			'No embedded artifact is present and no development handoff was requested.'
+				'No embedded artifact is present and no development handoff was requested.'
 		};
 	}
 
+	const storage = options.storage ?? window.localStorage;
 	try {
 		const handedOff = storage.getItem(narrativePlayerDevelopmentHandoffKey);
-		if (handedOff?.trim()) {
+		if (!handedOff?.trim()) {
 			return {
-				status: 'found',
-				source: 'session-handoff',
-				serializedArtifact: handedOff
+				status: 'missing',
+				summary: 'Development artifact handoff did not contain an artifact.'
 			};
 		}
+
+		storage.removeItem(narrativePlayerDevelopmentHandoffKey);
+		return {
+			status: 'found',
+			source: 'development-handoff',
+			serializedArtifact: handedOff
+		};
 	} catch {
 		return {
 			status: 'missing',
-			summary: 'Development artifact handoff storage is unavailable.'
+			summary:
+				'Development artifact handoff storage is unavailable or could not be consumed.'
 		};
 	}
-
-	return {
-		status: 'missing',
-		summary: 'Development artifact handoff did not contain an artifact.'
-	};
 }

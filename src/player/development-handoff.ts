@@ -4,7 +4,8 @@ import {
 } from '../application/narrative/export-compiler';
 import {narrativePlayerDevelopmentHandoffKey} from './artifact-source';
 
-export const narrativePlayerDevelopmentUrl = 'player.html#handoff=session';
+export const narrativePlayerDevelopmentUrl =
+	'player.html#handoff=development';
 
 export type NarrativePlayerDevelopmentLaunchResult =
 	| {status: 'launched'; url: string}
@@ -28,13 +29,15 @@ function removeHandoff(
 
 /**
  * Development-only editor -> player transport. This is not a player save and
- * creates no Story/Passage/editor state.
+ * creates no Story/Passage/editor state. localStorage is used only as a
+ * same-origin cross-window mailbox; the player consumes and deletes the value
+ * on first successful read.
  */
 export function launchNarrativePlayerDevelopment(
 	artifact: NarrativeRuntimeArtifactV1,
 	options: NarrativePlayerDevelopmentLaunchOptions = {}
 ): NarrativePlayerDevelopmentLaunchResult {
-	const storage = options.storage ?? window.sessionStorage;
+	const storage = options.storage ?? window.localStorage;
 	const openWindow =
 		options.openWindow ?? ((url, target) => window.open(url, target));
 	const playerUrl = options.playerUrl ?? narrativePlayerDevelopmentUrl;

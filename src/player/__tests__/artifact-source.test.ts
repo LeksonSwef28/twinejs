@@ -7,7 +7,7 @@ import {
 describe('A54 browser artifact source', () => {
 	beforeEach(() => {
 		document.body.innerHTML = '';
-		window.sessionStorage.clear();
+		window.localStorage.clear();
 		window.history.replaceState(null, '', '/player.html');
 	});
 
@@ -17,11 +17,11 @@ describe('A54 browser artifact source', () => {
 		element.type = 'application/json';
 		element.textContent = '{"format":"embedded"}';
 		document.body.appendChild(element);
-		window.sessionStorage.setItem(
+		window.localStorage.setItem(
 			narrativePlayerDevelopmentHandoffKey,
-			'{"format":"session"}'
+			'{"format":"handoff"}'
 		);
-		window.location.hash = 'handoff=session';
+		window.location.hash = 'handoff=development';
 
 		expect(readNarrativePlayerArtifactSource()).toEqual({
 			status: 'found',
@@ -30,19 +30,25 @@ describe('A54 browser artifact source', () => {
 		});
 	});
 
-	test('reads session handoff only when the player URL explicitly requests it', () => {
-		window.sessionStorage.setItem(
+	test('reads and consumes development handoff only when explicitly requested', () => {
+		window.localStorage.setItem(
 			narrativePlayerDevelopmentHandoffKey,
-			'{"format":"session"}'
+			'{"format":"handoff"}'
 		);
 
 		expect(readNarrativePlayerArtifactSource().status).toBe('missing');
+		expect(
+			window.localStorage.getItem(narrativePlayerDevelopmentHandoffKey)
+		).toBe('{"format":"handoff"}');
 
-		window.location.hash = 'handoff=session';
+		window.location.hash = 'handoff=development';
 		expect(readNarrativePlayerArtifactSource()).toEqual({
 			status: 'found',
-			source: 'session-handoff',
-			serializedArtifact: '{"format":"session"}'
+			source: 'development-handoff',
+			serializedArtifact: '{"format":"handoff"}'
 		});
+		expect(
+			window.localStorage.getItem(narrativePlayerDevelopmentHandoffKey)
+		).toBeNull();
 	});
 });

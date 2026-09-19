@@ -122,7 +122,7 @@ describe('<NarrativeExportPanel>', () => {
 		launchPlayerMock.mockReset();
 		launchPlayerMock.mockReturnValue({
 			status: 'launched',
-			url: 'player.html#handoff=session'
+			url: 'player.html#handoff=development'
 		});
 		saveHtmlMock.mockClear();
 		saveJsonMock.mockClear();
