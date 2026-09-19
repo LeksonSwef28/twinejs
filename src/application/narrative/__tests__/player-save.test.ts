@@ -63,16 +63,22 @@ function compiledArtifact() {
 	return result.artifact;
 }
 
+function sessionFromArtifact(
+	artifact: ReturnType<typeof compiledArtifact>
+): NarrativePlayerSession {
+	const result = materializeNarrativePlayerSession(artifact);
+	if (result.status !== 'ready') {
+		throw new Error(`Expected ready A53 player session, got ${result.code}.`);
+	}
+	return result.session;
+}
+
 function readySession(): {
 	artifact: ReturnType<typeof compiledArtifact>;
 	session: NarrativePlayerSession;
 } {
 	const artifact = compiledArtifact();
-	const result = materializeNarrativePlayerSession(artifact);
-	if (result.status !== 'ready') {
-		throw new Error(`Expected ready A53 player session, got ${result.code}.`);
-	}
-	return {artifact, session: result.session};
+	return {artifact, session: sessionFromArtifact(artifact)};
 }
 
 function acceptProject(
@@ -190,10 +196,10 @@ describe('A53 player save codec', () => {
 	});
 
 	test('rejects a save from another artifact/build without changing the session', () => {
-		const {session} = readySession();
+		const {artifact, session} = readySession();
 		const played = playedSession(session);
 		const save = createNarrativePlayerSave(played);
-		const fresh = readySession().session;
+		const fresh = sessionFromArtifact(artifact);
 
 		const wrongProject = restoreNarrativePlayerSave(fresh, {
 			...save,
@@ -222,9 +228,9 @@ describe('A53 player save codec', () => {
 	});
 
 	test('rejects malformed runtime atomically', () => {
-		const {session} = readySession();
+		const {artifact, session} = readySession();
 		const save = createNarrativePlayerSave(playedSession(session));
-		const fresh = readySession().session;
+		const fresh = sessionFromArtifact(artifact);
 		const invalid = restoreNarrativePlayerSave(fresh, {
 			...save,
 			runtime: {simulation: {day: 1}}
