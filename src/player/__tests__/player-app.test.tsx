@@ -126,6 +126,17 @@ describe('<PlayerApp> A55 presentation', () => {
 		).not.toBeInTheDocument();
 	});
 
+	test('waits through canonical simulation without changing the player-facing location', () => {
+		render(<PlayerApp artifactSource={source(true)} />);
+
+		expect(screen.getByText('06:00')).toBeInTheDocument();
+		fireEvent.click(screen.getByRole('button', {name: 'Подождать 5 минут'}));
+
+		expect(screen.getByText('06:05')).toBeInTheDocument();
+		expect(screen.getByRole('heading', {name: 'Автовокзал'})).toBeInTheDocument();
+		expect(screen.getByRole('status')).toHaveTextContent('Прошло 5 мин.');
+	});
+
 	test('travels through canonical route time and updates the player-facing location', () => {
 		render(<PlayerApp artifactSource={source(true)} />);
 

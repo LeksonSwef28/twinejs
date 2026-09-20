@@ -385,3 +385,27 @@ select {
 .narrative-player__travel li > p {
 	margin: 0 0.95rem;
 }
+
+
+.narrative-player__wait-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-bottom: 0.75rem;
+}
+
+.narrative-player__wait-actions button {
+	padding: 0.55rem 0.7rem;
+	border: 1px solid rgba(242, 239, 232, 0.16);
+	border-radius: 0.35rem;
+	background: rgba(242, 239, 232, 0.03);
+	color: rgba(242, 239, 232, 0.7);
+	cursor: pointer;
+}
+
+.narrative-player__wait-actions button:hover,
+.narrative-player__wait-actions button:focus-visible {
+	border-color: rgba(242, 239, 232, 0.38);
+	color: rgba(242, 239, 232, 0.95);
+	outline: none;
+}

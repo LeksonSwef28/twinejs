@@ -225,6 +225,12 @@ test('boots and traverses the real Arrival Corridor from authored playerStart', 
 	).toBeVisible();
 	await expect(page.getByText('06:00')).toBeVisible();
 
+	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
+	await expect(page.getByText('06:05')).toBeVisible();
+	await expect(
+		page.getByRole('heading', {name: 'Междугородний автовокзал'})
+	).toBeVisible();
+
 	const square = page.getByRole('button', {name: /Выйти на транспортную площадь/});
 	await expect(square).toBeEnabled();
 	await square.click();
@@ -232,7 +238,7 @@ test('boots and traverses the real Arrival Corridor from authored playerStart', 
 	await expect(
 		page.getByRole('heading', {name: 'Транспортная площадь'})
 	).toBeVisible();
-	await expect(page.getByText('06:03')).toBeVisible();
+	await expect(page.getByText('06:08')).toBeVisible();
 
 	const stop = page.getByRole('button', {name: /Дойти до остановки/});
 	await expect(stop).toBeEnabled();
@@ -241,7 +247,7 @@ test('boots and traverses the real Arrival Corridor from authored playerStart', 
 	await expect(
 		page.getByRole('heading', {name: 'Остановка у автовокзала'})
 	).toBeVisible();
-	await expect(page.getByText('06:07')).toBeVisible();
+	await expect(page.getByText('06:12')).toBeVisible();
 
 	const routeTaxi = page.getByRole('button', {
 		name: /Ехать маршруткой к башне.*18 мин/
@@ -256,7 +262,7 @@ test('boots and traverses the real Arrival Corridor from authored playerStart', 
 	await expect(
 		page.getByRole('heading', {name: 'Пересадка у водонапорной башни'})
 	).toBeVisible();
-	await expect(page.getByText('06:25')).toBeVisible();
+	await expect(page.getByText('06:30')).toBeVisible();
 	await expect(page.getByRole('status')).toContainText(
 		'Пересадка у водонапорной башни'
 	);

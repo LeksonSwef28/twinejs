@@ -2,6 +2,7 @@ import * as React from 'react';
 import {executeNarrativePlayerAction} from '../application/narrative/player-action';
 import {bootstrapNarrativePlayerHost} from '../application/narrative/player-host';
 import {executeNarrativePlayerTravel} from '../application/narrative/player-travel';
+import {executeNarrativePlayerWait} from '../application/narrative/player-wait';
 import {deriveNarrativePlayerPresentation} from '../application/narrative/player-presentation';
 import {NarrativePlayerSession} from '../application/narrative/player-runtime';
 import {NarrativePlayerArtifactSource} from './artifact-source';
@@ -90,6 +91,24 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 
 	const project = session.currentProject;
 	const view = deriveNarrativePlayerPresentation(project);
+
+	const executeWait = (durationMinutes: number) => {
+		const result = executeNarrativePlayerWait(session, durationMinutes);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({
+				title: 'Подождали',
+				summary: `Прошло ${result.durationMinutes} мин.`,
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Не удалось подождать',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
 
 	const executeTravel = (routeId: string) => {
 		if (view.perspective.status !== 'resolved') {
@@ -221,6 +240,14 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 							<div className="narrative-player__panel-heading">
 								<h3 id="travel-title">Куда дальше</h3>
 								<span>{view.travelOptions.length}</span>
+							</div>
+							<div className="narrative-player__wait-actions" aria-label="Ожидание">
+								<button type="button" onClick={() => executeWait(5)}>
+									Подождать 5 минут
+								</button>
+								<button type="button" onClick={() => executeWait(15)}>
+									Подождать 15 минут
+								</button>
 							</div>
 							{view.travelOptions.length === 0 ? (
 								<p className="narrative-player__muted">
