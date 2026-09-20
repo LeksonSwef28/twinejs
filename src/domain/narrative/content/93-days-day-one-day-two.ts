@@ -576,7 +576,6 @@ export function create93DaysDayOneDayTwoProject(): NarrativeProject {
 				dayOneNarrativeIds.characters.localContact
 			],
 			placement: {
-				day: 1,
 				locationId: arrivalCorridorIds.locations.busStation
 			},
 			activationState: 'available'
@@ -593,7 +592,6 @@ export function create93DaysDayOneDayTwoProject(): NarrativeProject {
 				arrivalCorridorIds.characters.stationClerk
 			],
 			placement: {
-				day: 1,
 				locationId: arrivalCorridorIds.locations.busStation
 			},
 			activationState: 'available'
@@ -608,7 +606,6 @@ export function create93DaysDayOneDayTwoProject(): NarrativeProject {
 				arrivalCorridorIds.characters.stationClerk
 			],
 			placement: {
-				day: 1,
 				locationId: arrivalCorridorIds.locations.busStation
 			},
 			activationState: 'dormant'
