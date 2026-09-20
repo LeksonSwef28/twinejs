@@ -1,5 +1,6 @@
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
+import {arrivalCorridorIds, create93DaysArrivalCorridorProject} from '../../../domain/narrative/content/93-days-arrival-corridor';
 import {advanceNarrativeProjectSimulation} from '../simulation';
 import {
 	compileNarrativeRuntimeArtifact,

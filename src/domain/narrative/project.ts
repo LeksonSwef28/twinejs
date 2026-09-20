@@ -22,6 +22,7 @@ import {
 	StoryNodeDefinition
 } from './story';
 import {NarrativeProjectTemplate} from './template';
+import {NarrativePlayerStartDefinition} from './player-start';
 import {NarrativeTravelRouteDefinition} from './travel';
 
 export const narrativeProjectSchemaVersion = 3;
@@ -51,6 +52,8 @@ export interface NarrativeProject {
 	scenes: NarrativeScene[];
 	/** Additive schema-v3 authored travel data; older v3 projects may omit it. */
 	travelRoutes?: NarrativeTravelRouteDefinition[];
+	/** Optional explicit player-world start. Fresh A52 runtime still remains empty. */
+	playerStart?: NarrativePlayerStartDefinition;
 	characters: NarrativeCharacter[];
 	itemDefinitions: ItemDefinition[];
 	itemInstances: ItemInstance[];

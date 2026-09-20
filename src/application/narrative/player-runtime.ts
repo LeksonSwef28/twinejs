@@ -10,6 +10,7 @@ import {
 	narrativeProjectPersistenceFormat
 } from '../../store/narrative-project/persistence-projection';
 import {narrativeTravelRouteIsStructurallyValid} from '../../domain/narrative/travel';
+import {narrativePlayerStartIsStructurallyValid} from '../../domain/narrative/player-start';
 import {
 	NarrativeRuntimeArtifactV1,
 	narrativeRuntimeArtifactFormat,
@@ -103,6 +104,7 @@ function authoredProjectionLooksUsable(
 		return false;
 	}
 	const travelRoutes = value.travelRoutes;
+	const playerStart = value.playerStart;
 	return (
 		typeof value.projectId === 'string' &&
 		typeof value.hostStoryId === 'string' &&
@@ -112,7 +114,9 @@ function authoredProjectionLooksUsable(
 		authoredArrayKeys.every(key => Array.isArray(value[key])) &&
 		(travelRoutes === undefined ||
 			(Array.isArray(travelRoutes) &&
-				travelRoutes.every(narrativeTravelRouteIsStructurallyValid)))
+				travelRoutes.every(narrativeTravelRouteIsStructurallyValid))) &&
+		(playerStart === undefined ||
+			narrativePlayerStartIsStructurallyValid(playerStart))
 	);
 }
 

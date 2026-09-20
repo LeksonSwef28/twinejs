@@ -10,6 +10,7 @@ export type NarrativeReferenceOwnerKind =
 	| 'character'
 	| 'scene'
 	| 'travel-route'
+	| 'player-start'
 	| 'behavior-profile'
 	| 'routine-rule'
 	| 'schedule-exception'
@@ -524,6 +525,29 @@ export function validateNarrativeProjectReferences(
 			ownerKind: 'scene',
 			ownerId: scene.id
 		}, `Scene «${scene.name}»`);
+	}
+	if (project.playerStart) {
+		const context: FindingContext = {
+			ownerKind: 'player-start',
+			ownerId: 'player-start',
+			characterId: project.playerStart.characterId
+		};
+		addMissingReference(
+			findings,
+			sets.characters,
+			'character',
+			project.playerStart.characterId,
+			context,
+			'Player start: character'
+		);
+		addMissingReference(
+			findings,
+			sets.locations,
+			'location',
+			project.playerStart.locationId,
+			context,
+			'Player start: location'
+		);
 	}
 	for (const route of project.travelRoutes ?? []) {
 		const context: FindingContext = {

@@ -45,6 +45,10 @@ import {
 } from '../../domain/narrative/story';
 import {NarrativeProjectTemplate} from '../../domain/narrative/template';
 import {
+	NarrativePlayerStartDefinition,
+	narrativePlayerStartIsStructurallyValid
+} from '../../domain/narrative/player-start';
+import {
 	NarrativeTravelRouteDefinition,
 	narrativeTravelRouteIsStructurallyValid
 } from '../../domain/narrative/travel';
@@ -376,6 +380,10 @@ function hydrateInteractionTemplates(value: unknown): InteractionTemplateDefinit
 	});
 }
 
+function hydratePlayerStart(value: unknown): NarrativePlayerStartDefinition | undefined {
+	return narrativePlayerStartIsStructurallyValid(value) ? value : undefined;
+}
+
 function hydrateTravelRoutes(value: unknown): NarrativeTravelRouteDefinition[] {
 	if (!Array.isArray(value)) {
 		return [];
@@ -439,6 +447,7 @@ function hydrateSchemaV2OrV3(
 			: [],
 		storyConnections: hydrateStoryConnections(saved.storyConnections),
 		travelRoutes: hydrateTravelRoutes(saved.travelRoutes),
+		playerStart: hydratePlayerStart(saved.playerStart),
 		narrativeMoves: hydrateNarrativeMoves(saved.narrativeMoves),
 		interactionTemplates: hydrateInteractionTemplates(saved.interactionTemplates),
 		reactionCandidateSets: hydrateReactionCandidateSets(saved.reactionCandidateSets),

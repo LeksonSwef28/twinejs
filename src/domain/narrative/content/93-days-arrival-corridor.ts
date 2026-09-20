@@ -89,6 +89,10 @@ export function create93DaysArrivalCorridorProject(): NarrativeProject {
 	);
 
 	project.projectId = '93-days-arrival-corridor-v1';
+	project.playerStart = {
+		characterId: arrivalCorridorIds.characters.player,
+		locationId: arrivalCorridorIds.locations.busStation
+	};
 	project.createdAt = fixedTimestamp;
 	project.updatedAt = fixedTimestamp;
 

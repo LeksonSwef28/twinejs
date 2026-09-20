@@ -8,6 +8,10 @@ import {
 	embedNarrativeRuntimeArtifactInPlayerHtml
 } from '../src/application/narrative/player-package';
 import {NarrativeMoveDefinition} from '../src/domain/narrative/interaction';
+import {
+	arrivalCorridorIds,
+	create93DaysArrivalCorridorProject
+} from '../src/domain/narrative/content/93-days-arrival-corridor';
 import {createNarrativeProject} from '../src/domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../src/domain/narrative/templates/93-days';
 import {narrativePlayerDevelopmentHandoffKey} from '../src/player/artifact-source';
@@ -185,6 +189,87 @@ test('boots the standalone player when exact artifact JSON is embedded in its HT
 	await expect(
 		page.getByRole('heading', {name: 'Игровой персонаж не определён'})
 	).toBeVisible();
+});
+
+test('boots and traverses the real Arrival Corridor from authored playerStart', async ({
+	page
+}) => {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysArrivalCorridorProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected real Arrival Corridor fixture to compile.');
+	}
+	expect(
+		compiled.artifact.initialRuntime.simulation.actualLocationByCharacter
+	).toEqual({});
+	await page.setViewportSize({width: 390, height: 844});
+
+	await page.route('**/player.html', async route => {
+		const response = await route.fetch();
+		const template = await response.text();
+		await route.fulfill({
+			response,
+			body: embedNarrativeRuntimeArtifactInPlayerHtml(
+				template,
+				compiled.artifact
+			)
+		});
+	});
+
+	await page.goto('http://localhost:5173/player.html');
+
+	await expect(page.locator('[data-player-view="world"]')).toBeVisible();
+	await expect(
+		page.getByRole('heading', {name: 'Междугородний автовокзал'})
+	).toBeVisible();
+	await expect(page.getByText('06:00')).toBeVisible();
+
+	const square = page.getByRole('button', {name: /Выйти на транспортную площадь/});
+	await expect(square).toBeEnabled();
+	await square.click();
+
+	await expect(
+		page.getByRole('heading', {name: 'Транспортная площадь'})
+	).toBeVisible();
+	await expect(page.getByText('06:03')).toBeVisible();
+
+	const stop = page.getByRole('button', {name: /Дойти до остановки/});
+	await expect(stop).toBeEnabled();
+	await stop.click();
+
+	await expect(
+		page.getByRole('heading', {name: 'Остановка у автовокзала'})
+	).toBeVisible();
+	await expect(page.getByText('06:07')).toBeVisible();
+
+	const routeTaxi = page.getByRole('button', {
+		name: /Ехать маршруткой к башне.*18 мин/
+	});
+	const cityBus = page.getByRole('button', {
+		name: /Ехать городским автобусом к башне.*26 мин/
+	});
+	await expect(routeTaxi).toBeEnabled();
+	await expect(cityBus).toBeEnabled();
+	await routeTaxi.click();
+
+	await expect(
+		page.getByRole('heading', {name: 'Пересадка у водонапорной башни'})
+	).toBeVisible();
+	await expect(page.getByText('06:25')).toBeVisible();
+	await expect(page.getByRole('status')).toContainText(
+		'Пересадка у водонапорной башни'
+	);
+	await expect(page.getByRole('button', {name: /Идти от башни к общежитию/})).toBeEnabled();
+	await expect(
+		page.locator('[data-player-status="ready"]')
+	).toBeVisible();
+	await expect(
+		page.getByRole('heading', {name: '93 дня до конца нашего лета — Arrival Corridor'})
+	).toBeVisible();
+	await expect(
+		page.getByText(arrivalCorridorIds.locations.busStation)
+	).toHaveCount(0);
 });
 
 test('renders Actual Presence and applies a canonical Move in the standalone player', async ({
