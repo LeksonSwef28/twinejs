@@ -1,6 +1,6 @@
 # A56 Contract — Vertical Slice World: Arrival Corridor
 
-Status: **ACTIVE / S1 AUTHORING**  
+Status: **IMPLEMENTATION VERIFIED / MERGE REVIEW READY**  
 Stage: **A56 — Vertical Slice World: Arrival Corridor**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `db9d309080200b4851ed4cfcf5986a23a481b003`  
@@ -235,10 +235,180 @@ For S2/S3, rollback must preserve A52-A55 artifact/session/host/presentation beh
 - E1 Scope / ownership: **PASS**
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
-- E4 Minimal implementation: **PENDING**
-- E5 Exact-head verification: **PENDING**
-- E6 Self-review: **PENDING**
-- E7 PR/CI: **PENDING**
+- E4 Minimal implementation: **PASS — S1/S2/S3**
+- E5 Exact-head verification: **PASS — S1 #503, S2a #505, S2b #506, S3 #509/#510; final closure-doc exact-head CI follows this record**
+- E6 Self-review: **PASS**
+- E7 PR/CI: **PASS for implementation — draft PR #29 open and mergeable**
 - E8 Merge: **PENDING — explicit authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
+
+
+## 12. Implementation evidence
+
+### A56-S1 — authored Arrival Corridor
+
+Implemented a deterministic production-content builder using the existing Narrative Project model:
+
+- Междугородний автовокзал;
+- Транспортная площадь;
+- Остановка у автовокзала;
+- Киоски у транспортной площади;
+- Пересадка у водонапорной башни;
+- provisional Студенческое общежитие destination;
+- explicit `player` protagonist plus five low-story-commitment NPC roles;
+- behavior profiles and non-overlapping routine rules;
+- opening observation Story nodes/Moves;
+- carried travel bag, button phone and passport;
+- neutral functional naming that does not invent final city/street/route numbers/prices.
+
+Verification history:
+
+- **#502 FAIL** exposed only an over-broad test regex: the assertion intended to reject premature city naming but matched the substring `город` inside `междугородний`. Production content itself had 100% coverage in that run.
+- the assertion was narrowed without content/runtime changes;
+- exact S1 head `8c3f760b5f601005b5b09849cc98a32eeeb2985a` passed **#503 GREEN**:
+  - 0 production vulnerabilities;
+  - 349/349 Jest suites;
+  - 2109 passed, 23 skipped, 42 todo; 2174 total;
+  - canonical Player Chromium smoke 3/3;
+  - Vite/Electron smoke PASS.
+
+The S1 compiler regression proves deterministic A52 output and preserves `initialRuntime.simulation.actualLocationByCharacter = {}`.
+
+### A56-S2a — authored routes + canonical travel executor
+
+Implemented:
+
+- additive optional `travelRoutes` authored data inside schema v3;
+- stable origin/destination/mode/duration route definitions;
+- structural validation and authored-reference validation;
+- defensive repository hydration with `[]` compatibility default for older schema-v3 projects;
+- A53 artifact materialization accepts missing routes and validates routes when supplied;
+- route durations for walking, city bus and route taxi;
+- canonical `executeNarrativeTravel` application orchestration.
+
+A schema-version bump was deliberately **not** used. A53 Player compatibility intentionally requires exact artifact `sourceSchemaVersion`; bumping to v4 in A56 would have invalidated already exported v3 artifacts for an additive optional field. Compatibility is instead explicit and one-way safe: older schema-v3 projects/artifacts omit the field and hydrate/materialize as no authored routes.
+
+Travel execution order is:
+
+`validate -> physical eligibility -> canonical simulation advance -> traveller Actual Presence`
+
+It rejects atomically for:
+
+- unknown route/character;
+- invalid authored route/location references;
+- wrong Actual Presence origin;
+- existing physical blockers;
+- project-end partial travel.
+
+It preserves due Story work/body/injury advancement from the canonical simulation orchestrator and leaves every other character's Actual Presence untouched.
+
+Verification history:
+
+- **#504 FAIL** exposed a compile-time TypeScript narrowing issue in a diagnostic branch after a runtime type guard; no runtime semantics executed;
+- exact corrected S2a head `dc0648c884765dca3f0a8d84472d3a70ed6c88ac` passed **#505 GREEN**:
+  - 351/351 Jest suites;
+  - 2117 passed, 23 skipped, 42 todo; 2182 total;
+  - Chromium 3/3;
+  - Vite/Electron smoke PASS.
+
+### A56-S2b — Player travel choices
+
+Implemented:
+
+- Player presentation projects routes only from the player's current Actual Presence location;
+- physical blockers disable relevant route choices;
+- destination, mode and authored duration are visible;
+- Player click delegates to the canonical A56 travel executor;
+- successful travel enters A53 session state only through `replaceNarrativePlayerSessionProject`;
+- Player UI contains no duplicate clock/location/travel resolver.
+
+Exact S2b head `58dc07d074603566e1f537799b5e9d52f5db364a` passed **#506 GREEN**:
+
+- 0 production vulnerabilities;
+- 352/352 Jest suites;
+- 2121 passed, 23 skipped, 42 todo; 2186 total;
+- Chromium 3/3;
+- Vite/Electron smoke PASS.
+
+### A56-S3 — explicit arrival start, real traversal and waiting
+
+Implemented additive optional `playerStart` authored data and a dedicated post-materialization bootstrap:
+
+- A52 compiler output remains a fresh runtime with empty Actual Presence;
+- only a project explicitly authoring `playerStart` opts in;
+- bootstrap validates character/location references;
+- bootstrap skips projects with no start;
+- already-located runtime state wins, so the start operation never teleports a progressed/restored player back to the station;
+- host maps invalid start data to a visible authored-project bootstrap failure.
+
+The real Arrival Corridor now authors:
+
+`player -> Междугородний автовокзал`
+
+and standalone Player proves:
+
+`fresh artifact (empty presence) -> A53 materialization -> authored playerStart -> station -> wait -> square -> stop -> route choice -> water tower`.
+
+A generic Player wait command was added to satisfy the A56 requirement that the city permit waiting without inventing economy. Waiting delegates entirely to `advanceNarrativeProjectSimulation`, keeps Actual Presence unchanged, preserves due work/body/injury progression and is atomic at project end.
+
+S3 hardening also restricts persisted/artifact `physicalAction` values to the existing canonical `PhysicalActionKind` set instead of accepting arbitrary strings.
+
+Verification/learning:
+
+- **#507 FAIL** stopped at lint because a self-review-intended host regression import had been added but the test insertion pattern had not matched; no build/runtime test ran on that failed head;
+- the missing host regression was inserted and imports formatted;
+- self-review then identified and closed the malformed `physicalAction` validation gap;
+- exact pre-wait S3 head `75355b4f4b1f223e08399425250adaa8774314f2` passed **#509 GREEN**:
+  - 353/353 Jest suites;
+  - 2125 passed, 23 skipped, 42 todo; 2190 total;
+  - Chromium canonical Player smoke **4/4**, including real Arrival Corridor traversal;
+  - Vite/Electron smoke PASS;
+- final implementation head `3206f69aa95fc1efe04d83244eb9915e6550bef5` passed **#510 GREEN**:
+  - production dependency audit: **0 vulnerabilities**;
+  - lint/web/player/Electron builds PASS;
+  - **354/354 Jest suites**;
+  - **2128 passed**, 23 skipped, 42 todo; 2193 total;
+  - 0 snapshots;
+  - Chromium canonical Player smoke **4/4**;
+  - Vite smoke PASS;
+  - Electron smoke PASS.
+
+The real-browser Arrival Corridor scenario runs at 390x844 and verifies:
+
+1. exact compiled artifact has empty fresh Actual Presence;
+2. host applies authored `playerStart` and shows Междугородний автовокзал at 06:00;
+3. waiting 5 minutes keeps the player at the station and advances to 06:05;
+4. walking to the square costs 3 minutes -> 06:08;
+5. walking to the stop costs 4 minutes -> 06:12;
+6. both the 18-minute route taxi and 26-minute city-bus choices toward the same transfer are visible;
+7. taking the route taxi moves to Пересадка у водонапорной башни -> 06:30;
+8. the next authored walking route toward the dormitory is available.
+
+## 13. Self-review
+
+Self-review confirms:
+
+- no A52 artifact format/version change;
+- no Narrative Project schema-version bump;
+- additive `travelRoutes` and `playerStart` are optional and old schema-v3 projects/artifacts remain accepted;
+- repository hydration supplies safe compatibility defaults;
+- A52 fresh runtime Actual Presence remains empty;
+- player world start is explicit post-materialization runtime orchestration, not compiler state;
+- schedules never write Actual Presence;
+- travel duration is authored typed data, not duplicated UI text;
+- travel and wait use canonical simulation advancement;
+- invalid/wrong-origin/blocked/project-end travel is atomic;
+- project-end wait is atomic;
+- only the travelling character changes location;
+- another NPC's explicit runtime Actual Presence survives travel unchanged;
+- malformed physical-action strings are rejected;
+- Player session mutations use the A53 replacement boundary;
+- no hidden RNG or hidden wall-clock time was introduced;
+- no money balance, fare payment or fake economy was introduced;
+- the food location exists as world content, while buying/economy remains correctly deferred to A58;
+- final city name, route numbers, prices and lodging fiction remain unresolved;
+- no editor provider/router/mechanics implementation entered the standalone Player;
+- A57 narrative content was not pulled into A56.
+
+**Decision:** A56 implementation is VERIFIED and ready for merge review. The closure documentation commit must pass one final exact-head full branch gate. Merge remains blocked until explicit authorization; after merge, the exact resulting stable SHA must pass post-merge verification before A57 begins.
