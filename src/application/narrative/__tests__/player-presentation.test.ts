@@ -1,4 +1,5 @@
 import {createCharacterBodyState} from '../../../domain/narrative/body';
+import {NarrativeMoveDefinition} from '../../../domain/narrative/interaction';
 import {NarrativeProject} from '../../../domain/narrative/project';
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
@@ -27,6 +28,32 @@ function character(
 		name,
 		cognitionTier,
 		defaultBehaviorProfileId: `${id}-default`
+	};
+}
+
+function automaticMove(
+	id: string,
+	storyNodeId: string,
+	actorCharacterId: string
+): NarrativeMoveDefinition {
+	return {
+		id,
+		storyNodeId,
+		kind: 'custom',
+		label: id,
+		actorCharacterId,
+		targetCharacterIds: [],
+		guards: [],
+		resolution: {type: 'automatic', outcomeId: `${id}:outcome`},
+		outcomes: [
+			{
+				id: `${id}:outcome`,
+				key: 'continue',
+				label: 'Продолжить',
+				effectStoryNodeIds: [],
+				effects: []
+			}
+		]
 	};
 }
 
@@ -170,5 +197,105 @@ describe('A55 player presentation projection', () => {
 			{id: 'portfolio-1', name: 'Портфель', placement: 'top-level'},
 			{id: 'thermos-1', name: 'Термос', placement: 'contained'}
 		]);
+	});
+
+	test('projects only canonical player Moves in relevant active Story scope', () => {
+		const value = project();
+		value.locations = [
+			{id: 'station', name: 'Автовокзал'},
+			{id: 'square', name: 'Площадь'}
+		];
+		value.characters = [
+			character('player', 'Игрок'),
+			character('katya', 'Катя')
+		];
+		value.simulation.actualLocationByCharacter = {
+			player: 'station',
+			katya: 'station'
+		};
+		value.storyNodes = [
+			{
+				id: 'contact',
+				kind: 'dialogue',
+				title: 'Первый разговор',
+				participantIds: ['player', 'katya'],
+				placement: {locationId: 'station'},
+				activationState: 'available'
+			},
+			{
+				id: 'remote',
+				kind: 'event',
+				title: 'Далеко',
+				participantIds: ['player'],
+				placement: {locationId: 'square'},
+				activationState: 'available'
+			},
+			{
+				id: 'dormant',
+				kind: 'event',
+				title: 'Позже',
+				participantIds: ['player'],
+				activationState: 'dormant'
+			}
+		];
+
+		const greet = automaticMove('Поздороваться', 'contact', 'player');
+		greet.targetCharacterIds = ['katya'];
+		greet.guards = [
+			{
+				id: 'same-place',
+				condition: {
+					type: 'characters-share-location',
+					characterIds: ['player', 'katya']
+				}
+			}
+		];
+		const skill: NarrativeMoveDefinition = {
+			...automaticMove('Проверить реакцию', 'contact', 'player'),
+			resolution: {
+				type: 'skill-check',
+				check: {
+					skillKey: 'empathy',
+					difficulty: 4,
+					rollRule: {type: 'dice', diceCount: 1, dieSides: 6},
+					modifiers: [],
+					successOutcomeId: 'Проверить реакцию:outcome',
+					failureOutcomeId: 'check:failure'
+				}
+			},
+			outcomes: [
+				{
+					id: 'Проверить реакцию:outcome',
+					key: 'success',
+					label: 'Получилось',
+					effectStoryNodeIds: [],
+					effects: []
+				},
+				{
+					id: 'check:failure',
+					key: 'failure',
+					label: 'Не получилось',
+					effectStoryNodeIds: [],
+					effects: []
+				}
+			]
+		};
+		value.narrativeMoves = [
+			greet,
+			skill,
+			automaticMove('NPC action', 'contact', 'katya'),
+			automaticMove('Remote action', 'remote', 'player'),
+			automaticMove('Dormant action', 'dormant', 'player')
+		];
+
+		const view = deriveNarrativePlayerPresentation(value);
+		expect(view.actions.map(action => [action.id, action.state])).toEqual([
+			['Проверить реакцию', 'input-required'],
+			['Поздороваться', 'ready']
+		]);
+		expect(view.actions.every(action => action.storyNodeId === 'contact')).toBe(
+			true
+		);
+		expect(view.actions.every(action => action.dialogue)).toBe(true);
 	});
 });

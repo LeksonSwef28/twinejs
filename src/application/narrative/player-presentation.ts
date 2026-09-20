@@ -5,7 +5,12 @@ import {
 	NarrativeLocation,
 	NarrativeScene
 } from '../../domain/narrative/entities';
+import {NarrativeMoveKind} from '../../domain/narrative/interaction';
 import {NarrativeProject} from '../../domain/narrative/project';
+import {
+	narrativeRuntimeStoryNodes,
+	resolveNarrativeProjectMove
+} from './living-simulation';
 
 export type NarrativePlayerPerspectiveResolution =
 	| {
@@ -28,6 +33,23 @@ export interface NarrativePlayerInventoryItem {
 	placement: 'top-level' | 'contained';
 }
 
+export type NarrativePlayerActionState =
+	| 'ready'
+	| 'blocked'
+	| 'unknown'
+	| 'input-required';
+
+export interface NarrativePlayerAction {
+	id: string;
+	label: string;
+	kind: NarrativeMoveKind;
+	storyNodeId: string;
+	storyTitle: string;
+	dialogue: boolean;
+	state: NarrativePlayerActionState;
+	summary: string;
+}
+
 export interface NarrativePlayerPresentationModel {
 	perspective: NarrativePlayerPerspectiveResolution;
 	day: number;
@@ -37,6 +59,7 @@ export interface NarrativePlayerPresentationModel {
 	scene?: NarrativeScene;
 	sceneState: 'resolved' | 'none' | 'ambiguous';
 	localCharacters: NarrativeCharacter[];
+	actions: NarrativePlayerAction[];
 	body?: CharacterBodyState;
 	carryLoad?: CharacterCarryLoad;
 	inventoryItems: NarrativePlayerInventoryItem[];
@@ -86,9 +109,8 @@ export function resolveNarrativePlayerPerspective(
 		};
 	}
 
-	const actuallyPresent = project.characters.filter(
-		character =>
-			Boolean(project.simulation.actualLocationByCharacter[character.id])
+	const actuallyPresent = project.characters.filter(character =>
+		Boolean(project.simulation.actualLocationByCharacter[character.id])
 	);
 	if (actuallyPresent.length === 1) {
 		return {
@@ -134,6 +156,57 @@ function inventoryItems(
 	}));
 }
 
+function actionState(
+	status: ReturnType<typeof resolveNarrativeProjectMove>['status']
+): NarrativePlayerActionState {
+	return status === 'resolved' ? 'ready' : status;
+}
+
+function playerActions(
+	project: NarrativeProject,
+	playerCharacterId: string,
+	locationId: string | undefined
+): NarrativePlayerAction[] {
+	const runtimeNodes = narrativeRuntimeStoryNodes(project);
+	const nodesById = new Map(runtimeNodes.map(node => [node.id, node]));
+
+	return project.narrativeMoves
+		.filter(move => move.actorCharacterId === playerCharacterId)
+		.flatMap(move => {
+			const node = nodesById.get(move.storyNodeId);
+			if (
+				!node ||
+				(node.activationState !== 'available' &&
+					node.activationState !== 'active') ||
+				(node.placement?.locationId &&
+					node.placement.locationId !== locationId)
+			) {
+				return [];
+			}
+			const resolution = resolveNarrativeProjectMove(project, move.id);
+			return [
+				{
+					id: move.id,
+					label: move.label,
+					kind: move.kind,
+					storyNodeId: node.id,
+					storyTitle: node.title,
+					dialogue: node.kind === 'dialogue',
+					state: actionState(resolution.status),
+					summary: resolution.resolutionSummary
+				}
+			];
+		})
+		.sort((a, b) => {
+			const byStory = a.storyTitle.localeCompare(b.storyTitle);
+			if (byStory !== 0) {
+				return byStory;
+			}
+			const byLabel = a.label.localeCompare(b.label);
+			return byLabel !== 0 ? byLabel : a.id.localeCompare(b.id);
+		});
+}
+
 export function deriveNarrativePlayerPresentation(
 	project: NarrativeProject
 ): NarrativePlayerPresentationModel {
@@ -145,6 +218,7 @@ export function deriveNarrativePlayerPresentation(
 		locationState: 'missing-actual-presence',
 		sceneState: 'none',
 		localCharacters: [],
+		actions: [],
 		inventoryItems: [],
 		economy: {
 			status: 'unavailable',
@@ -167,10 +241,12 @@ export function deriveNarrativePlayerPresentation(
 		project.itemInstances,
 		project.itemPlacementOverrides
 	);
+	const actions = playerActions(project, characterId, locationId);
 
 	if (!locationId) {
 		return {
 			...base,
+			actions,
 			body,
 			carryLoad,
 			inventoryItems: inventoryItems(project, carryLoad)
@@ -181,6 +257,7 @@ export function deriveNarrativePlayerPresentation(
 	if (!location) {
 		return {
 			...base,
+			actions,
 			locationState: 'unknown-location',
 			body,
 			carryLoad,
@@ -213,6 +290,7 @@ export function deriveNarrativePlayerPresentation(
 					? 'none'
 					: 'ambiguous',
 		localCharacters,
+		actions,
 		body,
 		carryLoad,
 		inventoryItems: inventoryItems(project, carryLoad)

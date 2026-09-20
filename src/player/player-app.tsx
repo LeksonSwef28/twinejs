@@ -1,4 +1,5 @@
 import * as React from 'react';
+import {executeNarrativePlayerAction} from '../application/narrative/player-action';
 import {bootstrapNarrativePlayerHost} from '../application/narrative/player-host';
 import {deriveNarrativePlayerPresentation} from '../application/narrative/player-presentation';
 import {NarrativePlayerSession} from '../application/narrative/player-runtime';
@@ -17,6 +18,19 @@ function percent(value: number) {
 	return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
 }
 
+function actionStateLabel(state: string) {
+	switch (state) {
+		case 'input-required':
+			return 'нужна проверка';
+		case 'blocked':
+			return 'недоступно';
+		case 'unknown':
+			return 'не хватает данных';
+		default:
+			return '';
+	}
+}
+
 export interface PlayerAppProps {
 	artifactSource: NarrativePlayerArtifactSource;
 }
@@ -31,9 +45,12 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 			),
 		[artifactSource]
 	);
-	const [session] = React.useState<NarrativePlayerSession | undefined>(
-		bootstrap.status === 'ready' ? bootstrap.session : undefined
-	);
+	const [session, setSession] = React.useState<
+		NarrativePlayerSession | undefined
+	>(bootstrap.status === 'ready' ? bootstrap.session : undefined);
+	const [feedback, setFeedback] = React.useState<
+		{title: string; summary: string; tone: 'result' | 'notice'} | undefined
+	>();
 
 	if (bootstrap.status === 'rejected' || !session) {
 		const summary =
@@ -57,6 +74,31 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 
 	const project = session.currentProject;
 	const view = deriveNarrativePlayerPresentation(project);
+
+	const executeAction = (moveId: string) => {
+		if (view.perspective.status !== 'resolved') {
+			return;
+		}
+		const result = executeNarrativePlayerAction(
+			session,
+			moveId,
+			view.perspective.character.id
+		);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({
+				title: result.outcomeLabel,
+				summary: result.resolutionSummary,
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Действие не выполнено',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
 
 	return (
 		<main className="narrative-player" data-player-status="ready">
@@ -101,6 +143,16 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 							</p>
 						)}
 
+						{feedback && (
+							<div
+								className={`narrative-player__feedback narrative-player__feedback--${feedback.tone}`}
+								role="status"
+							>
+								<strong>{feedback.title}</strong>
+								<p>{feedback.summary}</p>
+							</div>
+						)}
+
 						<section className="narrative-player__panel" aria-labelledby="people-title">
 							<div className="narrative-player__panel-heading">
 								<h3 id="people-title">Здесь</h3>
@@ -127,10 +179,40 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 						<section className="narrative-player__panel" aria-labelledby="actions-title">
 							<div className="narrative-player__panel-heading">
 								<h3 id="actions-title">Действия</h3>
+								<span>{view.actions.length}</span>
 							</div>
-							<p className="narrative-player__muted">
-								Канонические Narrative Moves подключаются в A55-S2.
-							</p>
+							{view.actions.length === 0 ? (
+								<p className="narrative-player__muted">
+									Сейчас нет действий, доступных этому персонажу.
+								</p>
+							) : (
+								<ul className="narrative-player__actions">
+									{view.actions.map(action => (
+										<li key={action.id}>
+											<button
+												type="button"
+												disabled={action.state !== 'ready'}
+												onClick={() => executeAction(action.id)}
+												data-action-state={action.state}
+											>
+												<span>{action.label}</span>
+												<small>
+													{action.dialogue ? 'диалог' : action.storyTitle}
+												</small>
+											</button>
+											{action.state !== 'ready' && (
+												<p>
+													{actionStateLabel(action.state)}
+													{action.state !== 'input-required' &&
+													action.summary
+														? ` · ${action.summary}`
+														: ''}
+												</p>
+											)}
+										</li>
+									))}
+								</ul>
+							)}
 						</section>
 					</section>
 
