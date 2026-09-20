@@ -39,17 +39,12 @@ function source(): NarrativePlayerArtifactSource {
 		{id: 'player-default', characterId: 'player', name: 'Player default'},
 		{id: 'katya-default', characterId: 'katya', name: 'Katya default'}
 	];
-	project.simulation.actualLocationByCharacter = {
-		player: 'station',
-		katya: 'station'
-	};
 	project.storyNodes = [
 		{
 			id: 'contact',
 			kind: 'dialogue',
 			title: 'Первый разговор',
 			participantIds: ['player', 'katya'],
-			placement: {locationId: 'station'},
 			activationState: 'available'
 		}
 	];
@@ -60,15 +55,7 @@ function source(): NarrativePlayerArtifactSource {
 		label: 'Поздороваться',
 		actorCharacterId: 'player',
 		targetCharacterIds: ['katya'],
-		guards: [
-			{
-				id: 'same-place',
-				condition: {
-					type: 'characters-share-location',
-					characterIds: ['player', 'katya']
-				}
-			}
-		],
+		guards: [],
 		resolution: {type: 'automatic', outcomeId: 'greet:outcome'},
 		outcomes: [
 			{
@@ -101,13 +88,12 @@ function source(): NarrativePlayerArtifactSource {
 }
 
 describe('<PlayerApp> A55 presentation', () => {
-	test('shows Actual Presence and executes a canonical Move with outcome feedback', () => {
+	test('executes an unplaced canonical Move from a fresh Player session with outcome feedback', () => {
 		render(<PlayerApp artifactSource={source()} />);
 
 		expect(
-			screen.getByRole('heading', {name: 'Автовокзал'})
+			screen.getByRole('heading', {name: 'Местоположение не определено'})
 		).toBeInTheDocument();
-		expect(screen.getByText('Катя')).toBeInTheDocument();
 		const action = screen.getByRole('button', {name: /Поздороваться/});
 		expect(action).toBeEnabled();
 

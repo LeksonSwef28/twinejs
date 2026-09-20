@@ -2,9 +2,11 @@ import {NarrativeMoveDefinition} from '../../../domain/narrative/interaction';
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
 import {compileNarrativeRuntimeArtifact} from '../export-compiler';
+import {setNarrativeCharacterActualLocation} from '../living-simulation';
 import {
 	materializeNarrativePlayerSession,
-	NarrativePlayerSession
+	NarrativePlayerSession,
+	replaceNarrativePlayerSessionProject
 } from '../player-runtime';
 import {executeNarrativePlayerAction} from '../player-action';
 
@@ -130,7 +132,20 @@ function session(): NarrativePlayerSession {
 	if (materialized.status !== 'ready') {
 		throw new Error('Expected A55 action fixture to materialize.');
 	}
-	return materialized.session;
+	let current = materialized.session;
+	for (const characterId of ['player', 'katya']) {
+		const located = setNarrativeCharacterActualLocation(
+			current.currentProject,
+			characterId,
+			'station'
+		);
+		const replacement = replaceNarrativePlayerSessionProject(current, located);
+		if (replacement.status !== 'updated') {
+			throw new Error('Expected A55 action presence setup to update session.');
+		}
+		current = replacement.session;
+	}
+	return current;
 }
 
 describe('A55 player action boundary', () => {

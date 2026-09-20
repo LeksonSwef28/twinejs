@@ -290,8 +290,8 @@ describe('A55 player presentation projection', () => {
 
 		const view = deriveNarrativePlayerPresentation(value);
 		expect(view.actions.map(action => [action.id, action.state])).toEqual([
-			['Проверить реакцию', 'input-required'],
-			['Поздороваться', 'ready']
+			['Поздороваться', 'ready'],
+			['Проверить реакцию', 'input-required']
 		]);
 		expect(view.actions.every(action => action.storyNodeId === 'contact')).toBe(
 			true
