@@ -167,11 +167,12 @@ export function compileNarrativeRuntimeArtifact(
 	const diagnostics: NarrativeExportDiagnostic[] =
 		queryStoryBrainProjectDiagnostics(project).findings.map(storyBrainExportDiagnostic);
 	for (const route of project.travelRoutes ?? []) {
+		const routeId = route.id;
 		if (!narrativeTravelRouteIsStructurallyValid(route)) {
 			diagnostics.push(
 				compilerBlocker(
 					'invalid-travel-route',
-					`Cannot compile invalid travel route: ${route.id || '(missing id)'}.`
+					`Cannot compile invalid travel route: ${routeId || '(missing id)'}.`
 				)
 			);
 		}
