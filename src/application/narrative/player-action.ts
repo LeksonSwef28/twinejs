@@ -24,6 +24,7 @@ export type NarrativePlayerActionExecutionResult =
 				| 'blocked'
 				| 'unknown'
 				| 'input-required'
+				| 'invalid-runtime-result'
 				| 'session-replacement';
 			summary: string;
 	  };
@@ -65,13 +66,22 @@ export function executeNarrativePlayerAction(
 		session.currentProject,
 		moveId
 	);
-	if (applied.resolution.status !== 'resolved' || !applied.resolution.outcomeId) {
+	if (applied.resolution.status !== 'resolved') {
 		return {
 			status: 'rejected',
 			session,
 			moveId,
 			reason: applied.resolution.status,
 			summary: applied.resolution.resolutionSummary
+		};
+	}
+	if (!applied.resolution.outcomeId) {
+		return {
+			status: 'rejected',
+			session,
+			moveId,
+			reason: 'invalid-runtime-result',
+			summary: 'Canonical Move resolved without an outcome id.'
 		};
 	}
 
