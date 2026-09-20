@@ -1,4 +1,7 @@
 import * as React from 'react';
+import {
+	serializeNarrativeRuntimeArtifact
+} from '../../../application/narrative/export-compiler';
 import {storyBrainNavigationForFinding} from '../../../application/narrative/story-brain-diagnostic-navigation';
 import {
 	NarrativePreparedExportDiagnostic,
@@ -7,10 +10,11 @@ import {
 import {storyCanvasViewportForNode} from '../../../domain/narrative/workspace-navigation';
 import {narrativeRuntimeProofFilenameExtension} from '../../../application/narrative/runtime-proof';
 import {storyFileName} from '../../../electron/shared';
+import {launchNarrativePlayerDevelopment} from '../../../player/development-handoff';
 import {useNarrativeProject} from '../../../store/narrative-project';
 import {useNarrativePublishing} from '../../../store/use-narrative-publishing';
 import {useUndoableStoriesContext} from '../../../store/undoable-stories';
-import {saveHtml} from '../../../util/save-file';
+import {saveHtml, saveJson} from '../../../util/save-file';
 import './narrative-export-panel.css';
 
 function diagnosticKey(diagnostic: NarrativePreparedExportDiagnostic) {
@@ -49,6 +53,7 @@ export const NarrativeExportPanel: React.FC = () => {
 	const {stories} = useUndoableStoriesContext();
 	const {publishNarrativeProject, publishNarrativeProof} = useNarrativePublishing();
 	const [operationError, setOperationError] = React.useState<string>();
+	const [operationStatus, setOperationStatus] = React.useState<string>();
 	const [lastPublishedFile, setLastPublishedFile] = React.useState<string>();
 	const hostStory = React.useMemo(
 		() => stories.find(story => story.id === project.hostStoryId),
@@ -66,6 +71,12 @@ export const NarrativeExportPanel: React.FC = () => {
 	const advisoryCount = diagnostics.filter(
 		diagnostic => diagnostic.disposition === 'advisory'
 	).length;
+
+	function resetOperationFeedback() {
+		setOperationError(undefined);
+		setOperationStatus(undefined);
+		setLastPublishedFile(undefined);
+	}
 
 	function jumpToDiagnostic(diagnostic: NarrativePreparedExportDiagnostic) {
 		if (diagnostic.source !== 'story-brain') {
@@ -117,12 +128,40 @@ export const NarrativeExportPanel: React.FC = () => {
 		});
 	}
 
+	function launchPlayer() {
+		if (preparation?.status !== 'ready') {
+			return;
+		}
+		resetOperationFeedback();
+		const result = launchNarrativePlayerDevelopment(preparation.artifact);
+		if (result.status === 'rejected') {
+			setOperationError(result.summary);
+			return;
+		}
+		setOperationStatus('Canonical Player открыт с текущим runtime artifact.');
+	}
+
+	function downloadArtifact() {
+		if (preparation?.status !== 'ready') {
+			return;
+		}
+		resetOperationFeedback();
+		const filename = storyFileName(
+			preparation.story,
+			'.runtime-artifact.json'
+		);
+		saveJson(
+			serializeNarrativeRuntimeArtifact(preparation.artifact),
+			filename
+		);
+		setLastPublishedFile(filename);
+	}
+
 	function publishProof() {
 		if (!hostStory || preparation?.status !== 'ready') {
 			return;
 		}
-		setOperationError(undefined);
-		setLastPublishedFile(undefined);
+		resetOperationFeedback();
 		try {
 			const result = publishNarrativeProof(project, hostStory);
 			if (result.status === 'blocked') {
@@ -150,8 +189,7 @@ export const NarrativeExportPanel: React.FC = () => {
 		if (!hostStory || preparation?.status !== 'ready') {
 			return;
 		}
-		setOperationError(undefined);
-		setLastPublishedFile(undefined);
+		resetOperationFeedback();
 		try {
 			const result = await publishNarrativeProject(project, hostStory);
 			if (result.status === 'blocked') {
@@ -178,7 +216,7 @@ export const NarrativeExportPanel: React.FC = () => {
 			<header className="narrative-workspace__export-header">
 				<div>
 					<span>EXPORT / COMPILER</span>
-					<h2>Runtime artifact → transient Twine package</h2>
+					<h2>Runtime artifact → Canonical Player / legacy export</h2>
 				</div>
 				<small>derived only · no Passage authoring</small>
 			</header>
@@ -213,9 +251,9 @@ export const NarrativeExportPanel: React.FC = () => {
 			</div>
 
 			<p className="narrative-workspace__export-note">
-				Обычный HTML связывает artifact с текущим Story Format. Compiler proof
-				 HTML использует validation-only shell A52: он парсит artifact и
-				 показывает стартовое состояние, но не исполняет narrative mechanics.
+				Canonical Player запускает A53 через отдельный host и общий TypeScript
+				 runtime. Обычный HTML ниже остаётся legacy Story Format export. Compiler
+				 proof остаётся validation-only shell A52 и не исполняет mechanics.
 			</p>
 
 			{!hostStory && (
@@ -266,9 +304,23 @@ export const NarrativeExportPanel: React.FC = () => {
 					<button
 						type="button"
 						disabled={preparation?.status !== 'ready'}
+						onClick={launchPlayer}
+					>
+						Открыть Player
+					</button>
+					<button
+						type="button"
+						disabled={preparation?.status !== 'ready'}
+						onClick={downloadArtifact}
+					>
+						Runtime artifact JSON
+					</button>
+					<button
+						type="button"
+						disabled={preparation?.status !== 'ready'}
 						onClick={publish}
 					>
-						Собрать HTML
+						Legacy Story Format HTML
 					</button>
 					<button
 						type="button"
@@ -279,9 +331,8 @@ export const NarrativeExportPanel: React.FC = () => {
 					</button>
 				</div>
 				<small>
-					Generated Story/Passage существует только в памяти и не попадает в
-					Undo/Redo или persistence. Compiler proof — только проверка границы
-					компилятора, не финальный player runtime.
+					Player handoff использует только ephemeral session transport.
+					 Generated Story/Passage не записывается в Undo/Redo или persistence.
 				</small>
 			</div>
 
@@ -290,9 +341,14 @@ export const NarrativeExportPanel: React.FC = () => {
 					{operationError}
 				</p>
 			)}
+			{operationStatus && (
+				<p className="narrative-workspace__export-success" role="status">
+					{operationStatus}
+				</p>
+			)}
 			{lastPublishedFile && (
 				<p className="narrative-workspace__export-success" role="status">
-					HTML подготовлен: {lastPublishedFile}
+					Файл подготовлен: {lastPublishedFile}
 				</p>
 			)}
 		</section>

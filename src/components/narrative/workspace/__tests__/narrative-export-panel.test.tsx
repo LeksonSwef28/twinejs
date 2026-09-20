@@ -1,13 +1,19 @@
 import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {axe} from 'jest-axe';
 import * as React from 'react';
-import {prepareNarrativeStoryExport} from '../../../../application/narrative/export-story-adapter';
+import {
+	prepareNarrativeStoryExport
+} from '../../../../application/narrative/export-story-adapter';
+import {
+	serializeNarrativeRuntimeArtifact
+} from '../../../../application/narrative/export-compiler';
 import {prepareNarrativeRuntimeProof} from '../../../../application/narrative/runtime-proof';
 import {fakeAppInfo} from '../../../../test-util';
 import {createNarrativeProject} from '../../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../../domain/narrative/templates/93-days';
+import {launchNarrativePlayerDevelopment} from '../../../../player/development-handoff';
 import {Story} from '../../../../store/stories';
-import {saveHtml} from '../../../../util/save-file';
+import {saveHtml, saveJson} from '../../../../util/save-file';
 import {NarrativeExportPanel} from '../narrative-export-panel';
 
 const mockExecute = jest.fn();
@@ -36,9 +42,12 @@ jest.mock('../../../../store/use-narrative-publishing', () => ({
 	})
 }));
 
+jest.mock('../../../../player/development-handoff');
 jest.mock('../../../../util/save-file');
 
+const launchPlayerMock = launchNarrativePlayerDevelopment as jest.Mock;
 const saveHtmlMock = saveHtml as jest.Mock;
+const saveJsonMock = saveJson as jest.Mock;
 
 function createProject() {
 	const value = createNarrativeProject(
@@ -83,11 +92,16 @@ function setProofResultForCurrentProject() {
 	return proof;
 }
 
-function setPublishResultForCurrentProject() {
+function preparedForCurrentProject() {
 	const prepared = prepareNarrativeStoryExport(mockProject, mockHostStory);
 	if (prepared.status !== 'ready') {
 		throw new Error('Expected ready test export');
 	}
+	return prepared;
+}
+
+function setPublishResultForCurrentProject() {
+	const prepared = preparedForCurrentProject();
 	mockPublishNarrativeProject.mockResolvedValue({
 		status: 'published',
 		artifact: prepared.artifact,
@@ -95,6 +109,7 @@ function setPublishResultForCurrentProject() {
 		html: '<html>compiled narrative</html>',
 		story: prepared.story
 	});
+	return prepared;
 }
 
 describe('<NarrativeExportPanel>', () => {
@@ -104,7 +119,13 @@ describe('<NarrativeExportPanel>', () => {
 		mockExecute.mockClear();
 		mockPublishNarrativeProject.mockReset();
 		mockPublishNarrativeProof.mockReset();
+		launchPlayerMock.mockReset();
+		launchPlayerMock.mockReturnValue({
+			status: 'launched',
+			url: 'player.html#handoff=development'
+		});
 		saveHtmlMock.mockClear();
+		saveJsonMock.mockClear();
 	});
 
 	test('shows ready state and explicitly downloads only the derived transient HTML', async () => {
@@ -125,7 +146,9 @@ describe('<NarrativeExportPanel>', () => {
 		expect(screen.getByText('1', {selector: 'strong'})).toBeInTheDocument();
 		expect(screen.getByText(/narrative-runtime-artifact v1/)).toBeInTheDocument();
 
-		fireEvent.click(screen.getByRole('button', {name: 'Собрать HTML'}));
+		fireEvent.click(
+			screen.getByRole('button', {name: 'Legacy Story Format HTML'})
+		);
 
 		await waitFor(() =>
 			expect(mockPublishNarrativeProject).toHaveBeenCalledWith(
@@ -138,7 +161,36 @@ describe('<NarrativeExportPanel>', () => {
 			'Canonical Export Story.html'
 		);
 		expect(screen.getByRole('status')).toHaveTextContent(
-			'HTML подготовлен: Canonical Export Story.html'
+			'Файл подготовлен: Canonical Export Story.html'
+		);
+		expect(mockExecute).not.toHaveBeenCalled();
+	});
+
+	test('launches the canonical player from the compiled artifact without editor commands', () => {
+		const prepared = preparedForCurrentProject();
+		render(<NarrativeExportPanel />);
+
+		fireEvent.click(screen.getByRole('button', {name: 'Открыть Player'}));
+
+		expect(launchPlayerMock).toHaveBeenCalledWith(prepared.artifact);
+		expect(screen.getByRole('status')).toHaveTextContent(
+			'Canonical Player открыт'
+		);
+		expect(mockExecute).not.toHaveBeenCalled();
+		 expect(mockPublishNarrativeProject).not.toHaveBeenCalled();
+	});
+
+	test('downloads canonical runtime artifact JSON directly', () => {
+		const prepared = preparedForCurrentProject();
+		render(<NarrativeExportPanel />);
+
+		fireEvent.click(
+			screen.getByRole('button', {name: 'Runtime artifact JSON'})
+		);
+
+		expect(saveJsonMock).toHaveBeenCalledWith(
+			serializeNarrativeRuntimeArtifact(prepared.artifact),
+			'Canonical Export Story.runtime-artifact.json'
 		);
 		expect(mockExecute).not.toHaveBeenCalled();
 	});
@@ -158,7 +210,7 @@ describe('<NarrativeExportPanel>', () => {
 			'Canonical Export Story.compiler-proof.html'
 		);
 		expect(screen.getByRole('status')).toHaveTextContent(
-			'HTML подготовлен: Canonical Export Story.compiler-proof.html'
+			'Файл подготовлен: Canonical Export Story.compiler-proof.html'
 		);
 		expect(mockExecute).not.toHaveBeenCalled();
 	});
@@ -184,7 +236,13 @@ describe('<NarrativeExportPanel>', () => {
 		render(<NarrativeExportPanel />);
 
 		expect(screen.getByText('Экспорт заблокирован')).toBeInTheDocument();
-		expect(screen.getByRole('button', {name: 'Собрать HTML'})).toBeDisabled();
+		expect(screen.getByRole('button', {name: 'Открыть Player'})).toBeDisabled();
+		expect(
+			screen.getByRole('button', {name: 'Runtime artifact JSON'})
+		).toBeDisabled();
+		expect(
+			screen.getByRole('button', {name: 'Legacy Story Format HTML'})
+		).toBeDisabled();
 		expect(screen.getByRole('button', {name: 'Compiler proof HTML'})).toBeDisabled();
 
 		const summary = screen.getByText(/отсутствующую сущность character «missing»/);
@@ -208,7 +266,9 @@ describe('<NarrativeExportPanel>', () => {
 		).toBe(true);
 		expect(mockPublishNarrativeProject).not.toHaveBeenCalled();
 		expect(mockPublishNarrativeProof).not.toHaveBeenCalled();
+		expect(launchPlayerMock).not.toHaveBeenCalled();
 		expect(saveHtmlMock).not.toHaveBeenCalled();
+		expect(saveJsonMock).not.toHaveBeenCalled();
 	});
 
 	test('shows a project-level blocker when host Story is unavailable', () => {
@@ -216,7 +276,10 @@ describe('<NarrativeExportPanel>', () => {
 		render(<NarrativeExportPanel />);
 
 		expect(screen.getByText('Host Story недоступен')).toBeInTheDocument();
-		expect(screen.getByRole('button', {name: 'Собрать HTML'})).toBeDisabled();
+		expect(screen.getByRole('button', {name: 'Открыть Player'})).toBeDisabled();
+		expect(
+			screen.getByRole('button', {name: 'Legacy Story Format HTML'})
+		).toBeDisabled();
 		expect(screen.getByRole('button', {name: 'Compiler proof HTML'})).toBeDisabled();
 	});
 
