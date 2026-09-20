@@ -20,6 +20,16 @@ export const arrivalCorridorIds = {
 		dormDuty: 'arrival-dorm-duty',
 		studentTraveller: 'arrival-student-traveller'
 	},
+	routes: {
+		stationToSquareWalk: 'arrival-route-station-square-walk',
+		squareToStopWalk: 'arrival-route-square-stop-walk',
+		squareToFoodWalk: 'arrival-route-square-food-walk',
+		foodToSquareWalk: 'arrival-route-food-square-walk',
+		stopToTowerRouteTaxi: 'arrival-route-stop-tower-route-taxi',
+		stopToTowerCityBus: 'arrival-route-stop-tower-city-bus',
+		stopToDormCityBus: 'arrival-route-stop-dorm-city-bus',
+		towerToDormWalk: 'arrival-route-tower-dorm-walk'
+	},
 	items: {
 		travelBagDefinition: 'arrival-travel-bag',
 		buttonPhoneDefinition: 'arrival-button-phone',
@@ -106,6 +116,78 @@ export function create93DaysArrivalCorridorProject(): NarrativeProject {
 		{
 			id: arrivalCorridorIds.locations.studentDormitory,
 			name: 'Студенческое общежитие'
+		}
+	];
+
+	project.travelRoutes = [
+		{
+			id: arrivalCorridorIds.routes.stationToSquareWalk,
+			label: 'Выйти на транспортную площадь',
+			originLocationId: arrivalCorridorIds.locations.busStation,
+			destinationLocationId: arrivalCorridorIds.locations.transportSquare,
+			durationMinutes: 3,
+			mode: 'walk',
+			physicalAction: 'walk'
+		},
+		{
+			id: arrivalCorridorIds.routes.squareToStopWalk,
+			label: 'Дойти до остановки',
+			originLocationId: arrivalCorridorIds.locations.transportSquare,
+			destinationLocationId: arrivalCorridorIds.locations.stationStop,
+			durationMinutes: 4,
+			mode: 'walk',
+			physicalAction: 'walk'
+		},
+		{
+			id: arrivalCorridorIds.routes.squareToFoodWalk,
+			label: 'Подойти к киоскам',
+			originLocationId: arrivalCorridorIds.locations.transportSquare,
+			destinationLocationId: arrivalCorridorIds.locations.foodPoint,
+			durationMinutes: 2,
+			mode: 'walk',
+			physicalAction: 'walk'
+		},
+		{
+			id: arrivalCorridorIds.routes.foodToSquareWalk,
+			label: 'Вернуться на транспортную площадь',
+			originLocationId: arrivalCorridorIds.locations.foodPoint,
+			destinationLocationId: arrivalCorridorIds.locations.transportSquare,
+			durationMinutes: 2,
+			mode: 'walk',
+			physicalAction: 'walk'
+		},
+		{
+			id: arrivalCorridorIds.routes.stopToTowerRouteTaxi,
+			label: 'Ехать маршруткой к башне',
+			originLocationId: arrivalCorridorIds.locations.stationStop,
+			destinationLocationId: arrivalCorridorIds.locations.waterTowerTransfer,
+			durationMinutes: 18,
+			mode: 'route-taxi'
+		},
+		{
+			id: arrivalCorridorIds.routes.stopToTowerCityBus,
+			label: 'Ехать городским автобусом к башне',
+			originLocationId: arrivalCorridorIds.locations.stationStop,
+			destinationLocationId: arrivalCorridorIds.locations.waterTowerTransfer,
+			durationMinutes: 26,
+			mode: 'city-bus'
+		},
+		{
+			id: arrivalCorridorIds.routes.stopToDormCityBus,
+			label: 'Ехать автобусом в сторону общежития',
+			originLocationId: arrivalCorridorIds.locations.stationStop,
+			destinationLocationId: arrivalCorridorIds.locations.studentDormitory,
+			durationMinutes: 38,
+			mode: 'city-bus'
+		},
+		{
+			id: arrivalCorridorIds.routes.towerToDormWalk,
+			label: 'Идти от башни к общежитию',
+			originLocationId: arrivalCorridorIds.locations.waterTowerTransfer,
+			destinationLocationId: arrivalCorridorIds.locations.studentDormitory,
+			durationMinutes: 14,
+			mode: 'walk',
+			physicalAction: 'walk'
 		}
 	];
 

@@ -9,6 +9,7 @@ import {NarrativeProject} from './project';
 export type NarrativeReferenceOwnerKind =
 	| 'character'
 	| 'scene'
+	| 'travel-route'
 	| 'behavior-profile'
 	| 'routine-rule'
 	| 'schedule-exception'
@@ -523,6 +524,28 @@ export function validateNarrativeProjectReferences(
 			ownerKind: 'scene',
 			ownerId: scene.id
 		}, `Scene «${scene.name}»`);
+	}
+	for (const route of project.travelRoutes ?? []) {
+		const context: FindingContext = {
+			ownerKind: 'travel-route',
+			ownerId: route.id
+		};
+		addMissingReference(
+			findings,
+			sets.locations,
+			'location',
+			route.originLocationId,
+			context,
+			`Travel route «${route.label}»: origin`
+		);
+		addMissingReference(
+			findings,
+			sets.locations,
+			'location',
+			route.destinationLocationId,
+			context,
+			`Travel route «${route.label}»: destination`
+		);
 	}
 	for (const profile of project.behaviorProfiles) {
 		addMissingReference(findings, sets.characters, 'character', profile.characterId, {

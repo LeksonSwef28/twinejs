@@ -1,5 +1,6 @@
 import {initializeCharacterKnowledge} from '../../domain/narrative/knowledge';
 import {NarrativeProject} from '../../domain/narrative/project';
+import {narrativeTravelRouteIsStructurallyValid} from '../../domain/narrative/travel';
 import {
 	NarrativeProjectAuthoredProjection,
 	NarrativeProjectRuntimeProjection,
@@ -31,7 +32,8 @@ export interface NarrativeStoryBrainExportDiagnostic {
 
 export type NarrativeCompilerDiagnosticCode =
 	| 'missing-template-period'
-	| 'invalid-initial-runtime';
+	| 'invalid-initial-runtime'
+	| 'invalid-travel-route';
 
 export interface NarrativeCompilerExportDiagnostic {
 	source: 'compiler';
@@ -164,6 +166,16 @@ export function compileNarrativeRuntimeArtifact(
 ): NarrativeCompileResult {
 	const diagnostics: NarrativeExportDiagnostic[] =
 		queryStoryBrainProjectDiagnostics(project).findings.map(storyBrainExportDiagnostic);
+	for (const route of project.travelRoutes ?? []) {
+		if (!narrativeTravelRouteIsStructurallyValid(route)) {
+			diagnostics.push(
+				compilerBlocker(
+					'invalid-travel-route',
+					`Cannot compile invalid travel route: ${route.id || '(missing id)'}.`
+				)
+			);
+		}
+	}
 
 	const initialRuntime = initialRuntimeForProject(project);
 	if (initialRuntime.status === 'blocked') {

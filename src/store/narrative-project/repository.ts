@@ -45,6 +45,10 @@ import {
 } from '../../domain/narrative/story';
 import {NarrativeProjectTemplate} from '../../domain/narrative/template';
 import {
+	NarrativeTravelRouteDefinition,
+	narrativeTravelRouteIsStructurallyValid
+} from '../../domain/narrative/travel';
+import {
 	composeNarrativeProjectPersistence,
 	isNarrativeProjectPersistenceEnvelope,
 	projectNarrativePersistence
@@ -372,6 +376,13 @@ function hydrateInteractionTemplates(value: unknown): InteractionTemplateDefinit
 	});
 }
 
+function hydrateTravelRoutes(value: unknown): NarrativeTravelRouteDefinition[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value.filter(narrativeTravelRouteIsStructurallyValid);
+}
+
 function hydrateReactionCandidateSets(value: unknown): ReactionCandidateSetDefinition[] {
 	if (!Array.isArray(value)) {
 		return [];
@@ -427,6 +438,7 @@ function hydrateSchemaV2OrV3(
 			? saved.initialKnowledge
 			: [],
 		storyConnections: hydrateStoryConnections(saved.storyConnections),
+		travelRoutes: hydrateTravelRoutes(saved.travelRoutes),
 		narrativeMoves: hydrateNarrativeMoves(saved.narrativeMoves),
 		interactionTemplates: hydrateInteractionTemplates(saved.interactionTemplates),
 		reactionCandidateSets: hydrateReactionCandidateSets(saved.reactionCandidateSets),
@@ -511,6 +523,7 @@ function migrateSchemaV1(
 		scheduleExceptions: legacy.scheduleExceptions ?? [],
 		storyNodes: [],
 		storyConnections: [],
+		travelRoutes: [],
 		narrativeMoves: [],
 		interactionTemplates: [],
 		reactionCandidateSets: [],

@@ -22,6 +22,7 @@ import {
 	StoryNodeDefinition
 } from './story';
 import {NarrativeProjectTemplate} from './template';
+import {NarrativeTravelRouteDefinition} from './travel';
 
 export const narrativeProjectSchemaVersion = 3;
 
@@ -48,6 +49,8 @@ export interface NarrativeProject {
 	template: NarrativeProjectTemplate;
 	locations: NarrativeLocation[];
 	scenes: NarrativeScene[];
+	/** Additive schema-v3 authored travel data; older v3 projects may omit it. */
+	travelRoutes?: NarrativeTravelRouteDefinition[];
 	characters: NarrativeCharacter[];
 	itemDefinitions: ItemDefinition[];
 	itemInstances: ItemInstance[];
