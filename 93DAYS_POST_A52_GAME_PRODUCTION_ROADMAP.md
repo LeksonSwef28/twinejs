@@ -1,7 +1,7 @@
 # 93 Days — POST-A52 GAME PRODUCTION ROADMAP
 
 Status: **ACTIVE / GAME PRODUCTION**  
-Stable source reviewed: `93-days-editor` @ `db9d309080200b4851ed4cfcf5986a23a481b003`  
+Stable source reviewed: `93-days-editor` @ `5058d1bb699fa5eba3a02aeaa2ebe45acdd9624a`  
 Decision date: **2026-09-19**
 
 ## 1. Product target
@@ -112,7 +112,7 @@ Exit proof: a player can perform canonical actions without opening editor/debug 
 
 ### A56 — Vertical Slice World: Arrival Corridor
 
-**Status:** **IMPLEMENTATION VERIFIED / MERGE REVIEW READY** — S1 **#503 GREEN**, S2a **#505 GREEN**, S2b **#506 GREEN**, S3 **#509/#510 GREEN**. Final closure-doc exact-head CI, merge and post-merge verification remain before A57.
+**Status:** **DONE / STABLE** — S1 #503, S2a #505, S2b #506, S3 #509/#510, closure #511; merged as `5058d1bb699fa5eba3a02aeaa2ebe45acdd9624a` and post-merge verified by **#512 GREEN** plus Jest/Playwright/ESLint/Prettify.
 
 **Goal:** author the first traversable piece of the real city.
 
@@ -134,6 +134,8 @@ Required proof:
 - the city already permits getting delayed, choosing a worse route, buying food or waiting.
 
 ### A57 — Vertical Slice Narrative: Day One -> Day Two
+
+**Status:** **ACTIVE / CONTRACTED** — feature branch `feature/a57-day-one-day-two` starts from exact stable `5058d1bb699fa5eba3a02aeaa2ebe45acdd9624a`.
 
 **Goal:** create the first complete playable story period rather than a systems sandbox.
 
