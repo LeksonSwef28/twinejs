@@ -336,3 +336,52 @@ select {
 .narrative-player__feedback--notice {
 	border-left-color: rgba(242, 239, 232, 0.24);
 }
+
+
+.narrative-player__travel {
+	display: grid;
+	gap: 0.6rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.narrative-player__travel li {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.narrative-player__travel button {
+	display: grid;
+	gap: 0.25rem;
+	width: 100%;
+	padding: 0.85rem 0.95rem;
+	border: 1px solid rgba(242, 239, 232, 0.18);
+	border-radius: 0.35rem;
+	background: rgba(242, 239, 232, 0.035);
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.narrative-player__travel button:hover:not(:disabled),
+.narrative-player__travel button:focus-visible:not(:disabled) {
+	border-color: rgba(242, 239, 232, 0.42);
+	background: rgba(242, 239, 232, 0.08);
+	outline: none;
+}
+
+.narrative-player__travel button:disabled {
+	color: rgba(242, 239, 232, 0.42);
+	cursor: not-allowed;
+}
+
+.narrative-player__travel button small,
+.narrative-player__travel li > p {
+	color: rgba(242, 239, 232, 0.46);
+	font-size: 0.72rem;
+}
+
+.narrative-player__travel li > p {
+	margin: 0 0.95rem;
+}

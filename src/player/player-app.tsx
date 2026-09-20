@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {executeNarrativePlayerAction} from '../application/narrative/player-action';
 import {bootstrapNarrativePlayerHost} from '../application/narrative/player-host';
+import {executeNarrativePlayerTravel} from '../application/narrative/player-travel';
 import {deriveNarrativePlayerPresentation} from '../application/narrative/player-presentation';
 import {NarrativePlayerSession} from '../application/narrative/player-runtime';
 import {NarrativePlayerArtifactSource} from './artifact-source';
@@ -16,6 +17,21 @@ function formatMinute(minuteOfDay: number) {
 
 function percent(value: number) {
 	return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
+}
+
+function travelModeLabel(mode: string) {
+	switch (mode) {
+		case 'walk':
+			return 'пешком';
+		case 'city-bus':
+			return 'автобус';
+		case 'route-taxi':
+			return 'маршрутка';
+		case 'taxi':
+			return 'такси';
+		default:
+			return 'дорога';
+	}
 }
 
 function actionStateLabel(state: string) {
@@ -74,6 +90,31 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 
 	const project = session.currentProject;
 	const view = deriveNarrativePlayerPresentation(project);
+
+	const executeTravel = (routeId: string) => {
+		if (view.perspective.status !== 'resolved') {
+			return;
+		}
+		const result = executeNarrativePlayerTravel(
+			session,
+			routeId,
+			view.perspective.character.id
+		);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({
+				title: result.destinationName,
+				summary: `${result.routeLabel} · ${result.durationMinutes} мин.`,
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Не удалось добраться',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
 
 	const executeAction = (moveId: string) => {
 		if (view.perspective.status !== 'resolved') {
@@ -170,6 +211,38 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 										<li key={character.id}>
 											<span className="narrative-player__presence-dot" aria-hidden="true" />
 											{character.name}
+										</li>
+									))}
+								</ul>
+							)}
+						</section>
+
+						<section className="narrative-player__panel" aria-labelledby="travel-title">
+							<div className="narrative-player__panel-heading">
+								<h3 id="travel-title">Куда дальше</h3>
+								<span>{view.travelOptions.length}</span>
+							</div>
+							{view.travelOptions.length === 0 ? (
+								<p className="narrative-player__muted">
+									Отсюда пока нет authored маршрутов.
+								</p>
+							) : (
+								<ul className="narrative-player__travel">
+									{view.travelOptions.map(option => (
+										<li key={option.id}>
+											<button
+												type="button"
+												disabled={option.state !== 'ready'}
+												onClick={() => executeTravel(option.id)}
+												data-travel-state={option.state}
+											>
+												<span>{option.label}</span>
+												<small>
+													{option.destinationName} · {travelModeLabel(option.mode)} ·{' '}
+													{option.durationMinutes} мин.
+												</small>
+											</button>
+											{option.state === 'blocked' && <p>{option.summary}</p>}
 										</li>
 									))}
 								</ul>
