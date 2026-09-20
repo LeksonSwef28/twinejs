@@ -1,4 +1,5 @@
 import {fireEvent, render, screen} from '@testing-library/react';
+import {axe} from 'jest-axe';
 import * as React from 'react';
 import {
 	compileNarrativeRuntimeArtifact,
@@ -103,5 +104,10 @@ describe('<PlayerApp> A55 presentation', () => {
 		expect(
 			screen.queryByRole('button', {name: /Поздороваться/})
 		).not.toBeInTheDocument();
+	});
+
+	test('is accessible in the ready player shell', async () => {
+		const {container} = render(<PlayerApp artifactSource={source()} />);
+		expect(await axe(container)).toHaveNoViolations();
 	});
 });
