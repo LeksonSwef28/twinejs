@@ -27,7 +27,7 @@ describe('A56-S1 arrival corridor authored world', () => {
 			'Пересадка у водонапорной башни',
 			'Студенческое общежитие'
 		]);
-		expect(project.locations.some(location => /город|улиц|маршрут №/i.test(location.name))).toBe(
+		expect(project.locations.some(location => /улица|проспект|маршрут №|автобус №/i.test(location.name))).toBe(
 			false
 		);
 		expect(project.characters.find(character => character.id === 'player')).toMatchObject({
