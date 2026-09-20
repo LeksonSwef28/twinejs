@@ -1,7 +1,7 @@
 # 93 Days — POST-A52 GAME PRODUCTION ROADMAP
 
 Status: **ACTIVE / GAME PRODUCTION**  
-Stable source reviewed: `93-days-editor` @ `0b115b52b42ef05d16bc213865cc07b3a2eb6e76`  
+Stable source reviewed: `93-days-editor` @ `db9d309080200b4851ed4cfcf5986a23a481b003`  
 Decision date: **2026-09-19**
 
 ## 1. Product target
@@ -35,11 +35,11 @@ Therefore the immediate gap is **runtime bootstrap/session/host ownership**, not
 | Artifact | Deterministic v1 exists | **Ready input boundary** |
 | Artifact -> live player session | A53 materializer/session boundary verified | **Ready runtime boundary** |
 | Player save/load ownership | A53 runtime-only player save codec verified | **Ready player save boundary** |
-| Dedicated player host / standalone packaging | A54 dedicated entry, package boundary and real-browser boot verified | **Ready host boundary; A55 presentation next** |
-| Scene/dialogue/HUD/inventory UI | A55 player shell + canonical Move feedback verified | **Ready presentation boundary; A56 content next** |
-| Bus-station/day-one world | Concept exists, authored production content not yet present | **Content gap** |
+| Dedicated player host / standalone packaging | A54 dedicated entry, package boundary and real-browser boot verified | **Ready host boundary** |
+| Scene/dialogue/HUD/inventory UI | A55 player shell + canonical Move feedback verified | **Ready presentation boundary** |
+| Bus-station/day-one world | A56 Arrival Corridor authored world + standalone traversal verified | **World foundation ready; A57 narrative next** |
 | Money/economy | Required by slice; no reviewed canonical gameplay contract yet | **Gameplay/content contract gap** |
-| Travel/navigation time costs | Time kernel exists; player travel orchestration/content is not yet proven | **Gameplay orchestration gap** |
+| Travel/navigation time costs | A56 typed authored routes, canonical travel and Player waiting verified | **Ready for A57 narrative use; fares remain A58** |
 | Fatigue/sleep/food/heavy meal | Canonical body mechanics exist | **Integration/presentation/content gap** |
 | Physical inventory/containers | Canonical item/carrying mechanics exist | **Integration/presentation/content gap** |
 | Independent NPC decisions | Canonical explicit decision APIs exist | **Opportunity/orchestration/content gap** |
@@ -94,7 +94,7 @@ Exit proof: exported/standalone player host loads the exact A52 artifact and run
 
 ### A55 — Player Presentation Shell
 
-**Status:** **IMPLEMENTATION VERIFIED / MERGE REVIEW READY** — S1 **#494 GREEN**, S2 **#497 GREEN**, S3 real-browser presentation closure **#498 GREEN**. Final closure-doc exact-head CI, merge and post-merge verification remain before A56.
+**Status:** **DONE / STABLE** — S1 #494, S2 #497, S3 #498, closure #499; merged as `db9d309080200b4851ed4cfcf5986a23a481b003` and post-merge verified by **#500 GREEN** plus Jest/Playwright/ESLint/Prettify.
 
 **Goal:** expose the smallest real game UI over A53/A54.
 
@@ -111,6 +111,8 @@ Deliverables:
 Exit proof: a player can perform canonical actions without opening editor/debug UI.
 
 ### A56 — Vertical Slice World: Arrival Corridor
+
+**Status:** **IMPLEMENTATION VERIFIED / MERGE REVIEW READY** — S1 **#503 GREEN**, S2a **#505 GREEN**, S2b **#506 GREEN**, S3 **#509/#510 GREEN**. Final closure-doc exact-head CI, merge and post-merge verification remain before A57.
 
 **Goal:** author the first traversable piece of the real city.
 

@@ -36,6 +36,7 @@ export function createNarrativeProject(
 		template,
 		locations: [],
 		scenes: [],
+		travelRoutes: [],
 		characters: [],
 		itemDefinitions: [],
 		itemInstances: [],

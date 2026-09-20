@@ -7,6 +7,8 @@ import {
 } from '../../domain/narrative/entities';
 import {NarrativeMoveKind} from '../../domain/narrative/interaction';
 import {NarrativeProject} from '../../domain/narrative/project';
+import {NarrativeTravelMode} from '../../domain/narrative/travel';
+import {evaluateNarrativePhysicalAction} from './physical';
 import {
 	narrativeRuntimeStoryNodes,
 	resolveNarrativeProjectMove
@@ -39,6 +41,17 @@ export type NarrativePlayerActionState =
 	| 'unknown'
 	| 'input-required';
 
+export interface NarrativePlayerTravelOption {
+	id: string;
+	label: string;
+	destinationLocationId: string;
+	destinationName: string;
+	durationMinutes: number;
+	mode: NarrativeTravelMode;
+	state: 'ready' | 'blocked';
+	summary: string;
+}
+
 export interface NarrativePlayerAction {
 	id: string;
 	label: string;
@@ -60,6 +73,7 @@ export interface NarrativePlayerPresentationModel {
 	sceneState: 'resolved' | 'none' | 'ambiguous';
 	localCharacters: NarrativeCharacter[];
 	actions: NarrativePlayerAction[];
+	travelOptions: NarrativePlayerTravelOption[];
 	body?: CharacterBodyState;
 	carryLoad?: CharacterCarryLoad;
 	inventoryItems: NarrativePlayerInventoryItem[];
@@ -162,6 +176,54 @@ function actionState(
 	return status === 'resolved' ? 'ready' : status;
 }
 
+function playerTravelOptions(
+	project: NarrativeProject,
+	playerCharacterId: string,
+	locationId: string | undefined
+): NarrativePlayerTravelOption[] {
+	if (!locationId) {
+		return [];
+	}
+	return (project.travelRoutes ?? [])
+		.filter(route => route.originLocationId === locationId)
+		.flatMap(route => {
+			const destination = project.locations.find(
+				location => location.id === route.destinationLocationId
+			);
+			if (!destination) {
+				return [];
+			}
+			const physical = route.physicalAction
+				? evaluateNarrativePhysicalAction(
+						project,
+						playerCharacterId,
+						route.physicalAction
+					)
+				: undefined;
+			return [
+				{
+					id: route.id,
+					label: route.label,
+					destinationLocationId: destination.id,
+					destinationName: destination.name,
+					durationMinutes: route.durationMinutes,
+					mode: route.mode,
+					state: physical && !physical.allowed ? ('blocked' as const) : ('ready' as const),
+					summary:
+						physical && !physical.allowed
+							? physical.blockers.map(blocker => blocker.message).join(' ')
+							: `${route.durationMinutes} мин.`
+				}
+			];
+		})
+		.sort(
+			(a, b) =>
+				a.durationMinutes - b.durationMinutes ||
+				a.label.localeCompare(b.label) ||
+				a.id.localeCompare(b.id)
+		);
+}
+
 function playerActions(
 	project: NarrativeProject,
 	playerCharacterId: string,
@@ -219,6 +281,7 @@ export function deriveNarrativePlayerPresentation(
 		sceneState: 'none',
 		localCharacters: [],
 		actions: [],
+		travelOptions: [],
 		inventoryItems: [],
 		economy: {
 			status: 'unavailable',
@@ -242,11 +305,13 @@ export function deriveNarrativePlayerPresentation(
 		project.itemPlacementOverrides
 	);
 	const actions = playerActions(project, characterId, locationId);
+	const travelOptions = playerTravelOptions(project, characterId, locationId);
 
 	if (!locationId) {
 		return {
 			...base,
 			actions,
+			travelOptions,
 			body,
 			carryLoad,
 			inventoryItems: inventoryItems(project, carryLoad)
@@ -258,6 +323,7 @@ export function deriveNarrativePlayerPresentation(
 		return {
 			...base,
 			actions,
+			travelOptions,
 			locationState: 'unknown-location',
 			body,
 			carryLoad,
@@ -291,6 +357,7 @@ export function deriveNarrativePlayerPresentation(
 					: 'ambiguous',
 		localCharacters,
 		actions,
+		travelOptions,
 		body,
 		carryLoad,
 		inventoryItems: inventoryItems(project, carryLoad)

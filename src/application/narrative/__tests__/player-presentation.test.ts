@@ -199,6 +199,46 @@ describe('A55 player presentation projection', () => {
 		]);
 	});
 
+	test('projects authored routes only from the current Actual Presence location', () => {
+		const value = project();
+		value.locations = [
+			{id: 'station', name: 'Автовокзал'},
+			{id: 'square', name: 'Площадь'},
+			{id: 'far', name: 'Дальний район'}
+		];
+		value.characters = [character('player', 'Игрок')];
+		value.simulation.actualLocationByCharacter = {player: 'station'};
+		value.travelRoutes = [
+			{
+				id: 'station-square',
+				label: 'Выйти на площадь',
+				originLocationId: 'station',
+				destinationLocationId: 'square',
+				durationMinutes: 5,
+				mode: 'walk',
+				physicalAction: 'walk'
+			},
+			{
+				id: 'far-station',
+				label: 'Вернуться',
+				originLocationId: 'far',
+				destinationLocationId: 'station',
+				durationMinutes: 20,
+				mode: 'city-bus'
+			}
+		];
+
+		const view = deriveNarrativePlayerPresentation(value);
+		expect(view.travelOptions).toEqual([
+			expect.objectContaining({
+				id: 'station-square',
+				destinationName: 'Площадь',
+				durationMinutes: 5,
+				state: 'ready'
+			})
+		]);
+	});
+
 	test('projects only canonical player Moves in relevant active Story scope', () => {
 		const value = project();
 		value.locations = [

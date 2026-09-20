@@ -3,6 +3,7 @@ import {
 	NarrativePlayerSession,
 	materializeNarrativePlayerSession
 } from './player-runtime';
+import {bootstrapNarrativePlayerWorldStart} from './player-world-start';
 
 export type NarrativePlayerHostErrorCode =
 	| 'missing-artifact'
@@ -52,5 +53,16 @@ export function bootstrapNarrativePlayerHost(
 			summary: materialized.summary
 		};
 	}
-	return materialized;
+	const worldStart = bootstrapNarrativePlayerWorldStart(materialized.session);
+	if (worldStart.status === 'rejected') {
+		return {
+			status: 'rejected',
+			code: 'invalid-authored-project',
+			summary: worldStart.summary
+		};
+	}
+	return {
+		status: 'ready',
+		session: worldStart.session
+	};
 }
