@@ -7,6 +7,7 @@ import {
 import {
 	embedNarrativeRuntimeArtifactInPlayerHtml
 } from '../src/application/narrative/player-package';
+import {NarrativeMoveDefinition} from '../src/domain/narrative/interaction';
 import {createNarrativeProject} from '../src/domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../src/domain/narrative/templates/93-days';
 import {narrativePlayerDevelopmentHandoffKey} from '../src/player/artifact-source';
@@ -22,6 +23,96 @@ function artifact(name: string, projectId: string): NarrativeRuntimeArtifactV1 {
 	if (compiled.status !== 'compiled') {
 		throw new Error('Expected browser host fixture to compile.');
 	}
+	return compiled.artifact;
+}
+
+function presentationArtifact(): NarrativeRuntimeArtifactV1 {
+	const project = createNarrativeProject(
+		'a55-browser-presentation',
+		'A55 Presentation Player',
+		ninetyThreeDaysTemplate
+	);
+	project.projectId = 'a55-presentation-player';
+	project.locations = [{id: 'station', name: 'Автовокзал'}];
+	project.scenes = [
+		{id: 'platform', locationId: 'station', name: 'Платформа прибытия'}
+	];
+	project.characters = [
+		{
+			id: 'player',
+			name: 'Игрок',
+			cognitionTier: 'full',
+			defaultBehaviorProfileId: 'player-default'
+		},
+		{
+			id: 'katya',
+			name: 'Катя',
+			cognitionTier: 'full',
+			defaultBehaviorProfileId: 'katya-default'
+		}
+	];
+	project.behaviorProfiles = [
+		{id: 'player-default', characterId: 'player', name: 'Player default'},
+		{id: 'katya-default', characterId: 'katya', name: 'Katya default'}
+	];
+	project.storyNodes = [
+		{
+			id: 'contact',
+			kind: 'dialogue',
+			title: 'Первый разговор',
+			participantIds: ['player', 'katya'],
+			placement: {locationId: 'station'},
+			activationState: 'available'
+		}
+	];
+	const greeting: NarrativeMoveDefinition = {
+		id: 'greet',
+		storyNodeId: 'contact',
+		kind: 'custom',
+		label: 'Поздороваться',
+		actorCharacterId: 'player',
+		targetCharacterIds: ['katya'],
+		guards: [
+			{
+				id: 'same-place',
+				condition: {
+					type: 'characters-share-location',
+					characterIds: ['player', 'katya']
+				}
+			}
+		],
+		resolution: {type: 'automatic', outcomeId: 'greet:outcome'},
+		outcomes: [
+			{
+				id: 'greet:outcome',
+				key: 'continue',
+				label: 'Катя отвечает',
+				effectStoryNodeIds: [],
+				effects: [
+					{
+						id: 'complete-contact',
+						type: 'story-node-set-state',
+						storyNodeId: 'contact',
+						state: 'completed'
+					}
+				]
+			}
+		]
+	};
+	project.narrativeMoves = [greeting];
+
+	const compiled = compileNarrativeRuntimeArtifact(project);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected A55 browser presentation fixture to compile.');
+	}
+
+	// A52 intentionally compiles a fresh game with empty Actual Presence.
+	// This browser fixture supplies explicit runtime state to exercise A55;
+	// it does not change compiler/fresh-game semantics.
+	compiled.artifact.initialRuntime.simulation.actualLocationByCharacter = {
+		player: 'station',
+		katya: 'station'
+	};
 	return compiled.artifact;
 }
 
@@ -58,8 +149,9 @@ test('boots the dedicated player from the ephemeral development handoff', async 
 	await expect(
 		playerPage.getByRole('heading', {name: 'A54 Development Player'})
 	).toBeVisible();
-	await expect(playerPage.getByText('Canonical runtime ready')).toBeVisible();
-	await expect(playerPage.getByText('a54-development-player')).toBeVisible();
+	await expect(
+		playerPage.getByRole('heading', {name: 'Игровой персонаж не определён'})
+	).toBeVisible();
 	await expect
 		.poll(() =>
 			page.evaluate(
@@ -90,6 +182,38 @@ test('boots the standalone player when exact artifact JSON is embedded in its HT
 	await expect(
 		page.getByRole('heading', {name: 'A54 Standalone Player'})
 	).toBeVisible();
-	await expect(page.getByText('Canonical runtime ready')).toBeVisible();
-	await expect(page.getByText('a54-standalone-player')).toBeVisible();
+	await expect(
+		page.getByRole('heading', {name: 'Игровой персонаж не определён'})
+	).toBeVisible();
+});
+
+test('renders Actual Presence and applies a canonical Move in the standalone player', async ({
+	page
+}) => {
+	const source = presentationArtifact();
+	await page.setViewportSize({width: 390, height: 844});
+
+	await page.route('**/player.html', async route => {
+		const response = await route.fetch();
+		const template = await response.text();
+		await route.fulfill({
+			response,
+			body: embedNarrativeRuntimeArtifactInPlayerHtml(template, source)
+		});
+	});
+
+	await page.goto('http://localhost:5173/player.html');
+
+	await expect(page.locator('[data-player-view="world"]')).toBeVisible();
+	await expect(page.getByRole('heading', {name: 'Автовокзал'})).toBeVisible();
+	await expect(page.getByText('Платформа прибытия')).toBeVisible();
+	await expect(page.getByText('Катя', {exact: true})).toBeVisible();
+
+	const greeting = page.getByRole('button', {name: /Поздороваться/});
+	await expect(greeting).toBeEnabled();
+	await greeting.click();
+
+	await expect(page.getByRole('status')).toContainText('Катя отвечает');
+	await expect(greeting).toHaveCount(0);
+	await expect(page.getByRole('heading', {name: 'Автовокзал'})).toBeVisible();
 });
