@@ -53,6 +53,10 @@ import {
 	narrativeTravelRouteIsStructurallyValid
 } from '../../domain/narrative/travel';
 import {
+	NarrativeSleepOptionDefinition,
+	narrativeSleepOptionIsStructurallyValid
+} from '../../domain/narrative/sleep';
+import {
 	composeNarrativeProjectPersistence,
 	isNarrativeProjectPersistenceEnvelope,
 	projectNarrativePersistence
@@ -384,6 +388,13 @@ function hydratePlayerStart(value: unknown): NarrativePlayerStartDefinition | un
 	return narrativePlayerStartIsStructurallyValid(value) ? value : undefined;
 }
 
+function hydrateSleepOptions(value: unknown): NarrativeSleepOptionDefinition[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+	return value.filter(narrativeSleepOptionIsStructurallyValid);
+}
+
 function hydrateTravelRoutes(value: unknown): NarrativeTravelRouteDefinition[] {
 	if (!Array.isArray(value)) {
 		return [];
@@ -448,6 +459,7 @@ function hydrateSchemaV2OrV3(
 		storyConnections: hydrateStoryConnections(saved.storyConnections),
 		travelRoutes: hydrateTravelRoutes(saved.travelRoutes),
 		playerStart: hydratePlayerStart(saved.playerStart),
+		sleepOptions: hydrateSleepOptions(saved.sleepOptions),
 		narrativeMoves: hydrateNarrativeMoves(saved.narrativeMoves),
 		interactionTemplates: hydrateInteractionTemplates(saved.interactionTemplates),
 		reactionCandidateSets: hydrateReactionCandidateSets(saved.reactionCandidateSets),
@@ -533,6 +545,7 @@ function migrateSchemaV1(
 		storyNodes: [],
 		storyConnections: [],
 		travelRoutes: [],
+		sleepOptions: [],
 		narrativeMoves: [],
 		interactionTemplates: [],
 		reactionCandidateSets: [],

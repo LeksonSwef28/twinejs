@@ -218,6 +218,27 @@ describe('A35/A38/A41 persistence projections', () => {
 		expect(loaded.travelRoutes).toEqual([]);
 	});
 
+	test('hydrates additive schema-v3 sleep options with an empty compatibility default', () => {
+		const project = createNarrativeProject(
+			hostStoryId,
+			'Pre sleep v3',
+			ninetyThreeDaysTemplate
+		);
+		const envelope = projectNarrativePersistence(project) as any;
+		delete envelope.authored.sleepOptions;
+		window.localStorage.setItem(storageKey, JSON.stringify(envelope));
+
+		const repository = createLocalStorageNarrativeProjectRepository(
+			hostStoryId,
+			'Pre sleep v3',
+			ninetyThreeDaysTemplate
+		);
+		const loaded = repository.load();
+
+		expect(loaded.schemaVersion).toBe(narrativeProjectSchemaVersion);
+		expect(loaded.sleepOptions).toEqual([]);
+	});
+
 	test('runtime projection changes do not alter the authored projection', () => {
 		const project = createNarrativeProject(
 			hostStoryId,

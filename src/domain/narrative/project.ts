@@ -24,6 +24,7 @@ import {
 import {NarrativeProjectTemplate} from './template';
 import {NarrativePlayerStartDefinition} from './player-start';
 import {NarrativeTravelRouteDefinition} from './travel';
+import {NarrativeSleepOptionDefinition} from './sleep';
 
 export const narrativeProjectSchemaVersion = 3;
 
@@ -54,6 +55,8 @@ export interface NarrativeProject {
 	travelRoutes?: NarrativeTravelRouteDefinition[];
 	/** Optional explicit player-world start. Fresh A52 runtime still remains empty. */
 	playerStart?: NarrativePlayerStartDefinition;
+	/** Optional authored overnight choices; older schema-v3 projects may omit them. */
+	sleepOptions?: NarrativeSleepOptionDefinition[];
 	characters: NarrativeCharacter[];
 	itemDefinitions: ItemDefinition[];
 	itemInstances: ItemInstance[];

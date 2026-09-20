@@ -15,47 +15,67 @@ export type NarrativePlayerWorldStartResult =
 		summary: string;
 	  };
 
+function authoredStartPlacements(session: NarrativePlayerSession) {
+	const start = session.currentProject.playerStart;
+	if (!start) {
+		return [];
+	}
+	const byCharacter = new Map<string, string>(
+		Object.entries(start.initialActualPresenceByCharacter ?? {})
+	);
+	byCharacter.set(start.characterId, start.locationId);
+	return [...byCharacter.entries()].sort(([a], [b]) => a.localeCompare(b));
+}
+
 /**
- * A56 explicit post-materialization world-start boundary.
+ * Explicit post-materialization world-start boundary.
  *
- * A52 still compiles a fresh empty Actual Presence map. Only projects that
- * author playerStart opt into this one-time placement. Existing runtime
- * presence always wins, so loading/restoring a progressed session never
- * teleports the player back to the authored start.
+ * A52 still compiles a fresh empty Actual Presence map. Only explicit authored
+ * placements are applied. Existing runtime presence always wins, so loading or
+ * restoring a progressed session never teleports any character back to start.
  */
 export function bootstrapNarrativePlayerWorldStart(
 	session: NarrativePlayerSession
 ): NarrativePlayerWorldStartResult {
-	const start = session.currentProject.playerStart;
-	if (!start) {
+	const placements = authoredStartPlacements(session);
+	if (placements.length === 0) {
 		return {status: 'skipped', session};
 	}
+
+	const characterIds = new Set(
+		session.currentProject.characters.map(character => character.id)
+	);
+	const locationIds = new Set(
+		session.currentProject.locations.map(location => location.id)
+	);
 	if (
-		!session.currentProject.characters.some(
-			character => character.id === start.characterId
-		) ||
-		!session.currentProject.locations.some(
-			location => location.id === start.locationId
+		placements.some(
+			([characterId, locationId]) =>
+				!characterIds.has(characterId) || !locationIds.has(locationId)
 		)
 	) {
 		return {
 			status: 'rejected',
 			session,
-			summary: 'Authored player start points to an unknown character or location.'
+			summary:
+				'Authored world start points to an unknown character or location.'
 		};
 	}
-	if (
-		session.currentProject.simulation.actualLocationByCharacter[start.characterId]
-	) {
+
+	let next = session.currentProject;
+	let changed = false;
+	for (const [characterId, locationId] of placements) {
+		if (next.simulation.actualLocationByCharacter[characterId]) {
+			continue;
+		}
+		next = setNarrativeCharacterActualLocation(next, characterId, locationId);
+		changed = true;
+	}
+	if (!changed) {
 		return {status: 'skipped', session};
 	}
 
-	const located = setNarrativeCharacterActualLocation(
-		session.currentProject,
-		start.characterId,
-		start.locationId
-	);
-	const replacement = replaceNarrativePlayerSessionProject(session, located);
+	const replacement = replaceNarrativePlayerSessionProject(session, next);
 	if (replacement.status !== 'updated') {
 		return {
 			status: 'rejected',

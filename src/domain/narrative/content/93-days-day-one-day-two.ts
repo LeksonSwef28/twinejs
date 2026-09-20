@@ -465,6 +465,26 @@ export function create93DaysDayOneDayTwoProject(): NarrativeProject {
 	const project = create93DaysArrivalCorridorProject();
 	project.projectId = '93-days-day-one-day-two-v1';
 	project.name = '93 дня до конца нашего лета — День 1 → День 2';
+	project.playerStart = {
+		...project.playerStart!,
+		initialActualPresenceByCharacter: {
+			[arrivalCorridorIds.characters.stationClerk]:
+				arrivalCorridorIds.locations.busStation,
+			[arrivalCorridorIds.characters.dormDuty]:
+				arrivalCorridorIds.locations.studentDormitory,
+			[dayOneNarrativeIds.characters.dormResident]:
+				arrivalCorridorIds.locations.studentDormitory
+		}
+	};
+	project.sleepOptions = [
+		{
+			id: 'day1-dorm-overnight-sleep',
+			label: 'Лечь спать до утра',
+			locationId: arrivalCorridorIds.locations.studentDormitory,
+			earliestStartMinuteOfDay: 22 * 60 + 30,
+			wakeMinuteOfDay: 7 * 60 + 30
+		}
+	];
 
 	project.characters = [
 		...project.characters,
