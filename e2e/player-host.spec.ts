@@ -58,8 +58,7 @@ test('boots the dedicated player from the ephemeral development handoff', async 
 	await expect(
 		playerPage.getByRole('heading', {name: 'A54 Development Player'})
 	).toBeVisible();
-	await expect(playerPage.getByText('Canonical runtime ready')).toBeVisible();
-	await expect(playerPage.getByText('a54-development-player')).toBeVisible();
+	await expect(playerPage.getByText('Игровой персонаж не определён')).toBeVisible();
 	await expect
 		.poll(() =>
 			page.evaluate(
@@ -90,6 +89,5 @@ test('boots the standalone player when exact artifact JSON is embedded in its HT
 	await expect(
 		page.getByRole('heading', {name: 'A54 Standalone Player'})
 	).toBeVisible();
-	await expect(page.getByText('Canonical runtime ready')).toBeVisible();
-	await expect(page.getByText('a54-standalone-player')).toBeVisible();
+	await expect(page.getByText('Игровой персонаж не определён')).toBeVisible();
 });

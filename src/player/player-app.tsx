@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {bootstrapNarrativePlayerHost} from '../application/narrative/player-host';
-import {advanceNarrativeProjectSimulation} from '../application/narrative/simulation';
+import {deriveNarrativePlayerPresentation} from '../application/narrative/player-presentation';
+import {NarrativePlayerSession} from '../application/narrative/player-runtime';
 import {NarrativePlayerArtifactSource} from './artifact-source';
 import './player-app.css';
 
@@ -10,6 +11,10 @@ function formatMinute(minuteOfDay: number) {
 		.padStart(2, '0');
 	const minutes = (minuteOfDay % 60).toString().padStart(2, '0');
 	return `${hours}:${minutes}`;
+}
+
+function percent(value: number) {
+	return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
 }
 
 export interface PlayerAppProps {
@@ -26,14 +31,23 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 			),
 		[artifactSource]
 	);
+	const [session] = React.useState<NarrativePlayerSession | undefined>(
+		bootstrap.status === 'ready' ? bootstrap.session : undefined
+	);
 
-	if (bootstrap.status === 'rejected') {
+	if (bootstrap.status === 'rejected' || !session) {
+		const summary =
+			bootstrap.status === 'rejected'
+				? bootstrap.summary
+				: 'Player session was not initialized.';
+		const code =
+			bootstrap.status === 'rejected' ? bootstrap.code : 'session-unavailable';
 		return (
 			<main className="narrative-player narrative-player--error">
-				<p className="narrative-player__eyebrow">93 DAYS PLAYER HOST</p>
+				<p className="narrative-player__eyebrow">93 ДНЯ</p>
 				<h1>Не удалось запустить игру</h1>
-				<p role="alert">{bootstrap.summary}</p>
-				<code>{bootstrap.code}</code>
+				<p role="alert">{summary}</p>
+				<code>{code}</code>
 				{artifactSource.status === 'missing' && (
 					<small>{artifactSource.summary}</small>
 				)}
@@ -41,40 +55,150 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 		);
 	}
 
-	const session = bootstrap.session;
-	const probe = advanceNarrativeProjectSimulation(session.currentProject, 0);
 	const project = session.currentProject;
+	const view = deriveNarrativePlayerPresentation(project);
 
 	return (
 		<main className="narrative-player" data-player-status="ready">
-			<p className="narrative-player__eyebrow">93 DAYS PLAYER HOST</p>
-			<h1>{project.name}</h1>
-			<p className="narrative-player__status" role="status">
-				Canonical runtime ready
-			</p>
-			<dl>
+			<header className="narrative-player__topbar">
 				<div>
-					<dt>Artifact</dt>
-					<dd>
-						{session.identity.artifactFormat} v{session.identity.artifactVersion}
-					</dd>
+					<p className="narrative-player__eyebrow">93 ДНЯ ДО КОНЦА НАШЕГО ЛЕТА</p>
+					<h1>{project.name}</h1>
 				</div>
-				<div>
-					<dt>Project</dt>
-					<dd>{session.identity.projectId}</dd>
+				<div className="narrative-player__clock" aria-label="Игровое время">
+					<span>День {view.day}</span>
+					<strong>{formatMinute(view.minuteOfDay)}</strong>
 				</div>
-				<div>
-					<dt>World time</dt>
-					<dd>
-						Day {project.simulation.day} ·{' '}
-						{formatMinute(project.simulation.minuteOfDay)}
-					</dd>
+			</header>
+
+			{view.perspective.status === 'unresolved' ? (
+				<section className="narrative-player__empty" data-player-view="setup">
+					<p className="narrative-player__section-kicker">Подготовка мира</p>
+					<h2>Игровой персонаж не определён</h2>
+					<p>{view.perspective.summary}</p>
+					<p className="narrative-player__muted">
+						Player не выбирает протагониста и не придумывает стартовую
+						локацию самостоятельно.
+					</p>
+				</section>
+			) : (
+				<div className="narrative-player__layout" data-player-view="world">
+					<section className="narrative-player__scene" aria-labelledby="scene-title">
+						<p className="narrative-player__section-kicker">Сейчас</p>
+						<h2 id="scene-title">
+							{view.location?.name ?? 'Местоположение не определено'}
+						</h2>
+						{view.scene ? (
+							<p className="narrative-player__scene-name">{view.scene.name}</p>
+						) : view.sceneState === 'ambiguous' ? (
+							<p className="narrative-player__muted">
+								В этой локации несколько сцен; активная сцена runtime пока не
+								определена.
+							</p>
+						) : (
+							<p className="narrative-player__muted">
+								Сцена для этой локации пока не задана.
+							</p>
+						)}
+
+						<section className="narrative-player__panel" aria-labelledby="people-title">
+							<div className="narrative-player__panel-heading">
+								<h3 id="people-title">Здесь</h3>
+								<span>{view.localCharacters.length}</span>
+							</div>
+							{view.locationState !== 'resolved' ? (
+								<p className="narrative-player__muted">
+									Actual Presence игрока ещё не указывает на известную локацию.
+								</p>
+							) : view.localCharacters.length === 0 ? (
+								<p className="narrative-player__muted">Рядом никого нет.</p>
+							) : (
+								<ul className="narrative-player__people">
+									{view.localCharacters.map(character => (
+										<li key={character.id}>
+											<span className="narrative-player__presence-dot" aria-hidden="true" />
+											{character.name}
+										</li>
+									))}
+								</ul>
+							)}
+						</section>
+
+						<section className="narrative-player__panel" aria-labelledby="actions-title">
+							<div className="narrative-player__panel-heading">
+								<h3 id="actions-title">Действия</h3>
+							</div>
+							<p className="narrative-player__muted">
+								Канонические Narrative Moves подключаются в A55-S2.
+							</p>
+						</section>
+					</section>
+
+					<aside className="narrative-player__sidebar" aria-label="Состояние игрока">
+						<section className="narrative-player__panel">
+							<div className="narrative-player__panel-heading">
+								<h3>{view.perspective.character.name}</h3>
+								<span>состояние</span>
+							</div>
+							{view.body && (
+								<dl className="narrative-player__stats">
+									<div>
+										<dt>Усталость</dt>
+										<dd>{percent(view.body.fatigue)}</dd>
+									</div>
+									<div>
+										<dt>Сытость</dt>
+										<dd>{percent(view.body.satiety)}</dd>
+									</div>
+									<div>
+										<dt>Недосып</dt>
+										<dd>{Math.round(view.body.sleepDebtMinutes)} мин.</dd>
+									</div>
+									{view.body.digestionRemainingMinutes > 0 && (
+										<div>
+											<dt>После еды</dt>
+											<dd>{Math.ceil(view.body.digestionRemainingMinutes)} мин.</dd>
+										</div>
+									)}
+								</dl>
+							)}
+						</section>
+
+						<section className="narrative-player__panel">
+							<div className="narrative-player__panel-heading">
+								<h3>С собой</h3>
+								<span>{view.inventoryItems.length}</span>
+							</div>
+							{view.inventoryItems.length === 0 ? (
+								<p className="narrative-player__muted">Ничего.</p>
+							) : (
+								<ul className="narrative-player__inventory">
+									{view.inventoryItems.map(item => (
+										<li key={item.id}>
+											<span>{item.name}</span>
+											{item.placement === 'contained' && <small>внутри</small>}
+										</li>
+									))}
+								</ul>
+							)}
+							{view.carryLoad && (
+								<p className="narrative-player__footnote">
+									Вес: {view.carryLoad.totalWeightKg.toFixed(1)} кг · рук занято:{' '}
+									{view.carryLoad.handsOccupied}/2
+								</p>
+							)}
+						</section>
+
+						<section className="narrative-player__panel">
+							<div className="narrative-player__panel-heading">
+								<h3>Деньги</h3>
+								<span>—</span>
+							</div>
+							<p className="narrative-player__muted">{view.economy.summary}</p>
+						</section>
+					</aside>
 				</div>
-			</dl>
-			<small>
-				Runtime probe: {probe.trace.appliedMinutes} minutes applied. A55 owns
-				 player presentation.
-			</small>
+			)}
 		</main>
 	);
 };
