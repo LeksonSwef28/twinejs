@@ -202,6 +202,7 @@ describe('A57-S1 Day One -> Day Two authored narrative', () => {
 		);
 		expect(dayTwo?.placement).toEqual({
 			day: 2,
+			minuteOfDay: 450,
 			locationId: arrivalCorridorIds.locations.studentDormitory
 		});
 

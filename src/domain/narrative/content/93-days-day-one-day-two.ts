@@ -667,6 +667,7 @@ export function create93DaysDayOneDayTwoProject(): NarrativeProject {
 			participantIds: [arrivalCorridorIds.characters.player],
 			placement: {
 				day: 2,
+				minuteOfDay: 7 * 60 + 30,
 				locationId: arrivalCorridorIds.locations.studentDormitory
 			},
 			activationState: 'available'
