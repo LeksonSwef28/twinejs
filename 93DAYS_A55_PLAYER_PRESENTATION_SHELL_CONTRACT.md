@@ -1,6 +1,6 @@
 # A55 Contract — Player Presentation Shell
 
-Status: **ACTIVE / S1 IMPLEMENTATION**  
+Status: **IMPLEMENTATION VERIFIED / MERGE REVIEW READY**  
 Stage: **A55 — Player Presentation Shell**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `0b115b52b42ef05d16bc213865cc07b3a2eb6e76`  
@@ -173,10 +173,112 @@ Rollback is presentation code only: restore the A54 technical Player screen whil
 - E1 Scope / ownership: **PASS**
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
-- E4 Minimal implementation: **PENDING**
-- E5 Exact-head verification: **PENDING**
-- E6 Self-review: **PENDING**
-- E7 PR/CI: **PENDING**
+- E4 Minimal implementation: **PASS — S1/S2/S3**
+- E5 Exact-head verification: **PASS — S1 #494, S2 #497, S3 #498; final closure-doc exact-head CI follows this record**
+- E6 Self-review: **PASS**
+- E7 PR/CI: **PASS for implementation — draft PR #28 open and mergeable**
 - E8 Merge: **PENDING — explicit authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
+
+
+## 10. Implementation evidence
+
+### A55-S1 — presentation projection + shell
+
+Implemented:
+
+- pure `player-presentation.ts` read model;
+- conservative player-perspective resolution with explicit unresolved state;
+- world day/time HUD;
+- location and unambiguous scene projection;
+- local character list from **Actual Presence only**;
+- canonical body-state display;
+- physical inventory/carrying summary from ItemInstance/runtime placement;
+- explicit “money unavailable” placeholder instead of fake economy state;
+- responsive player-facing layout;
+- A54 malformed/empty host states preserved.
+
+Verification:
+
+- first S1 workflow **#493** reached browser smoke with all audit/lint/build/Jest steps green but failed because the smoke test used an ambiguous text locator matching both the setup heading and explanatory paragraph;
+- test-only selector fix changed the assertion to the exact heading role;
+- exact S1 head `a923035470da6316f9aca4b7d0479b25333ee561` passed **#494 GREEN**:
+  - 0 production vulnerabilities;
+  - 346/346 Jest suites;
+  - 2098 passed, 23 skipped, 42 todo; 2163 total;
+  - Chromium host smoke 2/2;
+  - Vite/Electron smoke PASS.
+
+### A55-S2 — canonical actions + feedback
+
+Implemented:
+
+- `player-action.ts` thin player-action boundary;
+- only Moves authored for the resolved player actor appear;
+- Story node runtime state/location scopes the action list;
+- guard/resolution is delegated to Living Simulation;
+- automatic/condition outcomes execute through `resolveAndApplyNarrativeProjectMove`;
+- successful projects enter the player session through A53 `replaceNarrativePlayerSessionProject`;
+- canonical outcome labels/traces become player feedback;
+- skill-check Moves remain explicit `input-required`; no RNG is invented.
+
+Verification/learning:
+
+- **#495 FAIL** exposed only a TypeScript narrowing issue in the new rejection union; fixed without semantic change;
+- **#496 FAIL** exposed test-fixture assumptions: A52 intentionally compiles a **fresh runtime with empty Actual Presence**, so presence authored before compile must not be expected in a newly materialized player session;
+- tests were corrected to set runtime Actual Presence after materialization through the canonical presence API, and the UI fixture stopped pretending compiler initial runtime contained live presence;
+- exact S2 head `c8d26b15a585dc0c053eb8653bf1e7c391195ce7` passed **#497 GREEN**:
+  - 0 production vulnerabilities;
+  - 348/348 Jest suites;
+  - 2103 passed, 23 skipped, 42 todo; 2168 total;
+  - Chromium host smoke 2/2;
+  - Vite/Electron smoke PASS.
+
+### A55-S3 — browser/product closure
+
+Added:
+
+- real standalone browser fixture with authored Player, NPC, location, scene and Move;
+- explicit runtime Actual Presence fixture layered onto the compiled artifact **only for the browser test**, preserving A52 fresh-game semantics;
+- narrow viewport 390x844 regression;
+- accessibility regression with `jest-axe`;
+- real browser proof:
+  `runtime Actual Presence -> visible NPC -> authored Move -> canonical outcome -> Story-state effect -> action disappears`.
+
+Exact S3 implementation head `0764c93f235699c29cb6d7e2a877d7fe6f4681a1` passed **#498 GREEN**:
+
+- production dependency audit: **0 vulnerabilities**;
+- lint PASS;
+- web build PASS;
+- standalone Player build PASS;
+- Electron main build PASS;
+- **348/348 Jest suites**;
+- **2104 passed tests**, 23 skipped, 42 todo; 2169 total;
+- 0 snapshots;
+- Chromium canonical Player smoke: **3/3 passed**:
+  - development handoff boot;
+  - standalone embedded artifact boot;
+  - Actual Presence + NPC + canonical Move/outcome presentation;
+- Vite smoke PASS;
+- Electron smoke PASS.
+
+## 11. Self-review
+
+Self-review confirms:
+
+- no authored Narrative Project schema change;
+- no A52 artifact version change;
+- no A53 player save/session identity change;
+- no Move/Guard/effect/simulation semantics copied into UI;
+- no hidden random adapter;
+- visible NPCs derive only from Actual Presence;
+- ambiguous protagonist/scene remains unresolved instead of guessed;
+- player mutations enter through A53 replacement;
+- body/carrying display uses canonical domain/application reads;
+- rendering does not persist canonical body defaults;
+- no editor App/provider/router import entered Player;
+- no invented money balance/economy contract;
+- A52 fresh-runtime Actual Presence semantics were preserved rather than weakened for presentation tests.
+
+**Decision:** A55 implementation is VERIFIED and ready for merge review. The closure documentation commit must pass one final exact-head full branch gate. Merge remains blocked until explicit authorization; after merge, the exact resulting stable SHA must be post-merge verified before A56 begins.

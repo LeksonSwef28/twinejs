@@ -36,7 +36,7 @@ Therefore the immediate gap is **runtime bootstrap/session/host ownership**, not
 | Artifact -> live player session | A53 materializer/session boundary verified | **Ready runtime boundary** |
 | Player save/load ownership | A53 runtime-only player save codec verified | **Ready player save boundary** |
 | Dedicated player host / standalone packaging | A54 dedicated entry, package boundary and real-browser boot verified | **Ready host boundary; A55 presentation next** |
-| Scene/dialogue/HUD/inventory UI | Editor/Preview only | **Presentation gap** |
+| Scene/dialogue/HUD/inventory UI | A55 player shell + canonical Move feedback verified | **Ready presentation boundary; A56 content next** |
 | Bus-station/day-one world | Concept exists, authored production content not yet present | **Content gap** |
 | Money/economy | Required by slice; no reviewed canonical gameplay contract yet | **Gameplay/content contract gap** |
 | Travel/navigation time costs | Time kernel exists; player travel orchestration/content is not yet proven | **Gameplay orchestration gap** |
@@ -94,7 +94,7 @@ Exit proof: exported/standalone player host loads the exact A52 artifact and run
 
 ### A55 — Player Presentation Shell
 
-**Status:** **ACTIVE / CONTRACTED** — feature branch `feature/a55-player-presentation-shell` starts from exact stable `0b115b52b42ef05d16bc213865cc07b3a2eb6e76`.
+**Status:** **IMPLEMENTATION VERIFIED / MERGE REVIEW READY** — S1 **#494 GREEN**, S2 **#497 GREEN**, S3 real-browser presentation closure **#498 GREEN**. Final closure-doc exact-head CI, merge and post-merge verification remain before A56.
 
 **Goal:** expose the smallest real game UI over A53/A54.
 
