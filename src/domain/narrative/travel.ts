@@ -30,6 +30,18 @@ const travelModes = new Set<NarrativeTravelMode>([
 	'custom'
 ]);
 
+const physicalActions = new Set<PhysicalActionKind>([
+	'normal',
+	'walk',
+	'run',
+	'fast-run',
+	'climb',
+	'carry-heavy',
+	'use-tool',
+	'focus',
+	'sleep'
+]);
+
 export function narrativeTravelRouteIsStructurallyValid(
 	value: unknown
 ): value is NarrativeTravelRouteDefinition {
@@ -52,6 +64,7 @@ export function narrativeTravelRouteIsStructurallyValid(
 		typeof route.mode === 'string' &&
 		travelModes.has(route.mode as NarrativeTravelMode) &&
 		(route.physicalAction === undefined ||
-			typeof route.physicalAction === 'string')
+			(typeof route.physicalAction === 'string' &&
+				physicalActions.has(route.physicalAction as PhysicalActionKind)))
 	);
 }

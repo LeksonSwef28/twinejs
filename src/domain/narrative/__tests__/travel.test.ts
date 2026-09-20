@@ -18,7 +18,7 @@ describe('Narrative travel route contract', () => {
 		expect(narrativeTravelRouteIsStructurallyValid(route)).toBe(true);
 	});
 
-	test('rejects zero duration and self-routes', () => {
+	test('rejects zero duration, self-routes and unknown physical actions', () => {
 		expect(
 			narrativeTravelRouteIsStructurallyValid({...route, durationMinutes: 0})
 		).toBe(false);
@@ -26,6 +26,12 @@ describe('Narrative travel route contract', () => {
 			narrativeTravelRouteIsStructurallyValid({
 				...route,
 				destinationLocationId: route.originLocationId
+			})
+		).toBe(false);
+		expect(
+			narrativeTravelRouteIsStructurallyValid({
+				...route,
+				physicalAction: 'teleport'
 			})
 		).toBe(false);
 	});
