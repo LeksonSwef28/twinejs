@@ -1,6 +1,9 @@
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
-import {arrivalCorridorIds, create93DaysArrivalCorridorProject} from '../../../domain/narrative/content/93-days-arrival-corridor';
+import {
+	arrivalCorridorIds,
+	create93DaysArrivalCorridorProject
+} from '../../../domain/narrative/content/93-days-arrival-corridor';
 import {advanceNarrativeProjectSimulation} from '../simulation';
 import {
 	compileNarrativeRuntimeArtifact,
@@ -43,6 +46,30 @@ describe('A54 player host bootstrap', () => {
 		expect(probe.project.simulation.day).toBe(before.day);
 		expect(probe.project.simulation.minuteOfDay).toBe(before.minuteOfDay);
 		expect(result.session.currentProject.simulation).toBe(before);
+	});
+
+	test('applies authored playerStart after materialization while A52 artifact stays fresh', () => {
+		const compiled = compileNarrativeRuntimeArtifact(
+			create93DaysArrivalCorridorProject()
+		);
+		if (compiled.status !== 'compiled') {
+			throw new Error('Expected Arrival Corridor to compile.');
+		}
+		expect(
+			compiled.artifact.initialRuntime.simulation.actualLocationByCharacter
+		).toEqual({});
+
+		const result = bootstrapNarrativePlayerHost(
+			serializeNarrativeRuntimeArtifact(compiled.artifact)
+		);
+
+		expect(result.status).toBe('ready');
+		if (result.status !== 'ready') {
+			throw new Error('Expected player host to start Arrival Corridor.');
+		}
+		expect(
+			result.session.currentProject.simulation.actualLocationByCharacter.player
+		).toBe(arrivalCorridorIds.locations.busStation);
 	});
 
 	test('rejects missing and malformed transport input before materialization', () => {
