@@ -488,7 +488,7 @@ test('plays the real A58 everyday systems path into Day Two', async ({page}) => 
 		.filter({hasText: 'Плотный перекус'});
 	await expect(meal.getByText('внутри')).toBeVisible();
 	await meal.getByRole('button', {name: 'Съесть'}).click();
-	await expect(page.getByText('Плотный перекус', {exact: true})).toHaveCount(0);
+	await expect(meal).toHaveCount(0);
 	await expect(page.getByText('После еды')).toBeVisible();
 	await expect(
 		page.getByText('30 мин.', {exact: true})
