@@ -249,7 +249,7 @@ describe('<PlayerApp> presentation', () => {
 		fireEvent.click(
 			screen.getByRole('button', {name: /Лечь спать до утра/})
 		);
-		expect(screen.getByText('День 2')).toBeInTheDocument();
+		expect(screen.getByLabelText('Игровое время')).toHaveTextContent('День 2');
 		expect(screen.getByText('07:30')).toBeInTheDocument();
 		expect(screen.getByRole('status')).toHaveTextContent('подъём в 07:30');
 	});
