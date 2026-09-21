@@ -6,7 +6,7 @@ Risk: **HIGH**
 Stable source: `1691b49f4560f07ca1c4b6c35541d92af92dd3c3`  
 Feature branch: `feature/a58-everyday-systems`  
 PR: **#31**  
-Exact implementation head: `d9bdae833e704af3eb96ae0a6d31666f14e67040`
+Exact implementation head: `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435`
 
 ## Requirement
 
@@ -193,11 +193,12 @@ Important verification runs during implementation:
 - **#544 FAILED** — two TypeScript narrowing errors in the new S3 presentation contract;
 - **#554 FAILED** — two test-only assertions: global food text selector and non-canonical JSON key-order comparison;
 - **#555 FAILED** — food selector fixed; only canonical JSON key-order test remained;
-- **#556 GREEN** — exact implementation head `d9bdae833e704af3eb96ae0a6d31666f14e67040`.
+- **#556 GREEN** — first full S3 implementation candidate;
+- **#559 GREEN** — final implementation head `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435` after replacing the last key-order-sensitive assertion with semantic structural comparison.
 
 ## Exact implementation verification
 
-**93 Days Branch Check #556 — GREEN**
+**93 Days Branch Check #559 — GREEN**
 
 - production audit: **0 vulnerabilities**;
 - lint: PASS;
@@ -213,7 +214,7 @@ Important verification runs during implementation:
 
 ## Self-review
 
-Stable-to-implementation review confirms:
+Stable-to-implementation review confirms the branch is 41 commits ahead / 0 behind stable and:
 
 - no new hidden gameplay RNG;
 - no direct Player/UI simulation-clock mutation;
@@ -254,9 +255,9 @@ Compatibility defaults keep older schema-v3 data readable, and authored ItemInst
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
 - E4 Minimal implementation: **PASS**
-- E5 Exact-head verification: **PASS — implementation head `d9bdae833e704af3eb96ae0a6d31666f14e67040`, Branch Check #556 GREEN**
+- E5 Exact-head verification: **PASS — implementation head `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435`, Branch Check #559 GREEN**
 - E6 Self-review: **PASS**
-- E7 PR/CI: **PASS for implementation; docs-only closure head still requires its own exact-head GREEN**
+- E7 PR/CI: **PASS for implementation; PR #31 is open and Ready for review; docs-only closure head still requires its own exact-head GREEN before merge review is closure-complete**
 - E8 Merge: **PENDING — explicit user authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
@@ -265,4 +266,4 @@ Compatibility defaults keep older schema-v3 data readable, and authored ItemInst
 
 This change record, contract update and roadmap update are documentation-only closure work after the verified implementation head.
 
-The PR must remain draft until the docs-only closure commit receives a full exact-head Branch Check. After that it may become ready for review, but merge still requires a separate explicit user command.
+The docs-only closure commit must receive a full exact-head Branch Check before the merge gate is closure-complete. PR #31 is already Ready for review; merge still requires a separate explicit user command.
