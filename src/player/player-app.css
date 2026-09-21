@@ -606,6 +606,95 @@ select {
 	outline: none;
 }
 
+.narrative-player__phone-contacts {
+	margin-bottom: 0.85rem;
+}
+
+.narrative-player__phone-contacts small,
+.narrative-player__phone-actions > small {
+	color: rgba(242, 239, 232, 0.42);
+	font-size: 0.7rem;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+}
+
+.narrative-player__phone-contacts p {
+	margin: 0.3rem 0 0;
+	color: rgba(242, 239, 232, 0.72);
+	font-size: 0.8rem;
+	line-height: 1.45;
+}
+
+.narrative-player__phone-entries {
+	display: grid;
+	gap: 0.55rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.narrative-player__phone-entries li {
+	display: grid;
+	gap: 0.35rem;
+	padding: 0.75rem 0.8rem;
+	border: 1px solid rgba(242, 239, 232, 0.14);
+	border-radius: 0.35rem;
+	background: rgba(242, 239, 232, 0.025);
+}
+
+.narrative-player__phone-entries li[data-phone-state='unread'],
+.narrative-player__phone-entries li[data-phone-state='ringing'] {
+	border-color: rgba(242, 239, 232, 0.32);
+	background: rgba(242, 239, 232, 0.06);
+}
+
+.narrative-player__phone-entry-heading {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.narrative-player__phone-entry-heading strong {
+	font-size: 0.82rem;
+	font-weight: 600;
+}
+
+.narrative-player__phone-entries small,
+.narrative-player__phone-entries p {
+	color: rgba(242, 239, 232, 0.46);
+	font-size: 0.7rem;
+	line-height: 1.45;
+}
+
+.narrative-player__phone-entries p {
+	margin: 0;
+}
+
+.narrative-player__phone-entries button {
+	justify-self: start;
+	padding: 0.45rem 0.55rem;
+	border: 1px solid rgba(242, 239, 232, 0.18);
+	border-radius: 0.35rem;
+	background: rgba(242, 239, 232, 0.035);
+	color: rgba(242, 239, 232, 0.82);
+	font-size: 0.72rem;
+	cursor: pointer;
+}
+
+.narrative-player__phone-entries button:hover,
+.narrative-player__phone-entries button:focus-visible {
+	border-color: rgba(242, 239, 232, 0.4);
+	color: rgba(242, 239, 232, 0.96);
+	outline: none;
+}
+
+.narrative-player__phone-actions {
+	display: grid;
+	gap: 0.45rem;
+	margin-top: 0.9rem;
+}
+
 .narrative-player__money {
 	display: block;
 	font-size: 1.4rem;
