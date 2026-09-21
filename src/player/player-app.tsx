@@ -140,9 +140,17 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 		);
 		if (result.status === 'applied') {
 			setSession(result.session);
+			const fare =
+				result.fareMinorUnits !== undefined && view.economy.status === 'available'
+					? ` · −${formatMoney(
+							result.fareMinorUnits,
+							view.economy.minorUnitsPerMajor,
+							view.economy.currencyLabel
+						)}`
+					: '';
 			setFeedback({
 				title: result.destinationName,
-				summary: `${result.routeLabel} · ${result.durationMinutes} мин.`,
+				summary: `${result.routeLabel} · ${result.durationMinutes} мин.${fare}`,
 				tone: 'result'
 			});
 			return;
@@ -483,6 +491,14 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 												<small>
 													{option.destinationName} · {travelModeLabel(option.mode)} ·{' '}
 													{option.durationMinutes} мин.
+													{option.fareMinorUnits !== undefined &&
+													view.economy.status === 'available'
+														? ` · ${formatMoney(
+																option.fareMinorUnits,
+																view.economy.minorUnitsPerMajor,
+																view.economy.currencyLabel
+															)}`
+														: ''}
 												</small>
 											</button>
 											{option.state === 'blocked' && <p>{option.summary}</p>}
