@@ -529,6 +529,48 @@ test('plays the real A58 everyday systems path into Day Two', async ({page}) => 
 	).toBeEnabled();
 });
 
+test('saves, reloads and explicitly continues the real A59 Player session', async ({page}) => {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysEverydaySystemsProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected real A59 save fixture to compile.');
+	}
+
+	await page.route('**/player.html', async route => {
+		const response = await route.fetch();
+		const template = await response.text();
+		await route.fulfill({
+			response,
+			body: embedNarrativeRuntimeArtifactInPlayerHtml(
+				template,
+				compiled.artifact
+			)
+		});
+	});
+
+	await page.goto('http://localhost:5173/player.html');
+
+	const continueButton = page.getByRole('button', {name: 'Продолжить'});
+	await expect(continueButton).toBeDisabled();
+	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('06:05');
+
+	await page.getByRole('button', {name: 'Сохранить'}).click();
+	await expect(page.getByRole('status')).toContainText('Игра сохранена');
+	await expect(continueButton).toBeEnabled();
+
+	await page.reload();
+	await expect(page.locator('[data-player-status="ready"]')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('06:00');
+	const freshContinue = page.getByRole('button', {name: 'Продолжить'});
+	await expect(freshContinue).toBeEnabled();
+
+	await freshContinue.click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('06:05');
+	await expect(page.getByRole('status')).toContainText('Сохранение загружено');
+});
+
 test('renders Actual Presence and applies a canonical Move in the standalone player', async ({
 	page
 }) => {

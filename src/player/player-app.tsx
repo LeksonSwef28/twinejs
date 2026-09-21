@@ -11,6 +11,11 @@ import {executeNarrativePlayerWait} from '../application/narrative/player-wait';
 import {deriveNarrativePlayerPresentation} from '../application/narrative/player-presentation';
 import {NarrativePlayerSession} from '../application/narrative/player-runtime';
 import {NarrativePlayerArtifactSource} from './artifact-source';
+import {
+	narrativePlayerStoredSaveExists,
+	restoreNarrativePlayerSaveFromStorage,
+	storeNarrativePlayerSave
+} from './player-save-storage';
 import './player-app.css';
 
 function formatMinute(minuteOfDay: number) {
@@ -54,6 +59,14 @@ function formatMoney(
 	return `${whole}.${String(remainder).padStart(digits, '0')} ${currencyLabel}`;
 }
 
+function browserSaveStorage() {
+	try {
+		return typeof window === 'undefined' ? undefined : window.localStorage;
+	} catch {
+		return undefined;
+	}
+}
+
 function actionStateLabel(state: string) {
 	switch (state) {
 		case 'input-required':
@@ -87,6 +100,12 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 	const [feedback, setFeedback] = React.useState<
 		{title: string; summary: string; tone: 'result' | 'notice'} | undefined
 	>();
+	const saveStorage = React.useMemo(() => browserSaveStorage(), []);
+	const [hasStoredSave, setHasStoredSave] = React.useState(() =>
+		bootstrap.status === 'ready'
+			? narrativePlayerStoredSaveExists(saveStorage, bootstrap.session)
+			: false
+	);
 
 	if (bootstrap.status === 'rejected' || !session) {
 		const summary =
@@ -110,6 +129,44 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 
 	const project = session.currentProject;
 	const view = deriveNarrativePlayerPresentation(project);
+
+	const saveGame = () => {
+		const result = storeNarrativePlayerSave(saveStorage, session);
+		if (result.status === 'stored') {
+			setHasStoredSave(true);
+			setFeedback({
+				title: 'Игра сохранена',
+				summary: `День ${view.day} · ${formatMinute(view.minuteOfDay)}`,
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Не удалось сохранить',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
+
+	const continueGame = () => {
+		const result = restoreNarrativePlayerSaveFromStorage(saveStorage, session);
+		if (result.status === 'restored') {
+			setSession(result.session);
+			setFeedback({
+				title: 'Сохранение загружено',
+				summary: `День ${result.session.currentProject.simulation.day} · ${formatMinute(
+					result.session.currentProject.simulation.minuteOfDay
+				)}`,
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Не удалось продолжить',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
 
 	const executeWait = (durationMinutes: number) => {
 		const result = executeNarrativePlayerWait(session, durationMinutes);
@@ -341,9 +398,23 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 					<p className="narrative-player__eyebrow">93 ДНЯ ДО КОНЦА НАШЕГО ЛЕТА</p>
 					<h1>{project.name}</h1>
 				</div>
-				<div className="narrative-player__clock" aria-label="Игровое время">
-					<span>День {view.day}</span>
-					<strong>{formatMinute(view.minuteOfDay)}</strong>
+				<div className="narrative-player__topbar-tools">
+					<div className="narrative-player__save-actions" aria-label="Сохранение игры">
+						<button type="button" onClick={saveGame}>
+							Сохранить
+						</button>
+						<button
+							type="button"
+							disabled={!hasStoredSave}
+							onClick={continueGame}
+						>
+							Продолжить
+						</button>
+					</div>
+					<div className="narrative-player__clock" aria-label="Игровое время">
+						<span>День {view.day}</span>
+						<strong>{formatMinute(view.minuteOfDay)}</strong>
+					</div>
 				</div>
 			</header>
 

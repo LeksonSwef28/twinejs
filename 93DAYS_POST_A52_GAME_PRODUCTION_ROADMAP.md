@@ -155,7 +155,7 @@ Exit proof: two runs can legitimately produce different knowledge/relationships/
 
 ### A58 — Everyday Systems Integration for the Slice
 
-**Status:** **DONE / MERGE REVIEW READY** — implementation head `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435` verified by **#559 GREEN**; closure docs head `9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5` verified by **#562 GREEN** (367/367 Jest suites, 2175 passed, Chromium 6/6, Vite/Electron PASS). PR #31 is open and Ready for review; merge requires explicit authorization.
+**Status:** **DONE / STABLE** — merged as `22ff1e408f48455e7125b3dec65ad5393700992a` and post-merge verified by **#566 GREEN** (367/367 Jest suites, 2175 passed, Chromium 6/6, Vite/Electron PASS); separate Jest / Playwright / ESLint / Prettify workflows also GREEN.
 
 **Goal:** use existing physical systems only where the actual slice creates decisions, and close only proven missing contracts.
 
@@ -173,6 +173,8 @@ Priority integration:
 Explicit non-goal: implementing every previously discussed survival feature before it appears in play.
 
 ### A59 — Vertical Slice Closure & Content Production Loop
+
+**Status:** **DONE / MERGE REVIEW READY** — S1 #568 GREEN, S2 #570 GREEN, S3 implementation #576 GREEN; closure head `03f1a13a2a96bf3741fe4c7ecd7d0ab35de72ded` verified by **#580 GREEN** (370/370 Jest suites, 2183 passed, Chromium 7/7, Vite/Electron PASS). Player-facing Save/Reload/Continue uses the existing canonical save codec. PR #32 requires one final status-only exact-head GREEN before draft is removed; merge remains separately authorized.
 
 **Goal:** prove that the editor now accelerates production of the game, not merely architecture work.
 

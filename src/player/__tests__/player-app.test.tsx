@@ -177,6 +177,10 @@ function sleepSource(): NarrativePlayerArtifactSource {
 }
 
 describe('<PlayerApp> presentation', () => {
+	beforeEach(() => {
+		window.localStorage.clear();
+	});
+
 	test('executes an unplaced canonical Move from a fresh Player session with outcome feedback', () => {
 		render(<PlayerApp artifactSource={source()} />);
 
@@ -317,6 +321,32 @@ describe('<PlayerApp> presentation', () => {
 		fireEvent.click(bus);
 		expect(screen.getByText('96 руб.')).toBeInTheDocument();
 		expect(screen.getByRole('status')).toHaveTextContent('−6 руб.');
+	});
+
+	test('saves and continues a fresh matching Player session through browser storage', () => {
+		const artifactSource = a58Source();
+		const first = render(<PlayerApp artifactSource={artifactSource} />);
+
+		const continueButton = screen.getByRole('button', {name: 'Продолжить'});
+		expect(continueButton).toBeDisabled();
+		fireEvent.click(screen.getByRole('button', {name: 'Подождать 5 минут'}));
+		expect(screen.getByLabelText('Игровое время')).toHaveTextContent('06:05');
+
+		fireEvent.click(screen.getByRole('button', {name: 'Сохранить'}));
+		expect(screen.getByRole('status')).toHaveTextContent('Игра сохранена');
+		expect(continueButton).toBeEnabled();
+		first.unmount();
+
+		render(<PlayerApp artifactSource={artifactSource} />);
+		expect(screen.getByLabelText('Игровое время')).toHaveTextContent('06:00');
+		const freshContinue = screen.getByRole('button', {name: 'Продолжить'});
+		expect(freshContinue).toBeEnabled();
+
+		fireEvent.click(freshContinue);
+		expect(screen.getByLabelText('Игровое время')).toHaveTextContent('06:05');
+		expect(screen.getByRole('status')).toHaveTextContent(
+			'Сохранение загружено'
+		);
 	});
 
 	test('is accessible in the ready player shell', async () => {
