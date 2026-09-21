@@ -6,7 +6,8 @@ Risk: **HIGH**
 Stable source: `1691b49f4560f07ca1c4b6c35541d92af92dd3c3`  
 Feature branch: `feature/a58-everyday-systems`  
 PR: **#31**  
-Exact implementation head: `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435`
+Exact implementation head: `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435`  
+Closure docs head: `9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5`
 
 ## Requirement
 
@@ -257,7 +258,7 @@ Compatibility defaults keep older schema-v3 data readable, and authored ItemInst
 - E4 Minimal implementation: **PASS**
 - E5 Exact-head verification: **PASS — implementation head `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435`, Branch Check #559 GREEN**
 - E6 Self-review: **PASS**
-- E7 PR/CI: **PASS for implementation; PR #31 is open and Ready for review; docs-only closure head still requires its own exact-head GREEN before merge review is closure-complete**
+- E7 PR/CI: **PASS — closure docs head `9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5`, Branch Check #562 GREEN; PR #31 is open and Ready for review**
 - E8 Merge: **PENDING — explicit user authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
@@ -266,4 +267,23 @@ Compatibility defaults keep older schema-v3 data readable, and authored ItemInst
 
 This change record, contract update and roadmap update are documentation-only closure work after the verified implementation head.
 
-The docs-only closure commit must receive a full exact-head Branch Check before the merge gate is closure-complete. PR #31 is already Ready for review; merge still requires a separate explicit user command.
+The docs-only closure gate is satisfied by head `9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5`, Branch Check #562 GREEN. PR #31 is Ready for review; merge still requires a separate explicit user command.
+
+
+## Closure verification
+
+**93 Days Branch Check #562 — GREEN** on docs-only closure head `9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5`.
+
+- production audit: **0 vulnerabilities**;
+- lint: PASS;
+- web build: PASS;
+- standalone Player build: PASS;
+- Electron main build: PASS;
+- Jest: **367/367 suites**;
+- Jest tests: **2175 passed, 23 skipped, 42 todo, 2240 total**;
+- snapshots: **0**;
+- Chromium canonical Player smoke: **6/6**;
+- Vite smoke: PASS;
+- Electron smoke: PASS.
+
+A58 is complete through E7. E8 remains intentionally pending until the user explicitly authorizes merge.
