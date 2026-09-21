@@ -174,7 +174,7 @@ Explicit non-goal: implementing every previously discussed survival feature befo
 
 ### A59 — Vertical Slice Closure & Content Production Loop
 
-**Status:** **DONE / MERGE REVIEW READY** — S1 #568 GREEN, S2 #570 GREEN, S3 implementation #576 GREEN; closure head `03f1a13a2a96bf3741fe4c7ecd7d0ab35de72ded` verified by **#580 GREEN** (370/370 Jest suites, 2183 passed, Chromium 7/7, Vite/Electron PASS). Player-facing Save/Reload/Continue uses the existing canonical save codec. PR #32 requires one final status-only exact-head GREEN before draft is removed; merge remains separately authorized.
+**Status:** **DONE / STABLE** — merged as `787db91868c7ce4f7c52795ac03ce7bf44f105cc`; post-merge **#584 GREEN** (370/370 Jest suites, 2183 passed, Chromium 7/7, Vite/Electron PASS) with separate Prettify / ESLint / Jest / Playwright workflows GREEN.
 
 **Goal:** prove that the editor now accelerates production of the game, not merely architecture work.
 
@@ -215,3 +215,19 @@ Do not block A53-A55 on unresolved fiction that does not affect runtime ownershi
 Every HIGH-risk runtime/save/export stage follows `93DAYS_ENGINEERING_CHANGE_PROTOCOL.md`: repository evidence -> E0 -> ownership/contract -> regression design -> minimal slice -> exact-head full CI -> self-review -> PR gate -> merge gate -> post-merge exact-SHA verification.
 
 No stage may claim gameplay completion from compiler-proof HTML or editor Preview alone.
+
+
+### A60 — Phone / SMS & Flexible Social Contact Loop
+
+**Status:** **ACTIVE / CONTRACT LOCKED** — source stable `787db91868c7ce4f7c52795ac03ce7bf44f105cc`; contract `93DAYS_A60_PHONE_SMS_SOCIAL_LOOP_CONTRACT.md`; feature branch `feature/a60-phone-social-loop`.
+
+**Goal:** prove the first scalable early-2000s social loop through canonical Story/Moves/Knowledge/relationships before adding any new mutable communication subsystem.
+
+**Slices:**
+
+- S1 — content-only Day Two SMS -> reply -> flexible physical meeting -> attend/miss -> later consequence;
+- S2 — optional authored `sms | phone-call` Story metadata and authoring validation;
+- S3 — derived Player phone/phonebook/history presentation over canonical Story/runtime history;
+- S4 — first social destination loop and browser/save closure.
+
+**Exit proof:** communication feels like a real player-facing social system while Story/runtime/save ownership remains singular and existing.
