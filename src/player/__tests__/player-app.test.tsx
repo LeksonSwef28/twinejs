@@ -1,4 +1,4 @@
-import {fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import {axe} from 'jest-axe';
 import * as React from 'react';
 import {
@@ -6,6 +6,7 @@ import {
 	serializeNarrativeRuntimeArtifact
 } from '../../application/narrative/export-compiler';
 import {create93DaysDayOneDayTwoProject} from '../../domain/narrative/content/93-days-day-one-day-two';
+import {create93DaysEverydaySystemsProject} from '../../domain/narrative/content/93-days-everyday-systems';
 import {NarrativeMoveDefinition} from '../../domain/narrative/interaction';
 import {createNarrativeProject} from '../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../domain/narrative/templates/93-days';
@@ -113,6 +114,20 @@ function a57Source(): NarrativePlayerArtifactSource {
 	const compiled = compileNarrativeRuntimeArtifact(create93DaysDayOneDayTwoProject());
 	if (compiled.status !== 'compiled') {
 		throw new Error('Expected A57 Player fixture to compile.');
+	}
+	return {
+		status: 'found',
+		source: 'inline',
+		serializedArtifact: serializeNarrativeRuntimeArtifact(compiled.artifact)
+	};
+}
+
+function a58Source(): NarrativePlayerArtifactSource {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysEverydaySystemsProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected A58 Player fixture to compile.');
 	}
 	return {
 		status: 'found',
@@ -252,6 +267,52 @@ describe('<PlayerApp> presentation', () => {
 		expect(screen.getByLabelText('Игровое время')).toHaveTextContent('День 2');
 		expect(screen.getByText('07:30')).toBeInTheDocument();
 		expect(screen.getByRole('status')).toHaveTextContent('подъём в 07:30');
+	});
+
+	test('buys, packs, eats and pays fare through A58 Player controls', () => {
+		render(<PlayerApp artifactSource={a58Source()} />);
+
+		expect(screen.getByText('120 руб.')).toBeInTheDocument();
+		fireEvent.click(
+			screen.getByRole('button', {name: /Выйти на транспортную площадь/})
+		);
+		fireEvent.click(screen.getByRole('button', {name: /Подойти к киоскам/}));
+
+		const buy = screen.getByRole('button', {
+			name: /Купить плотный перекус.*18 руб/
+		});
+		expect(buy).toBeEnabled();
+		fireEvent.click(buy);
+		expect(screen.getByText('102 руб.')).toBeInTheDocument();
+		expect(screen.getByRole('status')).toHaveTextContent('Покупка');
+
+		let mealLine = screen.getByText('Плотный перекус').closest('li');
+		expect(mealLine).not.toBeNull();
+		fireEvent.click(
+			within(mealLine!).getByRole('button', {name: 'В «Дорожная сумка»'})
+		);
+
+		mealLine = screen.getByText('Плотный перекус').closest('li');
+		expect(mealLine).not.toBeNull();
+		expect(within(mealLine!).getByText('внутри')).toBeInTheDocument();
+		fireEvent.click(within(mealLine!).getByRole('button', {name: 'Съесть'}));
+		expect(screen.getByRole('status')).toHaveTextContent('переваривание 30 мин.');
+		expect(screen.queryByText('Плотный перекус')).not.toBeInTheDocument();
+
+		const digestion = screen.getByText('После еды').closest('div');
+		expect(digestion).toHaveTextContent('30 мин.');
+
+		fireEvent.click(
+			screen.getByRole('button', {name: /Вернуться на транспортную площадь/})
+		);
+		fireEvent.click(screen.getByRole('button', {name: /Дойти до остановки/}));
+		const bus = screen.getByRole('button', {
+			name: /Ехать городским автобусом к башне.*6 руб/
+		});
+		expect(bus).toBeEnabled();
+		fireEvent.click(bus);
+		expect(screen.getByText('96 руб.')).toBeInTheDocument();
+		expect(screen.getByRole('status')).toHaveTextContent('−6 руб.');
 	});
 
 	test('is accessible in the ready player shell', async () => {
