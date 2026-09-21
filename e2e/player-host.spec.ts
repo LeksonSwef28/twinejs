@@ -224,7 +224,7 @@ test('boots and traverses the real Arrival Corridor from authored playerStart', 
 	await expect(
 		page.getByRole('heading', {name: 'Междугородний автовокзал'})
 	).toBeVisible();
-	await expect(page.getByText('06:00')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('06:00');
 
 	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
 	await expect(page.getByText('06:05')).toBeVisible();
@@ -335,7 +335,7 @@ test('plays the real A57 Day One to Day Two path in the standalone player', asyn
 
 	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
 	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
-	await expect(page.getByText('06:10')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('06:10');
 	await expect(
 		page.getByText('Короткое утреннее объявление на вокзале')
 	).toBeVisible();
@@ -351,13 +351,13 @@ test('plays the real A57 Day One to Day Two path in the standalone player', asyn
 	await expect(
 		page.getByRole('heading', {name: 'Транспортная площадь'})
 	).toBeVisible();
-	await expect(page.getByText('06:13')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('06:13');
 
 	await page.getByRole('button', {name: /Дойти до остановки/}).click();
 	await expect(
 		page.getByRole('heading', {name: 'Остановка у автовокзала'})
 	).toBeVisible();
-	await expect(page.getByText('06:17')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('06:17');
 
 	await page
 		.getByRole('button', {name: /Ехать маршруткой к башне.*18 мин/})
@@ -365,7 +365,7 @@ test('plays the real A57 Day One to Day Two path in the standalone player', asyn
 	await expect(
 		page.getByRole('heading', {name: 'Пересадка у водонапорной башни'})
 	).toBeVisible();
-	await expect(page.getByText('06:35')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('06:35');
 
 	await page
 		.getByRole('button', {name: /Идти от башни к общежитию/})
@@ -373,7 +373,7 @@ test('plays the real A57 Day One to Day Two path in the standalone player', asyn
 	await expect(
 		page.getByRole('heading', {name: 'Студенческое общежитие'})
 	).toBeVisible();
-	await expect(page.getByText('06:49')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('06:49');
 	await expect(
 		page.getByRole('button', {name: /Вспомнить точный совет кассира/})
 	).toHaveCount(0);
@@ -381,7 +381,7 @@ test('plays the real A57 Day One to Day Two path in the standalone player', asyn
 	await page
 		.getByRole('button', {name: 'Подождать до 22:30'})
 		.click();
-	await expect(page.getByText('22:30')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('22:30');
 	await expect(page.getByText('Разговор у вахты без героя')).toHaveCount(0);
 
 	await page
