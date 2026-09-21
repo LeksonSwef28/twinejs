@@ -66,6 +66,41 @@ select {
 	letter-spacing: -0.03em;
 }
 
+.narrative-player__topbar-tools {
+	display: flex;
+	align-items: flex-end;
+	gap: 1rem;
+}
+
+.narrative-player__save-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 0.4rem;
+}
+
+.narrative-player__save-actions button {
+	padding: 0.45rem 0.6rem;
+	border: 1px solid rgba(242, 239, 232, 0.16);
+	border-radius: 0.35rem;
+	background: rgba(242, 239, 232, 0.03);
+	color: rgba(242, 239, 232, 0.72);
+	font-size: 0.72rem;
+	cursor: pointer;
+}
+
+.narrative-player__save-actions button:hover:not(:disabled),
+.narrative-player__save-actions button:focus-visible:not(:disabled) {
+	border-color: rgba(242, 239, 232, 0.38);
+	color: rgba(242, 239, 232, 0.95);
+	outline: none;
+}
+
+.narrative-player__save-actions button:disabled {
+	color: rgba(242, 239, 232, 0.32);
+	cursor: not-allowed;
+}
+
 .narrative-player__clock {
 	display: grid;
 	min-width: 7rem;
@@ -245,6 +280,15 @@ select {
 
 	.narrative-player__topbar {
 		align-items: flex-start;
+	}
+
+	.narrative-player__topbar-tools {
+		align-items: flex-end;
+		flex-direction: column-reverse;
+	}
+
+	.narrative-player__save-actions {
+		justify-content: flex-end;
 	}
 
 	.narrative-player__layout {
