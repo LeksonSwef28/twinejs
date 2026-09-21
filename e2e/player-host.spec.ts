@@ -590,6 +590,143 @@ test('renders and uses the derived A60 phone SMS surface in the standalone Playe
 	await expect(decline).toHaveCount(0);
 });
 
+test('plays the A60 accepted SMS meeting through save reload and Day Three', async ({page}) => {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysPhoneSocialLoopProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected A60 accepted-loop fixture to compile.');
+	}
+	compiled.artifact.initialRuntime.simulation.day = 2;
+	compiled.artifact.initialRuntime.simulation.minuteOfDay = 18 * 60 + 55;
+	compiled.artifact.initialRuntime.simulation.actualLocationByCharacter = {
+		player: arrivalCorridorIds.locations.studentDormitory,
+		'day1-local-contact': 'a60-dorm-courtyard'
+	};
+	await page.setViewportSize({width: 390, height: 844});
+
+	await page.route('**/player.html', async route => {
+		const response = await route.fetch();
+		const template = await response.text();
+		await route.fulfill({
+			response,
+			body: embedNarrativeRuntimeArtifactInPlayerHtml(
+				template,
+				compiled.artifact
+			)
+		});
+	});
+
+	await page.goto('http://localhost:5173/player.html');
+
+	const phone = page
+		.getByRole('heading', {name: 'Телефон'})
+		.locator('xpath=ancestor::section[1]');
+	await phone.getByRole('button', {name: 'Открыть SMS'}).click();
+	await phone
+		.getByRole('button', {name: /Ответить, что придёшь вечером/})
+		.click();
+
+	await page.getByRole('button', {name: /Выйти во двор общежития/}).click();
+	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('19:02');
+	await expect(page.getByText('Контакт по записанному номеру', {exact: true})).toBeVisible();
+
+	const meeting = page
+		.locator('.narrative-player__story-opportunities li')
+		.filter({hasText: 'Вечерняя встреча во дворе'});
+	await expect(meeting).toHaveCount(1);
+	await meeting.getByRole('button', {name: 'Участвовать'}).click();
+	await page.getByRole('button', {name: 'Подождать 15 минут'}).click();
+	await page.getByRole('button', {name: 'Подождать 15 минут'}).click();
+	await expect(meeting).toHaveCount(0);
+
+	await page.getByRole('button', {name: 'Сохранить'}).click();
+	await expect(page.getByRole('status')).toContainText('Игра сохранена');
+	await page.reload();
+	await expect(page.locator('.narrative-player__clock')).toContainText('18:55');
+	await page.getByRole('button', {name: 'Продолжить'}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('19:32');
+	await expect(
+		page.getByRole('heading', {name: 'Двор общежития'})
+	).toBeVisible();
+
+	await page.getByRole('button', {name: /Вернуться в общежитие/}).click();
+	for (let index = 0; index < 12; index += 1) {
+		await page.getByRole('button', {name: 'Подождать 15 минут'}).click();
+	}
+	await expect(page.locator('.narrative-player__clock')).toContainText('22:34');
+	await page.getByRole('button', {name: /Лечь спать до утра/}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 3');
+	await expect(page.locator('.narrative-player__clock')).toContainText('07:30');
+
+	const echo = page.getByRole('button', {name: /Вспомнить вчерашнюю встречу/});
+	await expect(echo).toBeEnabled();
+	await echo.click();
+	await expect(page.getByRole('status')).toContainText(
+		'Вечерняя встреча стала первым настоящим социальным продолжением приезда'
+	);
+});
+
+test('plays the A60 accepted-but-missed meeting as a distinct Day Three branch', async ({page}) => {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysPhoneSocialLoopProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected A60 missed-loop fixture to compile.');
+	}
+	compiled.artifact.initialRuntime.simulation.day = 2;
+	compiled.artifact.initialRuntime.simulation.minuteOfDay = 23 * 60 + 1;
+	compiled.artifact.initialRuntime.simulation.actualLocationByCharacter = {
+		player: arrivalCorridorIds.locations.studentDormitory
+	};
+	await page.setViewportSize({width: 390, height: 844});
+
+	await page.route('**/player.html', async route => {
+		const response = await route.fetch();
+		const template = await response.text();
+		await route.fulfill({
+			response,
+			body: embedNarrativeRuntimeArtifactInPlayerHtml(
+				template,
+				compiled.artifact
+			)
+		});
+	});
+
+	await page.goto('http://localhost:5173/player.html');
+
+	const phone = page
+		.getByRole('heading', {name: 'Телефон'})
+		.locator('xpath=ancestor::section[1]');
+	await phone.getByRole('button', {name: 'Открыть SMS'}).click();
+	await phone
+		.getByRole('button', {name: /Ответить, что придёшь вечером/})
+		.click();
+
+	const meeting = page
+		.locator('.narrative-player__story-opportunities li')
+		.filter({hasText: 'Вечерняя встреча во дворе'});
+	await expect(meeting).toContainText('Окно этой возможности уже закрылось');
+	await meeting.getByRole('button', {name: 'Зафиксировать пропуск'}).click();
+	await expect(meeting).toHaveCount(0);
+
+	await page.getByRole('button', {name: /Лечь спать до утра/}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 3');
+
+	const missedEcho = page.getByRole('button', {
+		name: /Подумать о пропущенной встрече/
+	});
+	await expect(missedEcho).toBeEnabled();
+	await expect(
+		page.getByRole('button', {name: /Вспомнить вчерашнюю встречу/})
+	).toHaveCount(0);
+	await missedEcho.click();
+	await expect(page.getByRole('status')).toContainText(
+		'Пропущенная договорённость уже стала частью отношений'
+	);
+});
+
 test('saves, reloads and explicitly continues the real A59 Player session', async ({page}) => {
 	const compiled = compileNarrativeRuntimeArtifact(
 		create93DaysEverydaySystemsProject()
