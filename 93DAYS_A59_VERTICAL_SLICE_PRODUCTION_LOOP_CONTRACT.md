@@ -1,6 +1,6 @@
 # A59 Contract — Vertical Slice Closure & Content Production Loop
 
-Status: **ACTIVE / CONTRACT LOCKED**  
+Status: **IMPLEMENTATION VERIFIED / CLOSURE VERIFICATION**  
 Stage: **A59 — Vertical Slice Closure & Content Production Loop**  
 Risk: **MEDIUM**  
 Stable source: `93-days-editor` @ `22ff1e408f48455e7125b3dec65ad5393700992a`  
@@ -294,10 +294,71 @@ If A59 uncovers a genuine runtime defect, the repair gets its own explicit regre
 - E1 Scope / ownership: **PASS**
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
-- E4 Minimal implementation: **PENDING**
-- E5 Verification ladder: **PENDING**
-- E6 Self-review: **PENDING**
-- E7 PR/CI: **PENDING**
+- E4 Minimal implementation: **PASS**
+- E5 Verification ladder: **PASS for implementation; closure exact-head CI pending**
+- E6 Self-review: **PASS**
+- E7 PR/CI: **PENDING closure exact-head GREEN**
 - E8 Merge: **PENDING — explicit authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
+
+
+## 16. Implementation verification evidence
+
+### A59-S1
+
+Exact head:
+
+`3f3350ff67908107f5ecb937bd6c174979b1d3e7`
+
+**93 Days Branch Check #568 — GREEN**
+
+- 368/368 Jest suites;
+- 2176 passed, 23 skipped, 42 todo;
+- Chromium 6/6;
+- audit 0 vulnerabilities;
+- Vite/Electron PASS.
+
+### A59-S2
+
+Exact head:
+
+`ed401708b69980429db2d5cac69090835a88d7b9`
+
+**93 Days Branch Check #570 — GREEN**
+
+- 369/369 Jest suites;
+- 2179 passed, 23 skipped, 42 todo;
+- Chromium 6/6;
+- audit 0 vulnerabilities;
+- Vite/Electron PASS.
+
+The prior #569 failure was isolated to a new test variable reference and did not indicate a production/runtime defect.
+
+### A59-S3 implementation
+
+Exact head:
+
+`4ce6d143ab1bb20740503051893f1a8ff3f691da`
+
+**93 Days Branch Check #576 — GREEN**
+
+- 370/370 Jest suites;
+- 2183 passed, 23 skipped, 42 todo;
+- Chromium 7/7;
+- audit 0 vulnerabilities;
+- Vite/Electron PASS.
+
+This head proves the player-facing save/reload/continue gap is closed using the existing canonical save codec.
+
+## 17. S3 production kit
+
+A59 adds:
+
+- `93DAYS_A59_CONTENT_PRODUCTION_KIT.md`
+- `93DAYS_A59_PLAYTEST_OBSERVATIONS.md`
+- `93DAYS_A59_CHANGE_RECORD.md`
+
+These documents define the authoring/validation/source-navigation loop and classify the first playthrough observations without creating a second content or runtime schema.
+
+A final exact-head Branch Check is still required after closure documentation is complete.
