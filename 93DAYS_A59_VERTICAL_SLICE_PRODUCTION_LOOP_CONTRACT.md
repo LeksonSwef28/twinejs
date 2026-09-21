@@ -1,6 +1,6 @@
 # A59 Contract — Vertical Slice Closure & Content Production Loop
 
-Status: **IMPLEMENTATION VERIFIED / CLOSURE VERIFICATION**  
+Status: **DONE / MERGE REVIEW READY**  
 Stage: **A59 — Vertical Slice Closure & Content Production Loop**  
 Risk: **MEDIUM**  
 Stable source: `93-days-editor` @ `22ff1e408f48455e7125b3dec65ad5393700992a`  
@@ -295,9 +295,9 @@ If A59 uncovers a genuine runtime defect, the repair gets its own explicit regre
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
 - E4 Minimal implementation: **PASS**
-- E5 Verification ladder: **PASS for implementation; closure exact-head CI pending**
+- E5 Verification ladder: **PASS — closure head `03f1a13a2a96bf3741fe4c7ecd7d0ab35de72ded`, #580 GREEN**
 - E6 Self-review: **PASS**
-- E7 PR/CI: **PENDING closure exact-head GREEN**
+- E7 PR/CI: **PASS for closure — #580 GREEN; final status-only exact-head CI still required before PR readiness**
 - E8 Merge: **PENDING — explicit authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
@@ -362,3 +362,23 @@ A59 adds:
 These documents define the authoring/validation/source-navigation loop and classify the first playthrough observations without creating a second content or runtime schema.
 
 A final exact-head Branch Check is still required after closure documentation is complete.
+
+
+## 18. Closure verification
+
+Documentation/closure head:
+
+`03f1a13a2a96bf3741fe4c7ecd7d0ab35de72ded`
+
+**93 Days Branch Check #580 — GREEN**
+
+- production audit: 0 vulnerabilities;
+- lint / web build / standalone Player build / Electron main build: PASS;
+- 370/370 Jest suites;
+- 2183 passed, 23 skipped, 42 todo, 2248 total;
+- 0 snapshots;
+- Chromium canonical Player smoke: 7/7;
+- Vite smoke: PASS;
+- Electron smoke: PASS.
+
+A59 is complete through the pre-merge closure gate. This status-only documentation update must itself retain exact-head GREEN before PR #32 is marked Ready for review.
