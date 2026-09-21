@@ -6,6 +6,7 @@ import {
 } from './interaction-runtime';
 import {NarrativeProject} from './project';
 import {ScheduleException} from './schedule';
+import {storyCommunicationIsValid} from './story';
 import {routineWindowForDay} from './world-time';
 
 export type NarrativeAuthoringFindingKind =
@@ -14,6 +15,7 @@ export type NarrativeAuthoringFindingKind =
 	| 'missing-story-participant'
 	| 'partial-story-placement'
 	| 'invalid-story-placement'
+	| 'invalid-story-communication'
 	| 'runtime-policy-without-exact-placement'
 	| 'story-schedule-location-conflict'
 	| 'story-participant-schedule-gap';
@@ -292,6 +294,18 @@ function storyPlacementFindings(project: NarrativeProject) {
 		const hasDay = placement?.day !== undefined;
 		const hasMinute = placement?.minuteOfDay !== undefined;
 		const validExact = exactPlacementIsValid(project, placement);
+		if (
+			node.communication !== undefined &&
+			!storyCommunicationIsValid(node.communication)
+		) {
+			findings.push({
+				id: `authoring:invalid-communication:${node.id}`,
+				kind: 'invalid-story-communication',
+				severity: 'warning',
+				summary: `Story «${node.title}» имеет неизвестный канал связи.`,
+				storyNodeId: node.id
+			});
+		}
 		if (hasDay !== hasMinute) {
 			findings.push({
 				id: `authoring:partial-placement:${node.id}`,
@@ -320,6 +334,10 @@ function storyPlacementFindings(project: NarrativeProject) {
 			});
 		}
 		if (!validExact || !placement) {
+			continue;
+		}
+		// Locationless SMS/calls are remote communication, not physical co-presence.
+		if (node.communication && !placement.locationId) {
 			continue;
 		}
 		const absoluteMinute =
