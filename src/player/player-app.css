@@ -476,3 +476,95 @@ select {
 	width: 100%;
 	text-align: left;
 }
+
+
+.narrative-player__purchase-options {
+	display: grid;
+	gap: 0.6rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.narrative-player__purchase-options li {
+	display: grid;
+	gap: 0.35rem;
+}
+
+.narrative-player__purchase-options button {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+	width: 100%;
+	padding: 0.85rem 0.95rem;
+	border: 1px solid rgba(242, 239, 232, 0.18);
+	border-radius: 0.35rem;
+	background: rgba(242, 239, 232, 0.035);
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.narrative-player__purchase-options button:hover:not(:disabled),
+.narrative-player__purchase-options button:focus-visible:not(:disabled) {
+	border-color: rgba(242, 239, 232, 0.42);
+	background: rgba(242, 239, 232, 0.08);
+	outline: none;
+}
+
+.narrative-player__purchase-options button:disabled {
+	color: rgba(242, 239, 232, 0.42);
+	cursor: not-allowed;
+}
+
+.narrative-player__purchase-options button small,
+.narrative-player__purchase-options li > p {
+	color: rgba(242, 239, 232, 0.46);
+	font-size: 0.72rem;
+}
+
+.narrative-player__purchase-options li > p {
+	margin: 0 0.95rem;
+}
+
+.narrative-player__inventory li {
+	display: grid;
+	gap: 0.45rem;
+}
+
+.narrative-player__inventory-line {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.narrative-player__inventory-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.narrative-player__inventory-actions button {
+	padding: 0.45rem 0.55rem;
+	border: 1px solid rgba(242, 239, 232, 0.14);
+	border-radius: 0.35rem;
+	background: rgba(242, 239, 232, 0.025);
+	color: rgba(242, 239, 232, 0.68);
+	font-size: 0.72rem;
+	cursor: pointer;
+}
+
+.narrative-player__inventory-actions button:hover,
+.narrative-player__inventory-actions button:focus-visible {
+	border-color: rgba(242, 239, 232, 0.36);
+	color: rgba(242, 239, 232, 0.95);
+	outline: none;
+}
+
+.narrative-player__money {
+	display: block;
+	font-size: 1.4rem;
+	font-variant-numeric: tabular-nums;
+	font-weight: 550;
+}
