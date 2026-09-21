@@ -1,6 +1,6 @@
 # A57 Contract — Vertical Slice Narrative: Day One -> Day Two
 
-Status: **ACTIVE / S1 AUTHORING**  
+Status: **IMPLEMENTATION VERIFIED / MERGE REVIEW READY**  
 Stage: **A57 — Vertical Slice Narrative: Day One -> Day Two**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `5058d1bb699fa5eba3a02aeaa2ebe45acdd9624a`  
@@ -280,10 +280,40 @@ Runtime rollback must leave A52-A56 artifact/session/host/presentation/travel/wa
 - E1 Scope / ownership: **PASS**
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
-- E4 Minimal implementation: **PENDING**
-- E5 Exact-head verification: **PENDING**
-- E6 Self-review: **PENDING**
-- E7 PR/CI: **PENDING**
+- E4 Minimal implementation: **PASS**
+- E5 Exact-head verification: **PASS — implementation head `218a66cf83dd8db6165968f306bb301661563468`, Branch Check #526 GREEN**
+- E6 Self-review: **PASS**
+- E7 PR/CI: **PASS for implementation — PR #30 remains draft until the docs-only closure head is GREEN**
 - E8 Merge: **PENDING — explicit authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
+
+
+## 13. Implementation evidence
+
+Exact implementation head before closure documentation:
+
+`218a66cf83dd8db6165968f306bb301661563468`
+
+**93 Days Branch Check #526 — GREEN**
+
+- production audit: 0 vulnerabilities;
+- lint / web build / standalone Player build / Electron main build: PASS;
+- 358/358 Jest suites;
+- 2149 passed, 23 skipped, 42 todo, 2214 total;
+- 0 snapshots;
+- Chromium canonical Player smoke: 5/5;
+- Vite smoke: PASS;
+- Electron smoke: PASS.
+
+Verified implementation shape:
+
+- S1 authored the unanswered contact, sequential clerk dialogue, canonical Knowledge/relationship/Memory effects, one missable protagonist Story event, one protagonist-absent NPC Story occurrence and Day Two reflection moves;
+- S2 applied explicit authored opening Actual Presence only after materialization, added thin canonical Story-work and sleep Player bridges, due opportunity projection, explicit execute/miss UI, authored bedtime gating and canonical wait-to-bedtime;
+- S3 materializes two sessions from the same compiled artifact and proves divergent Knowledge, goodwill, Story occurrences and Day Two action sets without mutating authored definitions;
+- the NPC-only occurrence executes canonically while the protagonist remains at the bus station;
+- standalone Chromium traverses Day One arrival -> unanswered call -> two-turn clerk conversation -> optional event -> travel via tower -> dorm -> canonical wait -> sleep -> Day Two state-dependent actions with no test-only Actual Presence injection.
+
+Self-review of the stable-to-implementation diff found no added hidden RNG, direct simulation-clock mutation, direct body-field mutation, economy/purchase/fare implementation, schedule-to-Actual-Presence shortcut or artifact format/version change.
+
+The final docs-only closure commit must receive its own full exact-head Branch Check before PR #30 leaves draft.

@@ -135,7 +135,7 @@ Required proof:
 
 ### A57 — Vertical Slice Narrative: Day One -> Day Two
 
-**Status:** **ACTIVE / CONTRACTED** — feature branch `feature/a57-day-one-day-two` starts from exact stable `5058d1bb699fa5eba3a02aeaa2ebe45acdd9624a`.
+**Status:** **IMPLEMENTATION VERIFIED / MERGE REVIEW READY** — exact implementation head `218a66cf83dd8db6165968f306bb301661563468` verified by **#526 GREEN** (358/358 Jest suites, 2149 passed, Chromium 5/5); PR #30 remains draft until docs-only closure CI is GREEN.
 
 **Goal:** create the first complete playable story period rather than a systems sandbox.
 
