@@ -2,6 +2,9 @@ import * as React from 'react';
 import {executeNarrativePlayerAction} from '../application/narrative/player-action';
 import {bootstrapNarrativePlayerHost} from '../application/narrative/player-host';
 import {executeNarrativePlayerSleep} from '../application/narrative/player-sleep';
+import {executeNarrativePlayerPurchase} from '../application/narrative/player-purchase';
+import {executeNarrativePlayerFoodUse} from '../application/narrative/player-item-use';
+import {executeNarrativePlayerItemPlacement} from '../application/narrative/player-item-placement';
 import {executeNarrativePlayerStoryWork} from '../application/narrative/player-story-work';
 import {executeNarrativePlayerTravel} from '../application/narrative/player-travel';
 import {executeNarrativePlayerWait} from '../application/narrative/player-wait';
@@ -35,6 +38,20 @@ function travelModeLabel(mode: string) {
 		default:
 			return 'дорога';
 	}
+}
+
+function formatMoney(
+	minorUnits: number,
+	minorUnitsPerMajor: number,
+	currencyLabel: string
+) {
+	const whole = Math.floor(minorUnits / minorUnitsPerMajor);
+	const remainder = minorUnits % minorUnitsPerMajor;
+	if (remainder === 0) {
+		return `${whole} ${currencyLabel}`;
+	}
+	const digits = Math.max(1, String(minorUnitsPerMajor - 1).length);
+	return `${whole}.${String(remainder).padStart(digits, '0')} ${currencyLabel}`;
 }
 
 function actionStateLabel(state: string) {
@@ -137,6 +154,96 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 		});
 	};
 
+	const executePurchase = (offerId: string) => {
+		if (view.perspective.status !== 'resolved') {
+			return;
+		}
+		const option = view.purchaseOptions.find(candidate => candidate.id === offerId);
+		const result = executeNarrativePlayerPurchase(
+			session,
+			offerId,
+			view.perspective.character.id
+		);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({
+				title: 'Покупка',
+				summary:
+					view.economy.status === 'available'
+						? `${option?.label ?? result.itemInstanceId} · −${formatMoney(
+								result.priceMinorUnits,
+								view.economy.minorUnitsPerMajor,
+								view.economy.currencyLabel
+							)}`
+						: option?.label ?? result.itemInstanceId,
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Покупка недоступна',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
+
+	const executeFoodUse = (itemInstanceId: string) => {
+		if (view.perspective.status !== 'resolved') {
+			return;
+		}
+		const item = view.inventoryItems.find(candidate => candidate.id === itemInstanceId);
+		const result = executeNarrativePlayerFoodUse(
+			session,
+			itemInstanceId,
+			view.perspective.character.id
+		);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({
+				title: item?.name ?? 'Перекус',
+				summary:
+					result.digestionMinutes > 0
+						? `Съедено · переваривание ${result.digestionMinutes} мин.`
+						: 'Съедено.',
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Не удалось съесть',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
+
+	const executeItemPlacement = (
+		itemInstanceId: string,
+		target:
+			| {type: 'character'}
+			| {type: 'pockets'}
+			| {type: 'container'; containerInstanceId: string},
+		label: string
+	) => {
+		if (view.perspective.status !== 'resolved') {
+			return;
+		}
+		const result = executeNarrativePlayerItemPlacement(
+			session,
+			itemInstanceId,
+			target,
+			view.perspective.character.id
+		);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({title: 'Вещи', summary: label, tone: 'result'});
+			return;
+		}
+		setFeedback({
+			title: 'Не удалось переложить',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
 	const executeStoryWork = (
 		workId: string,
 		decision: 'execute' | 'miss'
