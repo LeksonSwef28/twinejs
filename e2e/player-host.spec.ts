@@ -12,6 +12,7 @@ import {
 	arrivalCorridorIds,
 	create93DaysArrivalCorridorProject
 } from '../src/domain/narrative/content/93-days-arrival-corridor';
+import {create93DaysDayOneDayTwoProject} from '../src/domain/narrative/content/93-days-day-one-day-two';
 import {createNarrativeProject} from '../src/domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../src/domain/narrative/templates/93-days';
 import {narrativePlayerDevelopmentHandoffKey} from '../src/player/artifact-source';
@@ -275,6 +276,136 @@ test('boots and traverses the real Arrival Corridor from authored playerStart', 
 	).toBeVisible();
 	await expect(
 		page.getByText(arrivalCorridorIds.locations.busStation)
+	).toHaveCount(0);
+});
+
+test('plays the real A57 Day One to Day Two path in the standalone player', async ({
+	page
+}) => {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysDayOneDayTwoProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected real A57 fixture to compile.');
+	}
+	expect(
+		compiled.artifact.initialRuntime.simulation.actualLocationByCharacter
+	).toEqual({});
+	await page.setViewportSize({width: 390, height: 844});
+
+	await page.route('**/player.html', async route => {
+		const response = await route.fetch();
+		const template = await response.text();
+		await route.fulfill({
+			response,
+			body: embedNarrativeRuntimeArtifactInPlayerHtml(
+				template,
+				compiled.artifact
+			)
+		});
+	});
+
+	await page.goto('http://localhost:5173/player.html');
+
+	await expect(page.locator('[data-player-view="world"]')).toBeVisible();
+	await expect(
+		page.getByRole('heading', {name: 'Междугородний автовокзал'})
+	).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 1');
+	await expect(page.getByText('06:00')).toBeVisible();
+	await expect(
+		page.getByRole('button', {name: /Вспомнить точный совет кассира/})
+	).toHaveCount(0);
+
+	await page
+		.getByRole('button', {name: /Позвонить по записанному номеру/})
+		.click();
+	await expect(page.getByRole('status')).toContainText(
+		'Длинные гудки. Никто не отвечает.'
+	);
+
+	await page
+		.getByRole('button', {
+			name: /Вежливо спросить про водонапорную башню/
+		})
+		.click();
+	await page
+		.getByRole('button', {name: /Уточнить, где пересаживаться после башни/})
+		.click();
+
+	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
+	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
+	await expect(page.getByText('06:10')).toBeVisible();
+	await expect(
+		page.getByText('Короткое утреннее объявление на вокзале')
+	).toBeVisible();
+	await expect(page.getByText('Разговор у вахты без героя')).toHaveCount(0);
+	await page.getByRole('button', {name: 'Участвовать'}).click();
+	await expect(
+		page.getByText('Короткое утреннее объявление на вокзале')
+	).toHaveCount(0);
+
+	await page
+		.getByRole('button', {name: /Выйти на транспортную площадь/})
+		.click();
+	await expect(
+		page.getByRole('heading', {name: 'Транспортная площадь'})
+	).toBeVisible();
+	await expect(page.getByText('06:13')).toBeVisible();
+
+	await page.getByRole('button', {name: /Дойти до остановки/}).click();
+	await expect(
+		page.getByRole('heading', {name: 'Остановка у автовокзала'})
+	).toBeVisible();
+	await expect(page.getByText('06:17')).toBeVisible();
+
+	await page
+		.getByRole('button', {name: /Ехать маршруткой к башне.*18 мин/})
+		.click();
+	await expect(
+		page.getByRole('heading', {name: 'Пересадка у водонапорной башни'})
+	).toBeVisible();
+	await expect(page.getByText('06:35')).toBeVisible();
+
+	await page
+		.getByRole('button', {name: /Идти от башни к общежитию/})
+		.click();
+	await expect(
+		page.getByRole('heading', {name: 'Студенческое общежитие'})
+	).toBeVisible();
+	await expect(page.getByText('06:49')).toBeVisible();
+	await expect(
+		page.getByRole('button', {name: /Вспомнить точный совет кассира/})
+	).toHaveCount(0);
+
+	await page
+		.getByRole('button', {name: 'Подождать до 22:30'})
+		.click();
+	await expect(page.getByText('22:30')).toBeVisible();
+	await expect(page.getByText('Разговор у вахты без героя')).toHaveCount(0);
+
+	await page
+		.getByRole('button', {name: /Лечь спать до утра/})
+		.click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 2');
+	await expect(page.getByText('07:30')).toBeVisible();
+	await expect(
+		page.getByRole('heading', {name: 'Студенческое общежитие'})
+	).toBeVisible();
+
+	await expect(
+		page.getByRole('button', {name: /Вспомнить точный совет кассира/})
+	).toBeEnabled();
+	await expect(
+		page.getByRole('button', {name: /Вспомнить утреннее объявление на вокзале/})
+	).toBeEnabled();
+	await expect(
+		page.getByRole('button', {name: /Признать, что маршрут всё ещё помнится смутно/})
+	).toHaveCount(0);
+	await expect(
+		page.getByRole('button', {
+			name: /Поймать ощущение, что утром на вокзале что-то прошло мимо/
+		})
 	).toHaveCount(0);
 });
 
