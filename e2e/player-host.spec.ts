@@ -388,7 +388,7 @@ test('plays the real A57 Day One to Day Two path in the standalone player', asyn
 		.getByRole('button', {name: /Лечь спать до утра/})
 		.click();
 	await expect(page.locator('.narrative-player__clock')).toContainText('День 2');
-	await expect(page.getByText('07:30')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('07:30');
 	await expect(
 		page.getByRole('heading', {name: 'Студенческое общежитие'})
 	).toBeVisible();
