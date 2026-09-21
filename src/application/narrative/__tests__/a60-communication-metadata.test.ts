@@ -62,6 +62,7 @@ describe('A60-S2 Story communication metadata', () => {
 		expect(
 			diagnostics.findings.filter(
 				finding =>
+					'storyNodeId' in finding &&
 					finding.storyNodeId === phoneSocialLoopIds.story.incomingSms &&
 					(finding.kind === 'story-participant-schedule-gap' ||
 						finding.kind === 'story-schedule-location-conflict')
@@ -77,7 +78,7 @@ describe('A60-S2 Story communication metadata', () => {
 		if (!sms) {
 			throw new Error('Expected A60 incoming SMS Story node.');
 		}
-		(sms as typeof sms & {communication: {channel: string}}).communication = {
+		(sms as unknown as {communication: {channel: string}}).communication = {
 			channel: 'email'
 		};
 
