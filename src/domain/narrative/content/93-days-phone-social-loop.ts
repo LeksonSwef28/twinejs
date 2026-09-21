@@ -421,7 +421,8 @@ export function create93DaysPhoneSocialLoopProject(): NarrativeProject {
 				'После прочтения сообщения можно согласиться на встречу или отказаться заранее.',
 			primaryCharacterId: playerId,
 			participantIds: [playerId, contactId],
-			activationState: 'available'
+			activationState: 'available',
+			communication: {channel: 'sms'}
 		},
 		{
 			id: phoneSocialLoopIds.story.meeting,
