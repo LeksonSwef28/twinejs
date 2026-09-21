@@ -388,6 +388,20 @@ function playerSleepPresentation(
 		: {options};
 }
 
+function resolutionIsInapplicableNarrativeBranch(
+	resolution: ReturnType<typeof resolveNarrativeProjectMove>
+) {
+	return (
+		resolution.status === 'blocked' &&
+		resolution.guardTraces.some(
+			trace =>
+				trace.status === 'unmet' &&
+				(trace.condition.type === 'character-knows-claim' ||
+					trace.condition.type === 'story-node-state')
+		)
+	);
+}
+
 function playerActions(
 	project: NarrativeProject,
 	playerCharacterId: string,
@@ -411,6 +425,9 @@ function playerActions(
 				return [];
 			}
 			const resolution = resolveNarrativeProjectMove(project, move.id);
+			if (resolutionIsInapplicableNarrativeBranch(resolution)) {
+				return [];
+			}
 			return [
 				{
 					id: move.id,
