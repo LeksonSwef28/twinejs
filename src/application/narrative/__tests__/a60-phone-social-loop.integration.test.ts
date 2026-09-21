@@ -184,7 +184,17 @@ describe('A60-S1 content-only phone social loop', () => {
 		let session = readSms(reachDayTwoSms(artifact));
 
 		let view = deriveNarrativePlayerPresentation(session.currentProject);
-		expect(view.actions.map(item => item.id)).toEqual(
+		expect(view.phone.status).toBe('available');
+		if (view.phone.status !== 'available') {
+			throw new Error(view.phone.summary);
+		}
+		expect(view.phone.actions.map(item => item.id)).toEqual(
+			expect.arrayContaining([
+				phoneSocialLoopIds.moves.accept,
+				phoneSocialLoopIds.moves.decline
+			])
+		);
+		expect(view.actions.map(item => item.id)).not.toEqual(
 			expect.arrayContaining([
 				phoneSocialLoopIds.moves.accept,
 				phoneSocialLoopIds.moves.decline
