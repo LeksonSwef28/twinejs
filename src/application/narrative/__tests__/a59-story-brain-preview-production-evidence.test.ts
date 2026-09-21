@@ -178,6 +178,7 @@ describe('A59-S2 real Story Brain + Preview production evidence', () => {
 
 	test('real-slice diagnostics navigate a malformed Day Two Move clone back to its canonical Story source', () => {
 		const source = create93DaysEverydaySystemsProject();
+		const sourceBefore = cloneProject(source);
 		const broken = cloneProject(source);
 		const move = broken.narrativeMoves.find(
 			candidate => candidate.id === dayOneNarrativeIds.moves.dayTwoKnownRoute
