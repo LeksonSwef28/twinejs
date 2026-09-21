@@ -135,7 +135,7 @@ Required proof:
 
 ### A57 — Vertical Slice Narrative: Day One -> Day Two
 
-**Status:** **IMPLEMENTATION VERIFIED / MERGE REVIEW READY** — exact implementation head `218a66cf83dd8db6165968f306bb301661563468` verified by **#526 GREEN** (358/358 Jest suites, 2149 passed, Chromium 5/5); PR #30 remains draft until docs-only closure CI is GREEN.
+**Status:** **DONE / STABLE** — implementation #526 GREEN, closure #527 GREEN; merged as `1691b49f4560f07ca1c4b6c35541d92af92dd3c3` and post-merge verified by **#528 GREEN** (358/358 Jest suites, 2149 passed, Chromium 5/5, Vite/Electron PASS).
 
 **Goal:** create the first complete playable story period rather than a systems sandbox.
 
@@ -154,6 +154,8 @@ Content scope:
 Exit proof: two runs can legitimately produce different knowledge/relationships/occurrences without either being treated as an invalid run.
 
 ### A58 — Everyday Systems Integration for the Slice
+
+**Status:** **DONE / MERGE REVIEW READY** — implementation head `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435` verified by **#559 GREEN**; closure docs head `9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5` verified by **#562 GREEN** (367/367 Jest suites, 2175 passed, Chromium 6/6, Vite/Electron PASS). PR #31 is open and Ready for review; merge requires explicit authorization.
 
 **Goal:** use existing physical systems only where the actual slice creates decisions, and close only proven missing contracts.
 

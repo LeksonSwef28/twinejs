@@ -15,6 +15,8 @@ export interface NarrativeTravelRouteDefinition {
 	destinationLocationId: EntityId;
 	durationMinutes: number;
 	mode: NarrativeTravelMode;
+	/** Optional A58 fare in integer minor units. Omit for a free route. */
+	fareMinorUnits?: number;
 	/**
 	 * Optional existing physical action gate. Transit normally omits this;
 	 * walking routes can reuse body/injury/carrying eligibility.
@@ -63,6 +65,8 @@ export function narrativeTravelRouteIsStructurallyValid(
 		(route.durationMinutes ?? 0) > 0 &&
 		typeof route.mode === 'string' &&
 		travelModes.has(route.mode as NarrativeTravelMode) &&
+		(route.fareMinorUnits === undefined ||
+			(Number.isInteger(route.fareMinorUnits) && route.fareMinorUnits > 0)) &&
 		(route.physicalAction === undefined ||
 			(typeof route.physicalAction === 'string' &&
 				physicalActions.has(route.physicalAction as PhysicalActionKind)))

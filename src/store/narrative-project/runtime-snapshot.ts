@@ -5,6 +5,7 @@ import {
 	PendingReaction,
 	RelationshipState
 } from '../../domain/narrative/cognition';
+import {narrativeMoneyAmountIsValid} from '../../domain/narrative/economy';
 import {InjuryState, injuryStateIsValid} from '../../domain/narrative/injury';
 import {
 	ItemRuntimePlacement,
@@ -82,6 +83,17 @@ function isStringRecord(value: unknown) {
 		isRecord(value) &&
 		Object.values(value).every(entry => typeof entry === 'string')
 	);
+}
+
+function cashStateRecordIsValid(value: unknown): value is Record<string, number> {
+	return (
+		isRecord(value) &&
+		Object.values(value).every(narrativeMoneyAmountIsValid)
+	);
+}
+
+function cloneCashStateRecord(value: unknown): Record<string, number> {
+	return cashStateRecordIsValid(value) ? {...value} : {};
 }
 
 function bodyStateRecordIsValid(
@@ -334,6 +346,7 @@ function runtimeProjectionIsValid(
 		value.pendingReactions.every(pendingReactionIsValid) &&
 		Array.isArray(value.mindStates) &&
 		value.mindStates.every(mindStateIsValid) &&
+		(value.cashByCharacter === undefined || cashStateRecordIsValid(value.cashByCharacter)) &&
 		(value.injuriesByCharacter === undefined ||
 			injuryStateRecordIsValid(value.injuriesByCharacter)) &&
 		(value.itemPlacementOverrides === undefined ||
@@ -371,6 +384,7 @@ function cloneRuntimeProjection(
 			activeMemoryIds: [...mind.activeMemoryIds],
 			pendingReactionIds: [...mind.pendingReactionIds]
 		})),
+		cashByCharacter: cloneCashStateRecord(runtime.cashByCharacter),
 		injuriesByCharacter: cloneInjuryStateRecord(runtime.injuriesByCharacter),
 		itemPlacementOverrides: cloneItemPlacementRecord(runtime.itemPlacementOverrides),
 		storyNodeStateOverrides: cloneStoryNodeStateRecord(
@@ -493,6 +507,7 @@ export function restoreNarrativeRuntimeSnapshot(
 			relationships: runtime.relationships,
 			pendingReactions: runtime.pendingReactions,
 			mindStates: runtime.mindStates,
+			cashByCharacter: runtime.cashByCharacter ?? {},
 			injuriesByCharacter: runtime.injuriesByCharacter ?? {},
 			itemPlacementOverrides: runtime.itemPlacementOverrides ?? {},
 			storyNodeStateOverrides: runtime.storyNodeStateOverrides ?? {},

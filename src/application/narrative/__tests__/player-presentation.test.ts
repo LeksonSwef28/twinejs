@@ -1,4 +1,9 @@
 import {createCharacterBodyState} from '../../../domain/narrative/body';
+import {arrivalCorridorIds} from '../../../domain/narrative/content/93-days-arrival-corridor';
+import {
+	create93DaysEverydaySystemsProject,
+	everydaySystemsIds
+} from '../../../domain/narrative/content/93-days-everyday-systems';
 import {NarrativeMoveDefinition} from '../../../domain/narrative/interaction';
 import {NarrativeProject} from '../../../domain/narrative/project';
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
@@ -194,8 +199,16 @@ describe('A55 player presentation projection', () => {
 		expect(value.simulation.bodyByCharacter).toEqual({});
 		expect(view.carryLoad?.totalWeightKg).toBeCloseTo(1.8);
 		expect(view.inventoryItems).toEqual([
-			{id: 'portfolio-1', name: 'Портфель', placement: 'top-level'},
-			{id: 'thermos-1', name: 'Термос', placement: 'contained'}
+			expect.objectContaining({
+				id: 'portfolio-1',
+				name: 'Портфель',
+				placement: 'top-level'
+			}),
+			expect.objectContaining({
+				id: 'thermos-1',
+				name: 'Термос',
+				placement: 'contained'
+			})
 		]);
 	});
 
@@ -465,4 +478,78 @@ describe('A55 player presentation projection', () => {
 		);
 		expect(view.actions.every(action => action.dialogue)).toBe(true);
 	});
+
+	test('projects A58 cash, local purchases, fares and canonical packing affordances', () => {
+		const value = create93DaysEverydaySystemsProject();
+		value.simulation.actualLocationByCharacter.player =
+			arrivalCorridorIds.locations.foodPoint;
+		value.cashByCharacter = {player: 12000};
+
+		let view = deriveNarrativePlayerPresentation(value);
+		expect(view.economy).toEqual(
+			expect.objectContaining({
+				status: 'available',
+				balanceMinorUnits: 12000,
+				minorUnitsPerMajor: 100
+			})
+		);
+		expect(view.purchaseOptions).toEqual([
+			expect.objectContaining({
+				id: everydaySystemsIds.offers.heavyMeal,
+				priceMinorUnits: 1800,
+				state: 'ready'
+			})
+		]);
+
+		value.simulation.actualLocationByCharacter.player =
+			arrivalCorridorIds.locations.stationStop;
+		view = deriveNarrativePlayerPresentation(value);
+		const taxi = view.travelOptions.find(
+			option => option.id === arrivalCorridorIds.routes.stopToTowerRouteTaxi
+		);
+		expect(taxi).toEqual(
+			expect.objectContaining({
+				fareMinorUnits: 1200,
+				state: 'ready'
+			})
+		);
+
+		value.cashByCharacter.player = 500;
+		view = deriveNarrativePlayerPresentation(value);
+		expect(
+			view.travelOptions.find(
+				option => option.id === arrivalCorridorIds.routes.stopToTowerRouteTaxi
+			)
+		).toEqual(
+			expect.objectContaining({
+				state: 'blocked',
+				summary: 'Недостаточно денег.'
+			})
+		);
+
+		value.cashByCharacter.player = 12000;
+		value.itemPlacementOverrides[everydaySystemsIds.items.heavyMeal] = {
+			type: 'character',
+			characterId: 'player'
+		};
+		view = deriveNarrativePlayerPresentation(value);
+		const meal = view.inventoryItems.find(
+			item => item.id === everydaySystemsIds.items.heavyMeal
+		);
+		expect(meal).toEqual(
+			expect.objectContaining({
+				canEat: true,
+				canUnpack: false
+			})
+		);
+		expect(meal?.packingOptions).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					label: 'В «Дорожная сумка»',
+					state: 'ready'
+				})
+			])
+		);
+	});
+
 });

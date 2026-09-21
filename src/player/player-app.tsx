@@ -2,6 +2,9 @@ import * as React from 'react';
 import {executeNarrativePlayerAction} from '../application/narrative/player-action';
 import {bootstrapNarrativePlayerHost} from '../application/narrative/player-host';
 import {executeNarrativePlayerSleep} from '../application/narrative/player-sleep';
+import {executeNarrativePlayerPurchase} from '../application/narrative/player-purchase';
+import {executeNarrativePlayerFoodUse} from '../application/narrative/player-item-use';
+import {executeNarrativePlayerItemPlacement} from '../application/narrative/player-item-placement';
 import {executeNarrativePlayerStoryWork} from '../application/narrative/player-story-work';
 import {executeNarrativePlayerTravel} from '../application/narrative/player-travel';
 import {executeNarrativePlayerWait} from '../application/narrative/player-wait';
@@ -35,6 +38,20 @@ function travelModeLabel(mode: string) {
 		default:
 			return 'дорога';
 	}
+}
+
+function formatMoney(
+	minorUnits: number,
+	minorUnitsPerMajor: number,
+	currencyLabel: string
+) {
+	const whole = Math.floor(minorUnits / minorUnitsPerMajor);
+	const remainder = minorUnits % minorUnitsPerMajor;
+	if (remainder === 0) {
+		return `${whole} ${currencyLabel}`;
+	}
+	const digits = Math.max(1, String(minorUnitsPerMajor - 1).length);
+	return `${whole}.${String(remainder).padStart(digits, '0')} ${currencyLabel}`;
 }
 
 function actionStateLabel(state: string) {
@@ -123,9 +140,17 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 		);
 		if (result.status === 'applied') {
 			setSession(result.session);
+			const fare =
+				result.fareMinorUnits !== undefined && view.economy.status === 'available'
+					? ` · −${formatMoney(
+							result.fareMinorUnits,
+							view.economy.minorUnitsPerMajor,
+							view.economy.currencyLabel
+						)}`
+					: '';
 			setFeedback({
 				title: result.destinationName,
-				summary: `${result.routeLabel} · ${result.durationMinutes} мин.`,
+				summary: `${result.routeLabel} · ${result.durationMinutes} мин.${fare}`,
 				tone: 'result'
 			});
 			return;
@@ -137,6 +162,96 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 		});
 	};
 
+	const executePurchase = (offerId: string) => {
+		if (view.perspective.status !== 'resolved') {
+			return;
+		}
+		const option = view.purchaseOptions.find(candidate => candidate.id === offerId);
+		const result = executeNarrativePlayerPurchase(
+			session,
+			offerId,
+			view.perspective.character.id
+		);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({
+				title: 'Покупка',
+				summary:
+					view.economy.status === 'available'
+						? `${option?.label ?? result.itemInstanceId} · −${formatMoney(
+								result.priceMinorUnits,
+								view.economy.minorUnitsPerMajor,
+								view.economy.currencyLabel
+							)}`
+						: option?.label ?? result.itemInstanceId,
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Покупка недоступна',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
+
+	const executeFoodUse = (itemInstanceId: string) => {
+		if (view.perspective.status !== 'resolved') {
+			return;
+		}
+		const item = view.inventoryItems.find(candidate => candidate.id === itemInstanceId);
+		const result = executeNarrativePlayerFoodUse(
+			session,
+			itemInstanceId,
+			view.perspective.character.id
+		);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({
+				title: item?.name ?? 'Перекус',
+				summary:
+					result.digestionMinutes > 0
+						? `Съедено · переваривание ${result.digestionMinutes} мин.`
+						: 'Съедено.',
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Не удалось съесть',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
+
+	const executeItemPlacement = (
+		itemInstanceId: string,
+		target:
+			| {type: 'character'}
+			| {type: 'pockets'}
+			| {type: 'container'; containerInstanceId: string},
+		label: string
+	) => {
+		if (view.perspective.status !== 'resolved') {
+			return;
+		}
+		const result = executeNarrativePlayerItemPlacement(
+			session,
+			itemInstanceId,
+			target,
+			view.perspective.character.id
+		);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({title: 'Вещи', summary: label, tone: 'result'});
+			return;
+		}
+		setFeedback({
+			title: 'Не удалось переложить',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
 	const executeStoryWork = (
 		workId: string,
 		decision: 'execute' | 'miss'
@@ -295,6 +410,41 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 							)}
 						</section>
 
+						{view.purchaseOptions.length > 0 && (
+							<section
+								className="narrative-player__panel"
+								aria-labelledby="purchase-title"
+							>
+								<div className="narrative-player__panel-heading">
+									<h3 id="purchase-title">Купить</h3>
+									<span>{view.purchaseOptions.length}</span>
+								</div>
+								<ul className="narrative-player__purchase-options">
+									{view.purchaseOptions.map(option => (
+										<li key={option.id}>
+											<button
+												type="button"
+												disabled={option.state !== 'ready'}
+												onClick={() => executePurchase(option.id)}
+											>
+												<span>{option.label}</span>
+												<small>
+													{view.economy.status === 'available'
+														? formatMoney(
+																option.priceMinorUnits,
+																view.economy.minorUnitsPerMajor,
+																view.economy.currencyLabel
+															)
+														: option.itemName}
+												</small>
+											</button>
+											{option.state === 'blocked' && <p>{option.summary}</p>}
+										</li>
+									))}
+								</ul>
+							</section>
+						)}
+
 						{view.storyOpportunities.length > 0 && (
 							<section
 								className="narrative-player__panel"
@@ -376,6 +526,14 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 												<small>
 													{option.destinationName} · {travelModeLabel(option.mode)} ·{' '}
 													{option.durationMinutes} мин.
+													{option.fareMinorUnits !== undefined &&
+													view.economy.status === 'available'
+														? ` · ${formatMoney(
+																option.fareMinorUnits,
+																view.economy.minorUnitsPerMajor,
+																view.economy.currencyLabel
+															)}`
+														: ''}
 												</small>
 											</button>
 											{option.state === 'blocked' && <p>{option.summary}</p>}
@@ -507,8 +665,52 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 								<ul className="narrative-player__inventory">
 									{view.inventoryItems.map(item => (
 										<li key={item.id}>
-											<span>{item.name}</span>
-											{item.placement === 'contained' && <small>внутри</small>}
+											<div className="narrative-player__inventory-line">
+												<span>{item.name}</span>
+												{item.placement === 'contained' && <small>внутри</small>}
+											</div>
+											{(item.canEat ||
+												item.canUnpack ||
+												item.packingOptions.some(option => option.state === 'ready')) && (
+												<div className="narrative-player__inventory-actions">
+													{item.canEat && (
+														<button type="button" onClick={() => executeFoodUse(item.id)}>
+															Съесть
+														</button>
+													)}
+													{item.canUnpack && (
+														<button
+															type="button"
+															onClick={() =>
+																executeItemPlacement(
+																	item.id,
+																	{type: 'character'},
+																	`Достали «${item.name}».`
+																)
+															}
+														>
+															Достать
+														</button>
+													)}
+													{item.packingOptions
+														.filter(option => option.state === 'ready')
+														.map(option => (
+															<button
+																type="button"
+																key={option.id}
+																onClick={() =>
+																	executeItemPlacement(
+																		item.id,
+																		option.target,
+																		`${item.name}: ${option.label.toLowerCase()}.`
+																	)
+																}
+															>
+																{option.label}
+															</button>
+														))}
+												</div>
+											)}
 										</li>
 									))}
 								</ul>
@@ -524,9 +726,19 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 						<section className="narrative-player__panel">
 							<div className="narrative-player__panel-heading">
 								<h3>Деньги</h3>
-								<span>—</span>
+								<span>{view.economy.status === 'available' ? view.economy.currencyCode : '—'}</span>
 							</div>
-							<p className="narrative-player__muted">{view.economy.summary}</p>
+							{view.economy.status === 'available' ? (
+								<strong className="narrative-player__money">
+									{formatMoney(
+										view.economy.balanceMinorUnits,
+										view.economy.minorUnitsPerMajor,
+										view.economy.currencyLabel
+									)}
+								</strong>
+							) : (
+								<p className="narrative-player__muted">{view.economy.summary}</p>
+							)}
 						</section>
 					</aside>
 				</div>

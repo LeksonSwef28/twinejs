@@ -1,6 +1,7 @@
 import {CharacterBodyState} from './body';
 import {CharacterMindState, MemoryTrace, PendingReaction, RelationshipState} from './cognition';
 import {NarrativeEditorState} from './editor';
+import {NarrativeEconomyDefinition} from './economy';
 import {NarrativeCharacter, NarrativeLocation, NarrativeScene} from './entities';
 import {InjuryState} from './injury';
 import {NarrativeMoveDefinition} from './interaction';
@@ -57,6 +58,8 @@ export interface NarrativeProject {
 	playerStart?: NarrativePlayerStartDefinition;
 	/** Optional authored overnight choices; older schema-v3 projects may omit them. */
 	sleepOptions?: NarrativeSleepOptionDefinition[];
+	/** Optional additive A58 authored economy; older schema-v3 projects may omit it. */
+	economy?: NarrativeEconomyDefinition;
 	characters: NarrativeCharacter[];
 	itemDefinitions: ItemDefinition[];
 	itemInstances: ItemInstance[];
@@ -79,6 +82,8 @@ export interface NarrativeProject {
 	relationships: RelationshipState[];
 	pendingReactions: PendingReaction[];
 	mindStates: CharacterMindState[];
+	/** Mutable A58 runtime cash balances in integer minor units. */
+	cashByCharacter: Record<string, number>;
 	/** Current injuries are runtime conditions, not an abstract HP total. */
 	injuriesByCharacter: Record<string, InjuryState[]>;
 	/** Runtime overlay on canonical authored ItemInstance placement. */

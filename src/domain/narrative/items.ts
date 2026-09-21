@@ -25,6 +25,13 @@ export interface ItemContainerProperties {
 	climbEffortMultiplier?: number;
 }
 
+export interface ItemFoodProperties {
+	/** Canonical body satiety gain applied when this concrete item is consumed. */
+	satietyGain: number;
+	/** Canonical body digestion window in simulation minutes. */
+	digestionMinutes: number;
+}
+
 export interface ItemDefinition {
 	id: EntityId;
 	name: string;
@@ -34,6 +41,25 @@ export interface ItemDefinition {
 	carry?: ItemCarryProperties;
 	/** Present only when this item can contain other item instances. */
 	container?: ItemContainerProperties;
+	/** Optional A58 food-use properties; body.ts remains the mechanics owner. */
+	food?: ItemFoodProperties;
+}
+
+export function itemFoodPropertiesAreValid(
+	value: unknown
+): value is ItemFoodProperties {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return false;
+	}
+	const food = value as Partial<ItemFoodProperties>;
+	return (
+		typeof food.satietyGain === 'number' &&
+		Number.isFinite(food.satietyGain) &&
+		food.satietyGain > 0 &&
+		typeof food.digestionMinutes === 'number' &&
+		Number.isInteger(food.digestionMinutes) &&
+		food.digestionMinutes >= 0
+	);
 }
 
 /**

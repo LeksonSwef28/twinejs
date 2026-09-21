@@ -1,10 +1,21 @@
 import {createCharacterBodyState, CharacterBodyState} from '../../domain/narrative/body';
-import {resolveCharacterCarryLoad, CharacterCarryLoad} from '../../domain/narrative/carrying';
+import {
+	effectiveItemPlacement,
+	evaluatePackIntoContainer,
+	evaluatePackIntoPockets,
+	resolveCharacterCarryLoad,
+	CharacterCarryLoad
+} from '../../domain/narrative/carrying';
 import {
 	NarrativeCharacter,
 	NarrativeLocation,
 	NarrativeScene
 } from '../../domain/narrative/entities';
+import {
+	evaluateNarrativeCashSpend,
+	narrativeEconomyIsStructurallyValid
+} from '../../domain/narrative/economy';
+import {itemFoodPropertiesAreValid} from '../../domain/narrative/items';
 import {NarrativeMoveKind} from '../../domain/narrative/interaction';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {
@@ -17,6 +28,7 @@ import {scheduledStoryWork} from '../../domain/narrative/simulation-kernel';
 import {NarrativeTravelMode} from '../../domain/narrative/travel';
 import {evaluateNarrativePhysicalAction} from './physical';
 import {
+	narrativeRuntimeItemInstances,
 	narrativeRuntimeStoryNodes,
 	resolveNarrativeProjectMove
 } from './living-simulation';
@@ -36,11 +48,48 @@ export type NarrativePlayerPerspectiveResolution =
 			summary: string;
 	  };
 
+export interface NarrativePlayerInventoryPackingOption {
+	id: string;
+	label: string;
+	target:
+		| {type: 'pockets'}
+		| {type: 'container'; containerInstanceId: string};
+	state: 'ready' | 'blocked';
+	summary: string;
+}
+
 export interface NarrativePlayerInventoryItem {
 	id: string;
 	name: string;
 	placement: 'top-level' | 'contained';
+	runtimePlacement: 'character' | 'pockets' | 'container';
+	canEat: boolean;
+	canUnpack: boolean;
+	packingOptions: NarrativePlayerInventoryPackingOption[];
 }
+
+export interface NarrativePlayerPurchaseOption {
+	id: string;
+	label: string;
+	itemInstanceId: string;
+	itemName: string;
+	priceMinorUnits: number;
+	state: 'ready' | 'blocked';
+	summary: string;
+}
+
+export type NarrativePlayerEconomyPresentation =
+	| {
+			status: 'available';
+			currencyCode: string;
+			currencyLabel: string;
+			minorUnitsPerMajor: number;
+			balanceMinorUnits: number;
+	  }
+	| {
+			status: 'unavailable';
+			summary: string;
+	  };
 
 export type NarrativePlayerActionState =
 	| 'ready'
@@ -55,6 +104,7 @@ export interface NarrativePlayerTravelOption {
 	destinationName: string;
 	durationMinutes: number;
 	mode: NarrativeTravelMode;
+	fareMinorUnits?: number;
 	state: 'ready' | 'blocked';
 	summary: string;
 }
@@ -109,10 +159,8 @@ export interface NarrativePlayerPresentationModel {
 	body?: CharacterBodyState;
 	carryLoad?: CharacterCarryLoad;
 	inventoryItems: NarrativePlayerInventoryItem[];
-	economy: {
-		status: 'unavailable';
-		summary: string;
-	};
+	purchaseOptions: NarrativePlayerPurchaseOption[];
+	economy: NarrativePlayerEconomyPresentation;
 }
 
 function sortedCharacters(characters: NarrativeCharacter[]) {
@@ -187,19 +235,166 @@ function itemName(project: NarrativeProject, itemInstanceId: string) {
 
 function inventoryItems(
 	project: NarrativeProject,
-	load: CharacterCarryLoad
+	load: CharacterCarryLoad,
+	characterId: string
 ): NarrativePlayerInventoryItem[] {
 	const topLevelIds = new Set(load.topLevelItemIds);
 	const orderedIds = [
 		...load.topLevelItemIds,
 		...load.containedItemIds.filter(id => !topLevelIds.has(id))
 	];
+	const carriedContainerIds = orderedIds.filter(id => {
+		const instance = project.itemInstances.find(item => item.id === id);
+		const definition = instance
+			? project.itemDefinitions.find(
+					candidate => candidate.id === instance.definitionId
+				)
+			: undefined;
+		return Boolean(definition?.container);
+	});
 
-	return orderedIds.map(id => ({
-		id,
-		name: itemName(project, id),
-		placement: topLevelIds.has(id) ? 'top-level' : 'contained'
-	}));
+	return orderedIds.map(id => {
+		const instance = project.itemInstances.find(item => item.id === id);
+		const definition = instance
+			? project.itemDefinitions.find(
+					candidate => candidate.id === instance.definitionId
+				)
+			: undefined;
+		const runtimePlacement = instance
+			? effectiveItemPlacement(instance, project.itemPlacementOverrides)
+			: {type: 'character' as const, characterId};
+		const placementKind =
+			runtimePlacement.type === 'pockets'
+				? ('pockets' as const)
+				: runtimePlacement.type === 'container'
+					? ('container' as const)
+					: ('character' as const);
+		const packingOptions: NarrativePlayerInventoryPackingOption[] = [];
+
+		if (runtimePlacement.type !== 'pockets') {
+			const pockets = evaluatePackIntoPockets(
+				id,
+				characterId,
+				project.itemDefinitions,
+				project.itemInstances,
+				project.itemPlacementOverrides
+			);
+			packingOptions.push({
+				id: `${id}:pockets`,
+				label: 'В карманы',
+				target: {type: 'pockets'},
+				state: pockets.allowed ? 'ready' : 'blocked',
+				summary: pockets.allowed
+					? 'Предмет помещается в карманы.'
+					: pockets.blockers.map(blocker => blocker.message).join(' ')
+			});
+		}
+		for (const containerInstanceId of carriedContainerIds) {
+			if (
+				containerInstanceId === id ||
+				(runtimePlacement.type === 'container' &&
+					runtimePlacement.containerInstanceId === containerInstanceId)
+			) {
+				continue;
+			}
+			const packing = evaluatePackIntoContainer(
+				id,
+				containerInstanceId,
+				project.itemDefinitions,
+				project.itemInstances,
+				project.itemPlacementOverrides
+			);
+			packingOptions.push({
+				id: `${id}:container:${containerInstanceId}`,
+				label: `В «${itemName(project, containerInstanceId)}»`,
+				target: {type: 'container', containerInstanceId},
+				state: packing.allowed ? 'ready' : 'blocked',
+				summary: packing.allowed
+					? 'Предмет помещается в контейнер.'
+					: packing.blockers.map(blocker => blocker.message).join(' ')
+			});
+		}
+
+		return {
+			id,
+			name: itemName(project, id),
+			placement: topLevelIds.has(id) ? 'top-level' : 'contained',
+			runtimePlacement: placementKind,
+			canEat: Boolean(
+				definition?.food && itemFoodPropertiesAreValid(definition.food)
+			),
+			canUnpack:
+				runtimePlacement.type === 'pockets' ||
+				runtimePlacement.type === 'container',
+			packingOptions
+		};
+	});
+}
+
+function playerPurchaseOptions(
+	project: NarrativeProject,
+	characterId: string,
+	locationId: string | undefined
+): NarrativePlayerPurchaseOption[] {
+	if (
+		!locationId ||
+		!project.economy ||
+		!narrativeEconomyIsStructurallyValid(project.economy)
+	) {
+		return [];
+	}
+	const runtimeItems = narrativeRuntimeItemInstances(project);
+	return project.economy.purchaseOffers
+		.filter(offer => offer.locationId === locationId)
+		.flatMap(offer => {
+			const runtimeItem = runtimeItems.find(
+				item => item.id === offer.itemInstanceId
+			);
+			if (
+				!runtimeItem ||
+				runtimeItem.placement.type !== 'location' ||
+				runtimeItem.placement.locationId !== locationId
+			) {
+				return [];
+			}
+			const funds = evaluateNarrativeCashSpend(
+				project.cashByCharacter,
+				characterId,
+				offer.priceMinorUnits,
+				true
+			);
+			return [
+				{
+					id: offer.id,
+					label: offer.label,
+					itemInstanceId: offer.itemInstanceId,
+					itemName: itemName(project, offer.itemInstanceId),
+					priceMinorUnits: offer.priceMinorUnits,
+					state: funds.allowed ? ('ready' as const) : ('blocked' as const),
+					summary: funds.allowed ? 'Можно купить сейчас.' : funds.summary
+				}
+			];
+		})
+		.sort((a, b) => a.label.localeCompare(b.label) || a.id.localeCompare(b.id));
+}
+
+function playerEconomyPresentation(
+	project: NarrativeProject,
+	characterId: string
+): NarrativePlayerEconomyPresentation {
+	if (!project.economy || !narrativeEconomyIsStructurallyValid(project.economy)) {
+		return {
+			status: 'unavailable',
+			summary: 'Для этого Narrative Project экономика не настроена.'
+		};
+	}
+	return {
+		status: 'available',
+		currencyCode: project.economy.currency.code,
+		currencyLabel: project.economy.currency.label,
+		minorUnitsPerMajor: project.economy.currency.minorUnitsPerMajor,
+		balanceMinorUnits: project.cashByCharacter[characterId] ?? 0
+	};
 }
 
 function actionState(
@@ -232,6 +427,18 @@ function playerTravelOptions(
 						route.physicalAction
 					)
 				: undefined;
+			const fare =
+				route.fareMinorUnits === undefined
+					? undefined
+					: evaluateNarrativeCashSpend(
+							project.cashByCharacter,
+							playerCharacterId,
+							route.fareMinorUnits,
+							true
+						);
+			const blockedByPhysical = Boolean(physical && !physical.allowed);
+			const fareBlockSummary =
+				fare && !fare.allowed ? fare.summary : undefined;
 			return [
 				{
 					id: route.id,
@@ -240,11 +447,14 @@ function playerTravelOptions(
 					destinationName: destination.name,
 					durationMinutes: route.durationMinutes,
 					mode: route.mode,
-					state: physical && !physical.allowed ? ('blocked' as const) : ('ready' as const),
-					summary:
-						physical && !physical.allowed
-							? physical.blockers.map(blocker => blocker.message).join(' ')
-							: `${route.durationMinutes} мин.`
+					fareMinorUnits: route.fareMinorUnits,
+					state:
+						blockedByPhysical || fareBlockSummary
+							? ('blocked' as const)
+							: ('ready' as const),
+					summary: blockedByPhysical
+						? physical!.blockers.map(blocker => blocker.message).join(' ')
+						: fareBlockSummary ?? `${route.durationMinutes} мин.`
 				}
 			];
 		})
@@ -467,6 +677,7 @@ export function deriveNarrativePlayerPresentation(
 		storyOpportunities: [],
 		sleepOptions: [],
 		inventoryItems: [],
+		purchaseOptions: [],
 		economy: {
 			status: 'unavailable',
 			summary: 'Деньги и экономика будут подключены отдельным каноническим контрактом.'
@@ -496,13 +707,17 @@ export function deriveNarrativePlayerPresentation(
 		locationId
 	);
 	const sleep = playerSleepPresentation(project, locationId);
+	const purchaseOptions = playerPurchaseOptions(project, characterId, locationId);
+	const economy = playerEconomyPresentation(project, characterId);
 	const playerBase = {
 		...base,
 		actions,
 		travelOptions,
 		storyOpportunities,
 		sleepOptions: sleep.options,
-		sleepWait: sleep.wait
+		sleepWait: sleep.wait,
+		purchaseOptions,
+		economy
 	};
 
 	if (!locationId) {
@@ -510,7 +725,7 @@ export function deriveNarrativePlayerPresentation(
 			...playerBase,
 			body,
 			carryLoad,
-			inventoryItems: inventoryItems(project, carryLoad)
+			inventoryItems: inventoryItems(project, carryLoad, characterId)
 		};
 	}
 
@@ -521,7 +736,7 @@ export function deriveNarrativePlayerPresentation(
 			locationState: 'unknown-location',
 			body,
 			carryLoad,
-			inventoryItems: inventoryItems(project, carryLoad)
+			inventoryItems: inventoryItems(project, carryLoad, characterId)
 		};
 	}
 
@@ -552,6 +767,6 @@ export function deriveNarrativePlayerPresentation(
 		localCharacters,
 		body,
 		carryLoad,
-		inventoryItems: inventoryItems(project, carryLoad)
+		inventoryItems: inventoryItems(project, carryLoad, characterId)
 	};
 }

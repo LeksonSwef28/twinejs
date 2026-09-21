@@ -1,5 +1,9 @@
 import {NarrativeEditorState} from '../../domain/narrative/editor';
 import {
+	narrativeEconomyIsStructurallyValid,
+	narrativeMoneyAmountIsValid
+} from '../../domain/narrative/economy';
+import {
 	NarrativeProject,
 	narrativeProjectSchemaVersion
 } from '../../domain/narrative/project';
@@ -107,6 +111,7 @@ function authoredProjectionLooksUsable(
 	const travelRoutes = value.travelRoutes;
 	const playerStart = value.playerStart;
 	const sleepOptions = value.sleepOptions;
+	const economy = value.economy;
 	return (
 		typeof value.projectId === 'string' &&
 		typeof value.hostStoryId === 'string' &&
@@ -121,7 +126,15 @@ function authoredProjectionLooksUsable(
 			narrativePlayerStartIsStructurallyValid(playerStart)) &&
 		(sleepOptions === undefined ||
 			(Array.isArray(sleepOptions) &&
-				sleepOptions.every(narrativeSleepOptionIsStructurallyValid)))
+				sleepOptions.every(narrativeSleepOptionIsStructurallyValid))) &&
+		(economy === undefined || narrativeEconomyIsStructurallyValid(economy))
+	);
+}
+
+function cashStateLooksUsable(value: unknown) {
+	return (
+		value === undefined ||
+		(isRecord(value) && Object.values(value).every(narrativeMoneyAmountIsValid))
 	);
 }
 
@@ -150,6 +163,7 @@ function runtimeProjectionLooksUsable(
 			Array.isArray(value.runtimeOccurrences)) &&
 		(value.activeStoryExecutions === undefined ||
 			Array.isArray(value.activeStoryExecutions)) &&
+		cashStateLooksUsable(value.cashByCharacter) &&
 		Number.isInteger(simulation.day) &&
 		(simulation.day as number) >= 1 &&
 		Number.isInteger(simulation.minuteOfDay) &&

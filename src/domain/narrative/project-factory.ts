@@ -56,6 +56,7 @@ export function createNarrativeProject(
 		relationships: [],
 		pendingReactions: [],
 		mindStates: [],
+		cashByCharacter: {},
 		injuriesByCharacter: {},
 		itemPlacementOverrides: {},
 		storyNodeStateOverrides: {},
