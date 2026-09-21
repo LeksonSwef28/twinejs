@@ -7,13 +7,15 @@ import {deriveNarrativePlayerPresentation} from '../player-presentation';
 import {executeNarrativePlayerAction} from '../player-action';
 import {
 	NarrativePlayerSession,
-	materializeNarrativePlayerSession
+	materializeNarrativePlayerSession,
+	replaceNarrativePlayerSessionProject
 } from '../player-runtime';
 import {executeNarrativePlayerSleep} from '../player-sleep';
 import {executeNarrativePlayerStoryWork} from '../player-story-work';
 import {executeNarrativePlayerTravel} from '../player-travel';
 import {executeNarrativePlayerWait} from '../player-wait';
 import {bootstrapNarrativePlayerWorldStart} from '../player-world-start';
+import {consumeNarrativeStoryWork} from '../story-execution';
 import {arrivalCorridorIds} from '../../../domain/narrative/content/93-days-arrival-corridor';
 import {
 	create93DaysDayOneDayTwoProject,
@@ -247,5 +249,64 @@ describe('A57-S3 divergent Day One -> Day Two player runs', () => {
 		expect(serializeNarrativeRuntimeArtifact(compiled.artifact)).toBe(
 			artifactBefore
 		);
+	});
+
+	test('records the authored NPC-only occurrence while the protagonist remains elsewhere', () => {
+		const compiled = compileNarrativeRuntimeArtifact(
+			create93DaysDayOneDayTwoProject()
+		);
+		if (compiled.status !== 'compiled') {
+			throw new Error('Expected A57 project to compile.');
+		}
+		let session = startSession(compiled.artifact);
+		session = wait(session, 12 * 60);
+
+		expect(session.currentProject.simulation).toMatchObject({
+			day: 1,
+			minuteOfDay: 18 * 60
+		});
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[playerId]
+		).toBe(arrivalCorridorIds.locations.busStation);
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[
+				arrivalCorridorIds.characters.dormDuty
+			]
+		).toBe(arrivalCorridorIds.locations.studentDormitory);
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[
+				dayOneNarrativeIds.characters.dormResident
+			]
+		).toBe(arrivalCorridorIds.locations.studentDormitory);
+
+		const workId = `story-node:${dayOneNarrativeIds.story.dormNpcOccurrence}`;
+		const consumed = consumeNarrativeStoryWork(session.currentProject, workId, {
+			decision: 'execute'
+		});
+		expect(consumed.trace.status).toBe('completed');
+		const replacement = replaceNarrativePlayerSessionProject(
+			session,
+			consumed.project
+		);
+		if (replacement.status !== 'updated') {
+			throw new Error('Expected NPC-only Story result to enter the player session.');
+		}
+		session = replacement.session;
+
+		expect(
+			session.currentProject.runtimeOccurrences.find(
+				occurrence =>
+					occurrence.type === 'story-work' &&
+					occurrence.workId === workId
+			)
+		).toEqual(
+			expect.objectContaining({
+				storyNodeId: dayOneNarrativeIds.story.dormNpcOccurrence,
+				result: 'executed'
+			})
+		);
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[playerId]
+		).toBe(arrivalCorridorIds.locations.busStation);
 	});
 });
