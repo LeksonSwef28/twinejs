@@ -1,3 +1,4 @@
+import {narrativeEconomyIsStructurallyValid} from '../../domain/narrative/economy';
 import {initializeCharacterKnowledge} from '../../domain/narrative/knowledge';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {narrativeTravelRouteIsStructurallyValid} from '../../domain/narrative/travel';
@@ -34,6 +35,7 @@ export interface NarrativeStoryBrainExportDiagnostic {
 export type NarrativeCompilerDiagnosticCode =
 	| 'missing-template-period'
 	| 'invalid-initial-runtime'
+	| 'invalid-economy'
 	| 'invalid-travel-route'
 	| 'invalid-sleep-option';
 
@@ -147,6 +149,7 @@ function initialRuntimeForProject(
 			storyNodeStateOverrides: {},
 			runtimeOccurrences: [],
 			activeStoryExecutions: [],
+			cashByCharacter: {...(project.economy?.initialCashByCharacter ?? {})},
 			simulation: {
 				day: 1,
 				minuteOfDay: firstPeriod.startMinute,
@@ -168,6 +171,47 @@ export function compileNarrativeRuntimeArtifact(
 ): NarrativeCompileResult {
 	const diagnostics: NarrativeExportDiagnostic[] =
 		queryStoryBrainProjectDiagnostics(project).findings.map(storyBrainExportDiagnostic);
+	if (project.economy !== undefined) {
+		if (!narrativeEconomyIsStructurallyValid(project.economy)) {
+			diagnostics.push(
+				compilerBlocker(
+					'invalid-economy',
+					'Cannot compile invalid authored economy definition.'
+				)
+			);
+		} else {
+			const characterIds = new Set(project.characters.map(character => character.id));
+			const locationIds = new Set(project.locations.map(location => location.id));
+			const itemIds = new Set(project.itemInstances.map(item => item.id));
+			const offerIds = new Set<string>();
+			const invalidInitialCharacter = Object.keys(
+				project.economy.initialCashByCharacter
+			).find(characterId => !characterIds.has(characterId));
+			const invalidOffer = project.economy.purchaseOffers.find(offer => {
+				if (offerIds.has(offer.id)) {
+					return true;
+				}
+				offerIds.add(offer.id);
+				return (
+					!locationIds.has(offer.locationId) ||
+					!itemIds.has(offer.itemInstanceId) ||
+					(offer.sellerCharacterId !== undefined &&
+						!characterIds.has(offer.sellerCharacterId))
+				);
+			});
+			if (invalidInitialCharacter || invalidOffer) {
+				diagnostics.push(
+					compilerBlocker(
+						'invalid-economy',
+						invalidInitialCharacter
+							? `Initial cash points to unknown Character: ${invalidInitialCharacter}.`
+							: `Purchase offer has invalid/duplicate references: ${invalidOffer?.id ?? '(unknown)'}.`
+					)
+				);
+			}
+		}
+	}
+
 	for (const route of project.travelRoutes ?? []) {
 		const routeId = route.id;
 		if (!narrativeTravelRouteIsStructurallyValid(route)) {
