@@ -104,7 +104,7 @@ function replyMoves(): NarrativeMoveDefinition[] {
 						{
 							id: 'a60-accept:learn-agreement',
 							type: 'character-learns-claim',
-							recipient: {type: 'move-actor'},
+							recipient: {type: 'character', characterId: playerId},
 							claim: {
 								type: 'claim',
 								claimId: phoneSocialLoopIds.claims.meetingAccepted
@@ -170,7 +170,7 @@ function replyMoves(): NarrativeMoveDefinition[] {
 						{
 							id: 'a60-decline:learn-decision',
 							type: 'character-learns-claim',
-							recipient: {type: 'move-actor'},
+							recipient: {type: 'character', characterId: playerId},
 							claim: {
 								type: 'claim',
 								claimId: phoneSocialLoopIds.claims.meetingDeclined
