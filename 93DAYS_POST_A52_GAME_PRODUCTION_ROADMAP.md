@@ -155,7 +155,7 @@ Exit proof: two runs can legitimately produce different knowledge/relationships/
 
 ### A58 — Everyday Systems Integration for the Slice
 
-**Status:** **DONE / MERGE REVIEW READY** — implementation head `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435` verified by **#559 GREEN**; closure docs head `9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5` verified by **#562 GREEN** (367/367 Jest suites, 2175 passed, Chromium 6/6, Vite/Electron PASS). PR #31 is open and Ready for review; merge requires explicit authorization.
+**Status:** **DONE / STABLE** — merged as `22ff1e408f48455e7125b3dec65ad5393700992a` and post-merge verified by **#566 GREEN** (367/367 Jest suites, 2175 passed, Chromium 6/6, Vite/Electron PASS); separate Jest / Playwright / ESLint / Prettify workflows also GREEN.
 
 **Goal:** use existing physical systems only where the actual slice creates decisions, and close only proven missing contracts.
 
@@ -173,6 +173,8 @@ Priority integration:
 Explicit non-goal: implementing every previously discussed survival feature before it appears in play.
 
 ### A59 — Vertical Slice Closure & Content Production Loop
+
+**Status:** **ACTIVE / CONTRACT LOCKED** — source stable `22ff1e408f48455e7125b3dec65ad5393700992a`; contract `93DAYS_A59_VERTICAL_SLICE_PRODUCTION_LOOP_CONTRACT.md`; feature branch `feature/a59-vertical-slice-production-loop`.
 
 **Goal:** prove that the editor now accelerates production of the game, not merely architecture work.
 
