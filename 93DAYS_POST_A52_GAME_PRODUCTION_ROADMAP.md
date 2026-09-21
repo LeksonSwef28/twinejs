@@ -174,7 +174,7 @@ Explicit non-goal: implementing every previously discussed survival feature befo
 
 ### A59 — Vertical Slice Closure & Content Production Loop
 
-**Status:** **IMPLEMENTATION VERIFIED / CLOSURE VERIFICATION** — S1 #568 GREEN, S2 #570 GREEN, S3 implementation #576 GREEN; player-facing Save/Reload/Continue is now exposed through the existing canonical save codec. Production kit, playtest triage and change record are present; final closure exact-head CI remains pending on PR #32.
+**Status:** **DONE / MERGE REVIEW READY** — S1 #568 GREEN, S2 #570 GREEN, S3 implementation #576 GREEN; closure head `03f1a13a2a96bf3741fe4c7ecd7d0ab35de72ded` verified by **#580 GREEN** (370/370 Jest suites, 2183 passed, Chromium 7/7, Vite/Electron PASS). Player-facing Save/Reload/Continue uses the existing canonical save codec. PR #32 requires one final status-only exact-head GREEN before draft is removed; merge remains separately authorized.
 
 **Goal:** prove that the editor now accelerates production of the game, not merely architecture work.
 
