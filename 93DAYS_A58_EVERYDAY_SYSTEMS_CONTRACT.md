@@ -1,6 +1,6 @@
 # A58 Contract — Everyday Systems Integration for the Slice
 
-Status: **CONTRACT ACTIVE / IMPLEMENTATION READY**  
+Status: **IMPLEMENTATION VERIFIED / MERGE REVIEW READY**  
 Stage: **A58 — Everyday Systems Integration for the Slice**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `1691b49f4560f07ca1c4b6c35541d92af92dd3c3`  
@@ -322,10 +322,42 @@ If implementation requires a non-additive persistence or artifact change, stop b
 - E1 Scope / ownership: **PASS**
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
-- E4 Minimal implementation: **PENDING**
-- E5 Verification ladder: **PENDING**
-- E6 Self-review: **PENDING**
-- E7 PR/CI: **PENDING**
+- E4 Minimal implementation: **PASS**
+- E5 Exact-head verification: **PASS — implementation head `d9bdae833e704af3eb96ae0a6d31666f14e67040`, Branch Check #556 GREEN**
+- E6 Self-review: **PASS**
+- E7 PR/CI: **PASS for implementation — PR #31 remains draft until docs-only closure head is GREEN**
 - E8 Merge: **PENDING — explicit authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
+
+
+## 15. Implementation evidence
+
+Exact implementation head before closure documentation:
+
+`d9bdae833e704af3eb96ae0a6d31666f14e67040`
+
+**93 Days Branch Check #556 — GREEN**
+
+- production audit: 0 vulnerabilities;
+- lint / web build / standalone Player build / Electron main build: PASS;
+- 367/367 Jest suites;
+- 2175 passed, 23 skipped, 42 todo, 2240 total;
+- 0 snapshots;
+- Chromium canonical Player smoke: 6/6;
+- Vite smoke: PASS;
+- Electron smoke: PASS.
+
+Verified implementation shape:
+
+- S1 adds additive authored economy plus mutable runtime cash, deterministic spend/purchase and backward-compatible artifact/save hydration without changing project schema or artifact version;
+- S2 reuses canonical body/carrying/simulation for concrete food, digestion, packing and paid travel, with atomic failure behavior;
+- A58 content is layered over A57 rather than rewriting the verified A57 authored slice;
+- S3 exposes cash, local purchases, fares and item actions in Player through thin application bridges only;
+- one compiled A58 artifact reaches Day Two after purchase -> pack -> eat -> paid transport -> sleep;
+- save/restore preserves cash, body, runtime item placement and Story occurrence history;
+- standalone Chromium executes the visible systems loop and keeps A57 Day Two narrative consequences intact.
+
+Self-review found no added hidden gameplay RNG, direct Player clock/body mutation, UI-local cash balance, duplicate inventory/body engine, authored ItemInstance mutation, schedule-to-presence shortcut, artifact version change or project schema-version change.
+
+The final docs-only closure head must receive its own full Branch Check before PR #31 leaves draft.

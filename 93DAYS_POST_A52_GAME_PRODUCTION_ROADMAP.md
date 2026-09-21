@@ -155,7 +155,7 @@ Exit proof: two runs can legitimately produce different knowledge/relationships/
 
 ### A58 — Everyday Systems Integration for the Slice
 
-**Status:** **CONTRACT ACTIVE / IMPLEMENTATION STARTING** — feature branch `feature/a58-everyday-systems` from exact stable `1691b49f4560f07ca1c4b6c35541d92af92dd3c3`; post-merge baseline #528 GREEN.
+**Status:** **IMPLEMENTATION VERIFIED / MERGE REVIEW READY** — exact implementation head `d9bdae833e704af3eb96ae0a6d31666f14e67040` verified by **#556 GREEN** (367/367 Jest suites, 2175 passed, Chromium 6/6, Vite/Electron PASS); PR #31 remains draft until docs-only closure CI is GREEN.
 
 **Goal:** use existing physical systems only where the actual slice creates decisions, and close only proven missing contracts.
 
