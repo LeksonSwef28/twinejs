@@ -120,6 +120,44 @@ export interface NarrativePlayerStoryOpportunity {
 	summary: string;
 }
 
+export interface NarrativePlayerPhoneContact {
+	characterId: string;
+	name: string;
+}
+
+export interface NarrativePlayerPhoneEntry {
+	id: string;
+	storyNodeId: string;
+	workId?: string;
+	channel: 'sms' | 'phone-call';
+	direction: 'incoming' | 'outgoing';
+	title: string;
+	summary?: string;
+	scheduledDay?: number;
+	scheduledMinuteOfDay?: number;
+	state:
+		| 'unread'
+		| 'ringing'
+		| 'expired'
+		| 'read'
+		| 'answered'
+		| 'missed'
+		| 'handled';
+}
+
+export type NarrativePlayerPhonePresentation =
+	| {
+			status: 'available';
+			itemInstanceId: string;
+			contacts: NarrativePlayerPhoneContact[];
+			entries: NarrativePlayerPhoneEntry[];
+			actions: NarrativePlayerAction[];
+	  }
+	| {
+			status: 'unavailable';
+			summary: string;
+	  };
+
 export interface NarrativePlayerSleepOption {
 	id: string;
 	label: string;
@@ -154,6 +192,7 @@ export interface NarrativePlayerPresentationModel {
 	actions: NarrativePlayerAction[];
 	travelOptions: NarrativePlayerTravelOption[];
 	storyOpportunities: NarrativePlayerStoryOpportunity[];
+	phone: NarrativePlayerPhonePresentation;
 	sleepOptions: NarrativePlayerSleepOption[];
 	sleepWait?: NarrativePlayerSleepWait;
 	body?: CharacterBodyState;
@@ -493,6 +532,7 @@ function playerStoryOpportunities(
 				: undefined;
 			if (
 				!node ||
+				node.communication ||
 				!node.runtimePolicy ||
 				!node.participantIds.includes(playerCharacterId) ||
 				(node.activationState !== 'available' &&
@@ -552,6 +592,188 @@ function playerStoryOpportunities(
 				a.title.localeCompare(b.title) ||
 				a.id.localeCompare(b.id)
 		);
+}
+
+function carriedPhoneInstanceId(
+	project: NarrativeProject,
+	load: CharacterCarryLoad
+) {
+	const carriedIds = [...load.topLevelItemIds, ...load.containedItemIds];
+	for (const itemInstanceId of carriedIds) {
+		const instance = project.itemInstances.find(item => item.id === itemInstanceId);
+		const definition = instance
+			? project.itemDefinitions.find(
+					candidate => candidate.id === instance.definitionId
+				)
+			: undefined;
+		if (definition?.tags.includes('phone')) {
+			return itemInstanceId;
+		}
+	}
+	return undefined;
+}
+
+function phoneEntryDirection(
+	project: NarrativeProject,
+	storyNodeId: string,
+	playerCharacterId: string
+): 'incoming' | 'outgoing' {
+	const node = project.storyNodes.find(candidate => candidate.id === storyNodeId);
+	return node?.primaryCharacterId === playerCharacterId ? 'outgoing' : 'incoming';
+}
+
+function playerPhonePresentation(
+	project: NarrativeProject,
+	playerCharacterId: string,
+	load: CharacterCarryLoad,
+	allActions: NarrativePlayerAction[]
+): NarrativePlayerPhonePresentation {
+	const itemInstanceId = carriedPhoneInstanceId(project, load);
+	if (!itemInstanceId) {
+		return {
+			status: 'unavailable',
+			summary: 'С собой нет доступного телефона.'
+		};
+	}
+
+	const runtimeNodes = narrativeRuntimeStoryNodes(project);
+	const communicationNodes = runtimeNodes.filter(
+		node => node.communication && node.participantIds.includes(playerCharacterId)
+	);
+	const communicationNodeIds = new Set(communicationNodes.map(node => node.id));
+	const actions = allActions.filter(action =>
+		communicationNodeIds.has(action.storyNodeId)
+	);
+	const entries: NarrativePlayerPhoneEntry[] = [];
+	const nowAbsolute = runtimeExecutionAbsoluteMinute(project.simulation);
+
+	for (const work of scheduledStoryWork(project.storyNodes)) {
+		const node = work.sourceEntityId
+			? communicationNodes.find(candidate => candidate.id === work.sourceEntityId)
+			: undefined;
+		if (!node?.communication || !node.runtimePolicy) {
+			continue;
+		}
+		const occurrence = [...project.runtimeOccurrences]
+			.reverse()
+			.find(
+				candidate =>
+					candidate.type === 'story-work' && candidate.workId === work.id
+			);
+		const scheduledAbsolute = runtimeExecutionAbsoluteMinute(work.moment);
+		if (!occurrence && nowAbsolute < scheduledAbsolute) {
+			continue;
+		}
+		const policy = normalizedStoryRuntimePolicy(node);
+		const expired =
+			!occurrence &&
+			policy.missAfterMinutes !== undefined &&
+			nowAbsolute > scheduledAbsolute + policy.missAfterMinutes;
+		let state: NarrativePlayerPhoneEntry['state'];
+		if (occurrence?.type === 'story-work') {
+			if (occurrence.result === 'missed') {
+				state = 'missed';
+			} else if (node.communication.channel === 'sms') {
+				state = 'read';
+			} else {
+				state = 'answered';
+			}
+		} else if (expired) {
+			state = 'expired';
+		} else {
+			state =
+				node.communication.channel === 'sms' ? 'unread' : 'ringing';
+		}
+		entries.push({
+			id: `phone:${work.id}`,
+			storyNodeId: node.id,
+			workId: work.id,
+			channel: node.communication.channel,
+			direction: phoneEntryDirection(project, node.id, playerCharacterId),
+			title: node.title,
+			summary: node.description,
+			scheduledDay: work.moment.day,
+			scheduledMinuteOfDay: work.moment.minuteOfDay,
+			state
+		});
+	}
+
+	for (const occurrence of project.runtimeOccurrences) {
+		if (occurrence.type !== 'move-outcome') {
+			continue;
+		}
+		const node = communicationNodes.find(
+			candidate => candidate.id === occurrence.storyNodeId
+		);
+		if (!node?.communication) {
+			continue;
+		}
+		if (
+			entries.some(
+				entry =>
+					entry.storyNodeId === node.id &&
+					entry.scheduledDay === occurrence.moment.day &&
+					entry.scheduledMinuteOfDay === occurrence.moment.minuteOfDay
+			)
+		) {
+			continue;
+		}
+		entries.push({
+			id: `phone:${occurrence.id}`,
+			storyNodeId: node.id,
+			channel: node.communication.channel,
+			direction: phoneEntryDirection(project, node.id, playerCharacterId),
+			title: node.title,
+			summary: node.description,
+			scheduledDay: occurrence.moment.day,
+			scheduledMinuteOfDay: occurrence.moment.minuteOfDay,
+			state: 'handled'
+		});
+	}
+
+	entries.sort(
+		(a, b) =>
+			(b.scheduledDay ?? 0) - (a.scheduledDay ?? 0) ||
+			(b.scheduledMinuteOfDay ?? 0) - (a.scheduledMinuteOfDay ?? 0) ||
+			a.title.localeCompare(b.title) ||
+			a.id.localeCompare(b.id)
+	);
+
+	const contactIds = new Set<string>();
+	for (const entry of entries) {
+		const node = project.storyNodes.find(candidate => candidate.id === entry.storyNodeId);
+		for (const participantId of node?.participantIds ?? []) {
+			if (participantId !== playerCharacterId) {
+				contactIds.add(participantId);
+			}
+		}
+	}
+	for (const action of actions) {
+		const move = project.narrativeMoves.find(candidate => candidate.id === action.id);
+		for (const targetId of move?.targetCharacterIds ?? []) {
+			if (targetId !== playerCharacterId) {
+				contactIds.add(targetId);
+			}
+		}
+	}
+	const contacts = [...contactIds]
+		.flatMap(characterId => {
+			const character = project.characters.find(
+				candidate => candidate.id === characterId
+			);
+			return character
+				? [{characterId: character.id, name: character.name}]
+				: [];
+		})
+		.sort((a, b) => a.name.localeCompare(b.name) || a.characterId.localeCompare(b.characterId));
+
+	return {
+		status: 'available',
+		itemInstanceId,
+		contacts,
+		entries,
+		actions
+	};
 }
 
 function playerSleepPresentation(
@@ -675,6 +897,10 @@ export function deriveNarrativePlayerPresentation(
 		actions: [],
 		travelOptions: [],
 		storyOpportunities: [],
+		phone: {
+			status: 'unavailable',
+			summary: 'Игровой персонаж ещё не определён.'
+		},
 		sleepOptions: [],
 		inventoryItems: [],
 		purchaseOptions: [],
@@ -699,7 +925,17 @@ export function deriveNarrativePlayerPresentation(
 		project.itemInstances,
 		project.itemPlacementOverrides
 	);
-	const actions = playerActions(project, characterId, locationId);
+	const allActions = playerActions(project, characterId, locationId);
+	const phone = playerPhonePresentation(
+		project,
+		characterId,
+		carryLoad,
+		allActions
+	);
+	const phoneActionIds = new Set(
+		phone.status === 'available' ? phone.actions.map(action => action.id) : []
+	);
+	const actions = allActions.filter(action => !phoneActionIds.has(action.id));
 	const travelOptions = playerTravelOptions(project, characterId, locationId);
 	const storyOpportunities = playerStoryOpportunities(
 		project,
@@ -714,6 +950,7 @@ export function deriveNarrativePlayerPresentation(
 		actions,
 		travelOptions,
 		storyOpportunities,
+		phone,
 		sleepOptions: sleep.options,
 		sleepWait: sleep.wait,
 		purchaseOptions,
