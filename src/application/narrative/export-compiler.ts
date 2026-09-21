@@ -1,6 +1,7 @@
 import {initializeCharacterKnowledge} from '../../domain/narrative/knowledge';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {narrativeTravelRouteIsStructurallyValid} from '../../domain/narrative/travel';
+import {narrativeSleepOptionIsStructurallyValid} from '../../domain/narrative/sleep';
 import {
 	NarrativeProjectAuthoredProjection,
 	NarrativeProjectRuntimeProjection,
@@ -33,7 +34,8 @@ export interface NarrativeStoryBrainExportDiagnostic {
 export type NarrativeCompilerDiagnosticCode =
 	| 'missing-template-period'
 	| 'invalid-initial-runtime'
-	| 'invalid-travel-route';
+	| 'invalid-travel-route'
+	| 'invalid-sleep-option';
 
 export interface NarrativeCompilerExportDiagnostic {
 	source: 'compiler';
@@ -173,6 +175,17 @@ export function compileNarrativeRuntimeArtifact(
 				compilerBlocker(
 					'invalid-travel-route',
 					`Cannot compile invalid travel route: ${routeId || '(missing id)'}.`
+				)
+			);
+		}
+	}
+	for (const option of project.sleepOptions ?? []) {
+		const optionId = option.id;
+		if (!narrativeSleepOptionIsStructurallyValid(option)) {
+			diagnostics.push(
+				compilerBlocker(
+					'invalid-sleep-option',
+					`Cannot compile invalid sleep option: ${optionId || '(missing id)'}.`
 				)
 			);
 		}

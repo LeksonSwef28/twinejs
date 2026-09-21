@@ -11,6 +11,7 @@ export type NarrativeReferenceOwnerKind =
 	| 'scene'
 	| 'travel-route'
 	| 'player-start'
+	| 'sleep-option'
 	| 'behavior-profile'
 	| 'routine-rule'
 	| 'schedule-exception'
@@ -547,6 +548,41 @@ export function validateNarrativeProjectReferences(
 			project.playerStart.locationId,
 			context,
 			'Player start: location'
+		);
+		for (const [characterId, locationId] of Object.entries(
+			project.playerStart.initialActualPresenceByCharacter ?? {}
+		)) {
+			const presenceContext: FindingContext = {
+				ownerKind: 'player-start',
+				ownerId: `player-start:${characterId}`,
+				characterId
+			};
+			addMissingReference(
+				findings,
+				sets.characters,
+				'character',
+				characterId,
+				presenceContext,
+				'Player start: initial Actual Presence character'
+			);
+			addMissingReference(
+				findings,
+				sets.locations,
+				'location',
+				locationId,
+				presenceContext,
+				'Player start: initial Actual Presence location'
+			);
+		}
+	}
+	for (const option of project.sleepOptions ?? []) {
+		addMissingReference(
+			findings,
+			sets.locations,
+			'location',
+			option.locationId,
+			{ownerKind: 'sleep-option', ownerId: option.id},
+			`Sleep option «${option.label}»: location`
 		);
 	}
 	for (const route of project.travelRoutes ?? []) {

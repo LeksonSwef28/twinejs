@@ -239,6 +239,133 @@ describe('A55 player presentation projection', () => {
 		]);
 	});
 
+	test('gates future placed Moves and projects only due protagonist Story work', () => {
+		const value = project();
+		value.locations = [
+			{id: 'station', name: 'Автовокзал'},
+			{id: 'dorm', name: 'Общежитие'}
+		];
+		value.characters = [
+			character('player', 'Игрок'),
+			character('npc', 'НПС')
+		];
+		value.simulation.actualLocationByCharacter = {
+			player: 'station',
+			npc: 'dorm'
+		};
+		value.simulation.day = 1;
+		value.simulation.minuteOfDay = 6 * 60 + 9;
+		value.storyNodes = [
+			{
+				id: 'player-opportunity',
+				kind: 'event',
+				title: 'Утреннее объявление',
+				participantIds: ['player'],
+				placement: {day: 1, minuteOfDay: 6 * 60 + 10, locationId: 'station'},
+				activationState: 'available',
+				runtimePolicy: {
+					occurrenceMode: 'one-shot',
+					durationMinutes: 0,
+					missAfterMinutes: 10,
+					interruption: 'interruptible'
+				}
+			},
+			{
+				id: 'npc-only',
+				kind: 'event',
+				title: 'Событие без героя',
+				participantIds: ['npc'],
+				placement: {day: 1, minuteOfDay: 6 * 60, locationId: 'dorm'},
+				activationState: 'available',
+				runtimePolicy: {
+					occurrenceMode: 'one-shot',
+					durationMinutes: 0,
+					interruption: 'interruptible'
+				}
+			},
+			{
+				id: 'day-two',
+				kind: 'beat',
+				title: 'День второй',
+				participantIds: ['player'],
+				placement: {day: 2, minuteOfDay: 7 * 60 + 30, locationId: 'station'},
+				activationState: 'available'
+			}
+		];
+		value.narrativeMoves = [automaticMove('Day Two action', 'day-two', 'player')];
+
+		let view = deriveNarrativePlayerPresentation(value);
+		expect(view.storyOpportunities).toEqual([]);
+		expect(view.actions).toEqual([]);
+
+		value.simulation.minuteOfDay = 6 * 60 + 10;
+		view = deriveNarrativePlayerPresentation(value);
+		expect(view.storyOpportunities).toEqual([
+			expect.objectContaining({
+				id: 'story-node:player-opportunity',
+				state: 'ready'
+			})
+		]);
+		expect(view.storyOpportunities.map(option => option.storyNodeId)).not.toContain(
+			'npc-only'
+		);
+
+		value.simulation.minuteOfDay = 6 * 60 + 21;
+		view = deriveNarrativePlayerPresentation(value);
+		expect(view.storyOpportunities[0]).toEqual(
+			expect.objectContaining({state: 'expired'})
+		);
+
+		value.simulation.day = 2;
+		value.simulation.minuteOfDay = 7 * 60;
+		view = deriveNarrativePlayerPresentation(value);
+		expect(view.actions.map(action => action.id)).toContain('Day Two action');
+
+		value.simulation.day = 3;
+		view = deriveNarrativePlayerPresentation(value);
+		expect(view.actions.map(action => action.id)).not.toContain('Day Two action');
+	});
+
+	test('shows authored sleep only at its location and after the authored start time', () => {
+		const value = project();
+		value.locations = [
+			{id: 'station', name: 'Автовокзал'},
+			{id: 'dorm', name: 'Общежитие'}
+		];
+		value.characters = [character('player', 'Игрок')];
+		value.simulation.actualLocationByCharacter = {player: 'dorm'};
+		value.simulation.day = 1;
+		value.simulation.minuteOfDay = 22 * 60;
+		value.sleepOptions = [
+			{
+				id: 'overnight',
+				label: 'Лечь спать',
+				locationId: 'dorm',
+				earliestStartMinuteOfDay: 22 * 60 + 30,
+				wakeMinuteOfDay: 7 * 60 + 30
+			}
+		];
+
+		let view = deriveNarrativePlayerPresentation(value);
+		expect(view.sleepOptions).toEqual([]);
+		expect(view.sleepWait).toEqual({
+			durationMinutes: 30,
+			targetMinuteOfDay: 22 * 60 + 30
+		});
+
+		value.simulation.minuteOfDay = 22 * 60 + 30;
+		view = deriveNarrativePlayerPresentation(value);
+		expect(view.sleepWait).toBeUndefined();
+		expect(view.sleepOptions).toEqual([
+			{id: 'overnight', label: 'Лечь спать', wakeMinuteOfDay: 7 * 60 + 30}
+		]);
+
+		value.simulation.actualLocationByCharacter.player = 'station';
+		view = deriveNarrativePlayerPresentation(value);
+		expect(view.sleepOptions).toEqual([]);
+		expect(view.sleepWait).toBeUndefined();
+	});
+
 	test('projects only canonical player Moves in relevant active Story scope', () => {
 		const value = project();
 		value.locations = [

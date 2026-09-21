@@ -5,6 +5,7 @@ import {
 	compileNarrativeRuntimeArtifact,
 	serializeNarrativeRuntimeArtifact
 } from '../../application/narrative/export-compiler';
+import {create93DaysDayOneDayTwoProject} from '../../domain/narrative/content/93-days-day-one-day-two';
 import {NarrativeMoveDefinition} from '../../domain/narrative/interaction';
 import {createNarrativeProject} from '../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../domain/narrative/templates/93-days';
@@ -108,7 +109,59 @@ function source(withTravelPresence = false): NarrativePlayerArtifactSource {
 	};
 }
 
-describe('<PlayerApp> A55 presentation', () => {
+function a57Source(): NarrativePlayerArtifactSource {
+	const compiled = compileNarrativeRuntimeArtifact(create93DaysDayOneDayTwoProject());
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected A57 Player fixture to compile.');
+	}
+	return {
+		status: 'found',
+		source: 'inline',
+		serializedArtifact: serializeNarrativeRuntimeArtifact(compiled.artifact)
+	};
+}
+
+function sleepSource(): NarrativePlayerArtifactSource {
+	const project = createNarrativeProject(
+		'a57-player-sleep',
+		'A57 Player Sleep',
+		ninetyThreeDaysTemplate
+	);
+	project.projectId = 'a57-player-sleep-project';
+	project.locations = [{id: 'dorm', name: 'Общежитие'}];
+	project.characters = [
+		{
+			id: 'player',
+			name: 'Игрок',
+			cognitionTier: 'full',
+			defaultBehaviorProfileId: 'player-default'
+		}
+	];
+	project.behaviorProfiles = [
+		{id: 'player-default', characterId: 'player', name: 'Player default'}
+	];
+	project.playerStart = {characterId: 'player', locationId: 'dorm'};
+	project.sleepOptions = [
+		{
+			id: 'overnight',
+			label: 'Лечь спать до утра',
+			locationId: 'dorm',
+			earliestStartMinuteOfDay: 22 * 60 + 30,
+			wakeMinuteOfDay: 7 * 60 + 30
+		}
+	];
+	const compiled = compileNarrativeRuntimeArtifact(project);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected A57 sleep fixture to compile.');
+	}
+	return {
+		status: 'found',
+		source: 'inline',
+		serializedArtifact: serializeNarrativeRuntimeArtifact(compiled.artifact)
+	};
+}
+
+describe('<PlayerApp> presentation', () => {
 	test('executes an unplaced canonical Move from a fresh Player session with outcome feedback', () => {
 		render(<PlayerApp artifactSource={source()} />);
 
@@ -153,6 +206,52 @@ describe('<PlayerApp> A55 presentation', () => {
 		expect(screen.getByText('06:05')).toBeInTheDocument();
 		expect(screen.getByRole('status')).toHaveTextContent('Транспортная площадь');
 		expect(screen.queryByText('Катя')).not.toBeInTheDocument();
+	});
+
+	test('surfaces only due protagonist Story work and records an explicit miss', () => {
+		render(<PlayerApp artifactSource={a57Source()} />);
+
+		expect(
+			screen.queryByText('Короткое утреннее объявление на вокзале')
+		).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole('button', {name: 'Подождать 5 минут'}));
+		fireEvent.click(screen.getByRole('button', {name: 'Подождать 5 минут'}));
+
+		expect(screen.getByText('06:10')).toBeInTheDocument();
+		expect(
+			screen.getByText('Короткое утреннее объявление на вокзале')
+		).toBeInTheDocument();
+		expect(screen.queryByText('Разговор у вахты без героя')).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole('button', {name: 'Пропустить'}));
+
+		expect(screen.getByRole('status')).toHaveTextContent(
+			'Возможность пропущена'
+		);
+		expect(
+			screen.queryByText('Короткое утреннее объявление на вокзале')
+		).not.toBeInTheDocument();
+	});
+
+	test('waits to authored bedtime through canonical wait, then sleeps into Day Two', () => {
+		render(<PlayerApp artifactSource={sleepSource()} />);
+
+		expect(screen.getByText('06:00')).toBeInTheDocument();
+		expect(
+			screen.queryByRole('button', {name: /Лечь спать до утра/})
+		).not.toBeInTheDocument();
+
+		fireEvent.click(
+			screen.getByRole('button', {name: 'Подождать до 22:30'})
+		);
+		expect(screen.getByText('22:30')).toBeInTheDocument();
+
+		fireEvent.click(
+			screen.getByRole('button', {name: /Лечь спать до утра/})
+		);
+		expect(screen.getByLabelText('Игровое время')).toHaveTextContent('День 2');
+		expect(screen.getByText('07:30')).toBeInTheDocument();
+		expect(screen.getByRole('status')).toHaveTextContent('подъём в 07:30');
 	});
 
 	test('is accessible in the ready player shell', async () => {
