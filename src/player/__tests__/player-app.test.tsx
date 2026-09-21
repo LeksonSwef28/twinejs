@@ -150,9 +150,6 @@ function sleepSource(): NarrativePlayerArtifactSource {
 			wakeMinuteOfDay: 7 * 60 + 30
 		}
 	];
-	project.simulation.day = 1;
-	project.simulation.minuteOfDay = 22 * 60;
-
 	const compiled = compileNarrativeRuntimeArtifact(project);
 	if (compiled.status !== 'compiled') {
 		throw new Error('Expected A57 sleep fixture to compile.');
@@ -239,7 +236,7 @@ describe('<PlayerApp> presentation', () => {
 	test('waits to authored bedtime through canonical wait, then sleeps into Day Two', () => {
 		render(<PlayerApp artifactSource={sleepSource()} />);
 
-		expect(screen.getByText('22:00')).toBeInTheDocument();
+		expect(screen.getByText('06:00')).toBeInTheDocument();
 		expect(
 			screen.queryByRole('button', {name: /Лечь спать до утра/})
 		).not.toBeInTheDocument();
