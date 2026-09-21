@@ -256,19 +256,12 @@ function playerTravelOptions(
 		);
 }
 
-function storyPlacementIsDue(
+function storyPlacementMatchesDay(
 	project: NarrativeProject,
 	node: NarrativeProject['storyNodes'][number]
 ) {
 	const day = node.placement?.day;
-	if (day === undefined) {
-		return true;
-	}
-	if (project.simulation.day !== day) {
-		return project.simulation.day > day;
-	}
-	const minuteOfDay = node.placement?.minuteOfDay;
-	return minuteOfDay === undefined || project.simulation.minuteOfDay >= minuteOfDay;
+	return day === undefined || project.simulation.day === day;
 }
 
 function playerStoryOpportunities(
@@ -409,7 +402,7 @@ function playerActions(
 			const node = nodesById.get(move.storyNodeId);
 			if (
 				!node ||
-				!storyPlacementIsDue(project, node) ||
+				!storyPlacementMatchesDay(project, node) ||
 				(node.activationState !== 'available' &&
 					node.activationState !== 'active') ||
 				(node.placement?.locationId &&

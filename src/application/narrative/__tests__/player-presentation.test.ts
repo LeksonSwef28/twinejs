@@ -317,9 +317,13 @@ describe('A55 player presentation projection', () => {
 		);
 
 		value.simulation.day = 2;
-		value.simulation.minuteOfDay = 7 * 60 + 30;
+		value.simulation.minuteOfDay = 7 * 60;
 		view = deriveNarrativePlayerPresentation(value);
 		expect(view.actions.map(action => action.id)).toContain('Day Two action');
+
+		value.simulation.day = 3;
+		view = deriveNarrativePlayerPresentation(value);
+		expect(view.actions.map(action => action.id)).not.toContain('Day Two action');
 	});
 
 	test('shows authored sleep only at its location and after the authored start time', () => {
