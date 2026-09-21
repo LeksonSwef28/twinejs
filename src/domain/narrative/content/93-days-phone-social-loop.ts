@@ -391,7 +391,11 @@ export function create93DaysPhoneSocialLoopProject(): NarrativeProject {
 	];
 
 	project.storyNodes = [
-		...project.storyNodes,
+		...project.storyNodes.map(node =>
+			node.id === dayOneNarrativeIds.story.callContact
+				? {...node, communication: {channel: 'phone-call' as const}}
+				: node
+		),
 		{
 			id: phoneSocialLoopIds.story.incomingSms,
 			kind: 'event',
@@ -402,6 +406,7 @@ export function create93DaysPhoneSocialLoopProject(): NarrativeProject {
 			participantIds: [playerId, contactId],
 			placement: {day: 2, minuteOfDay: 10 * 60 + 30},
 			activationState: 'available',
+			communication: {channel: 'sms'},
 			runtimePolicy: {
 				occurrenceMode: 'one-shot',
 				durationMinutes: 0,
