@@ -21,10 +21,7 @@ import {executeNarrativePlayerWait} from '../player-wait';
 import {bootstrapNarrativePlayerWorldStart} from '../player-world-start';
 import {evaluateNarrativePhysicalAction} from '../physical';
 import {arrivalCorridorIds} from '../../../domain/narrative/content/93-days-arrival-corridor';
-import {
-	create93DaysDayOneDayTwoProject,
-	dayOneNarrativeIds
-} from '../../../domain/narrative/content/93-days-day-one-day-two';
+import {dayOneNarrativeIds} from '../../../domain/narrative/content/93-days-day-one-day-two';
 import {
 	create93DaysEverydaySystemsProject,
 	everydaySystemsIds
@@ -85,13 +82,13 @@ function story(session: NarrativePlayerSession) {
 describe('A58-S3 everyday systems full Player integration', () => {
 	test('preserves economy/body/item/history through a Day One -> Day Two save restore', () => {
 		const source = create93DaysEverydaySystemsProject();
-		const a57StoryBefore = JSON.stringify(
-			create93DaysDayOneDayTwoProject().storyNodes
-		);
 		const compiled = compileNarrativeRuntimeArtifact(source);
 		if (compiled.status !== 'compiled') {
 			throw new Error('Expected A58 project to compile.');
 		}
+		const authoredStoryBefore = JSON.stringify(
+			compiled.artifact.authored.storyNodes
+		);
 
 		let session = startSession(compiled.artifact);
 		expect(session.currentProject.cashByCharacter[playerId]).toBe(12000);
@@ -220,7 +217,7 @@ describe('A58-S3 everyday systems full Player integration', () => {
 			)
 		).toBe(true);
 		expect(JSON.stringify(session.currentProject.storyNodes)).toBe(
-			a57StoryBefore
+			authoredStoryBefore
 		);
 
 		const save = createNarrativePlayerSave(session);
