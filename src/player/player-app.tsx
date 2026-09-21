@@ -410,6 +410,41 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 							)}
 						</section>
 
+						{view.purchaseOptions.length > 0 && (
+							<section
+								className="narrative-player__panel"
+								aria-labelledby="purchase-title"
+							>
+								<div className="narrative-player__panel-heading">
+									<h3 id="purchase-title">Купить</h3>
+									<span>{view.purchaseOptions.length}</span>
+								</div>
+								<ul className="narrative-player__purchase-options">
+									{view.purchaseOptions.map(option => (
+										<li key={option.id}>
+											<button
+												type="button"
+												disabled={option.state !== 'ready'}
+												onClick={() => executePurchase(option.id)}
+											>
+												<span>{option.label}</span>
+												<small>
+													{view.economy.status === 'available'
+														? formatMoney(
+																option.priceMinorUnits,
+																view.economy.minorUnitsPerMajor,
+																view.economy.currencyLabel
+															)
+														: option.itemName}
+												</small>
+											</button>
+											{option.state === 'blocked' && <p>{option.summary}</p>}
+										</li>
+									))}
+								</ul>
+							</section>
+						)}
+
 						{view.storyOpportunities.length > 0 && (
 							<section
 								className="narrative-player__panel"
