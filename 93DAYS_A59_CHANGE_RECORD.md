@@ -231,9 +231,9 @@ Roll-forward for any future mechanics gap requires a new reproduced requirement 
 - E2 Contract: **PASS**
 - E3 Verification design: **PASS**
 - E4 Minimal implementation: **PASS**
-- E5 Verification ladder: **PASS for implementation; closure docs exact-head CI pending**
+- E5 Verification ladder: **PASS — closure head `03f1a13a2a96bf3741fe4c7ecd7d0ab35de72ded`, #580 GREEN**
 - E6 Self-review: **PASS**
-- E7 PR/CI: **PENDING closure exact-head GREEN**
+- E7 PR/CI: **PASS for closure — #580 GREEN; final status-only exact-head CI pending before PR readiness**
 - E8 Merge: **PENDING — explicit user authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Learning/recovery: **PASS**
@@ -242,4 +242,20 @@ Roll-forward for any future mechanics gap requires a new reproduced requirement 
 
 A59 implementation has proved the production loop without requiring a new runtime architecture.
 
-The remaining gate is documentation closure on an exact head, followed by full Branch Check and PR readiness. Merge remains separately authorized.
+Documentation closure is verified on exact head `03f1a13a2a96bf3741fe4c7ecd7d0ab35de72ded` by #580 GREEN. This status-only update requires one final exact-head Branch Check before PR #32 leaves draft. Merge remains separately authorized.
+
+
+## Closure verification
+
+**93 Days Branch Check #580 — GREEN** on closure head `03f1a13a2a96bf3741fe4c7ecd7d0ab35de72ded`.
+
+- production audit: **0 vulnerabilities**;
+- lint/builds: PASS;
+- Jest: **370/370 suites**;
+- tests: **2183 passed, 23 skipped, 42 todo, 2248 total**;
+- snapshots: **0**;
+- Chromium canonical Player smoke: **7/7**;
+- Vite smoke: PASS;
+- Electron smoke: PASS.
+
+A59 has no unresolved BLOCKER/HIGH item. The only final pre-review action is exact-head CI on this status-only documentation update.
