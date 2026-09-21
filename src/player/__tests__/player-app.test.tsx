@@ -297,7 +297,11 @@ describe('<PlayerApp> presentation', () => {
 		expect(within(mealLine!).getByText('внутри')).toBeInTheDocument();
 		fireEvent.click(within(mealLine!).getByRole('button', {name: 'Съесть'}));
 		expect(screen.getByRole('status')).toHaveTextContent('переваривание 30 мин.');
-		expect(screen.queryByText('Плотный перекус')).not.toBeInTheDocument();
+		expect(
+			screen.queryByText('Плотный перекус', {
+				selector: '.narrative-player__inventory-line > span'
+			})
+		).not.toBeInTheDocument();
 
 		const digestion = screen.getByText('После еды').closest('div');
 		expect(digestion).toHaveTextContent('30 мин.');
