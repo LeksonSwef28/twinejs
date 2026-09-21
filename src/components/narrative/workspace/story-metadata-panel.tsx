@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {
+	StoryCommunicationChannel,
 	StoryInterruptionPolicy,
 	StoryNodeKind,
 	StoryOccurrenceMode
@@ -28,6 +29,8 @@ export const StoryMetadataPanel: React.FC = () => {
 	const [kind, setKind] = React.useState<StoryNodeKind>('beat');
 	const [primaryCharacterId, setPrimaryCharacterId] = React.useState('');
 	const [participantIds, setParticipantIds] = React.useState<string[]>([]);
+	const [communicationChannel, setCommunicationChannel] =
+		React.useState<'' | StoryCommunicationChannel>('');
 	const [occurrenceMode, setOccurrenceMode] =
 		React.useState<StoryOccurrenceMode>('one-shot');
 	const [durationMinutes, setDurationMinutes] = React.useState('0');
@@ -48,6 +51,7 @@ export const StoryMetadataPanel: React.FC = () => {
 		setKind(node.kind);
 		setPrimaryCharacterId(node.primaryCharacterId ?? '');
 		setParticipantIds(node.participantIds);
+		setCommunicationChannel(node.communication?.channel ?? '');
 		setOccurrenceMode(node.runtimePolicy?.occurrenceMode ?? 'one-shot');
 		setDurationMinutes(String(node.runtimePolicy?.durationMinutes ?? 0));
 		setExpiryEnabled(node.runtimePolicy?.missAfterMinutes !== undefined);
@@ -85,6 +89,7 @@ export const StoryMetadataPanel: React.FC = () => {
 			description,
 			primaryCharacterId: primaryCharacterId || undefined,
 			participantIds,
+			communication: communicationChannel ? {channel: communicationChannel} : undefined,
 			runtimePolicy: {
 				occurrenceMode,
 				durationMinutes: duration,
@@ -106,6 +111,7 @@ export const StoryMetadataPanel: React.FC = () => {
 			description,
 			primaryCharacterId: primaryCharacterId || undefined,
 			participantIds,
+			communication: communicationChannel ? {channel: communicationChannel} : undefined,
 			runtimePolicy: undefined
 		});
 	}
@@ -200,6 +206,29 @@ export const StoryMetadataPanel: React.FC = () => {
 									</label>
 								))
 							)}
+						</fieldset>
+						<fieldset>
+							<legend>Связь</legend>
+							<label>
+								Канал
+								<select
+									aria-label="Канал связи Story node"
+									value={communicationChannel}
+									onChange={event =>
+										setCommunicationChannel(
+											event.target.value as '' | StoryCommunicationChannel
+										)
+									}
+								>
+									<option value="">Нет</option>
+									<option value="sms">SMS</option>
+									<option value="phone-call">Телефонный звонок</option>
+								</select>
+							</label>
+							<small>
+								Канал меняет представление связи, но не создаёт отдельную
+								историю доставки или чтения.
+							</small>
 						</fieldset>
 						<fieldset>
 							<legend>Execution policy</legend>
