@@ -142,15 +142,20 @@ function reachDayTwoSms(artifact: NarrativeRuntimeArtifactV1) {
 
 function readSms(session: NarrativePlayerSession) {
 	const before = deriveNarrativePlayerPresentation(session.currentProject);
-	expect(before.storyOpportunities).toEqual(
+	expect(before.phone.status).toBe('available');
+	if (before.phone.status !== 'available') {
+		throw new Error(before.phone.summary);
+	}
+	expect(before.phone.entries).toEqual(
 		expect.arrayContaining([
 			expect.objectContaining({
-				id: smsWorkId,
+				workId: smsWorkId,
 				storyNodeId: phoneSocialLoopIds.story.incomingSms,
-				state: 'ready'
+				state: 'unread'
 			})
 		])
 	);
+	expect(before.storyOpportunities.map(item => item.id)).not.toContain(smsWorkId);
 	const read = storyWork(session, smsWorkId, 'execute');
 	expect(read.result).toBe('completed');
 	expect(storyState(read.session, phoneSocialLoopIds.story.incomingSms)).toBe(
