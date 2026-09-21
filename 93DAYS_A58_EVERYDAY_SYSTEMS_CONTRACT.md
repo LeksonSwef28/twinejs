@@ -1,6 +1,6 @@
 # A58 Contract — Everyday Systems Integration for the Slice
 
-Status: **IMPLEMENTATION VERIFIED / MERGE REVIEW READY**  
+Status: **IMPLEMENTATION VERIFIED / CLOSURE VERIFICATION**  
 Stage: **A58 — Everyday Systems Integration for the Slice**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `1691b49f4560f07ca1c4b6c35541d92af92dd3c3`  
@@ -323,9 +323,9 @@ If implementation requires a non-additive persistence or artifact change, stop b
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
 - E4 Minimal implementation: **PASS**
-- E5 Exact-head verification: **PASS — implementation head `d9bdae833e704af3eb96ae0a6d31666f14e67040`, Branch Check #556 GREEN**
+- E5 Exact-head verification: **PASS — implementation head `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435`, Branch Check #559 GREEN**
 - E6 Self-review: **PASS**
-- E7 PR/CI: **PASS for implementation — PR #31 remains draft until docs-only closure head is GREEN**
+- E7 PR/CI: **PASS for implementation — PR #31 is open and Ready for review; docs-only closure head still requires its own exact-head GREEN before merge review is closure-complete**
 - E8 Merge: **PENDING — explicit authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
@@ -335,7 +335,7 @@ If implementation requires a non-additive persistence or artifact change, stop b
 
 Exact implementation head before closure documentation:
 
-`d9bdae833e704af3eb96ae0a6d31666f14e67040`
+`4cfca9c75c1b0bef25192719b2f9ccd85a7bb435`
 
 **93 Days Branch Check #556 — GREEN**
 
@@ -360,4 +360,4 @@ Verified implementation shape:
 
 Self-review found no added hidden gameplay RNG, direct Player clock/body mutation, UI-local cash balance, duplicate inventory/body engine, authored ItemInstance mutation, schedule-to-presence shortcut, artifact version change or project schema-version change.
 
-The final docs-only closure head must receive its own full Branch Check before PR #31 leaves draft.
+The docs-only closure head must receive its own full Branch Check before the merge gate can be considered closure-complete. PR #31 is already Ready for review; merge still requires a separate explicit user command.
