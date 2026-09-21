@@ -1,6 +1,6 @@
 # A58 Contract — Everyday Systems Integration for the Slice
 
-Status: **IMPLEMENTATION VERIFIED / CLOSURE VERIFICATION**  
+Status: **DONE / MERGE REVIEW READY**  
 Stage: **A58 — Everyday Systems Integration for the Slice**  
 Risk: **HIGH**  
 Stable source: `93-days-editor` @ `1691b49f4560f07ca1c4b6c35541d92af92dd3c3`  
@@ -325,7 +325,7 @@ If implementation requires a non-additive persistence or artifact change, stop b
 - E4 Minimal implementation: **PASS**
 - E5 Exact-head verification: **PASS — implementation head `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435`, Branch Check #559 GREEN**
 - E6 Self-review: **PASS**
-- E7 PR/CI: **PASS for implementation — PR #31 is open and Ready for review; docs-only closure head still requires its own exact-head GREEN before merge review is closure-complete**
+- E7 PR/CI: **PASS — closure docs head `9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5`, Branch Check #562 GREEN; PR #31 is open and Ready for review**
 - E8 Merge: **PENDING — explicit authorization required**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
@@ -360,4 +360,24 @@ Verified implementation shape:
 
 Self-review found no added hidden gameplay RNG, direct Player clock/body mutation, UI-local cash balance, duplicate inventory/body engine, authored ItemInstance mutation, schedule-to-presence shortcut, artifact version change or project schema-version change.
 
-The docs-only closure head must receive its own full Branch Check before the merge gate can be considered closure-complete. PR #31 is already Ready for review; merge still requires a separate explicit user command.
+The docs-only closure gate is satisfied by head `9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5`, Branch Check #562 GREEN. PR #31 is Ready for review; merge still requires a separate explicit user command.
+
+
+## 16. Closure verification
+
+Documentation closure head:
+
+`9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5`
+
+**93 Days Branch Check #562 — GREEN**
+
+- production audit: 0 vulnerabilities;
+- lint / web build / standalone Player build / Electron main build: PASS;
+- 367/367 Jest suites;
+- 2175 passed, 23 skipped, 42 todo, 2240 total;
+- 0 snapshots;
+- Chromium canonical Player smoke: 6/6;
+- Vite smoke: PASS;
+- Electron smoke: PASS.
+
+A58 is therefore complete through the pre-merge gate. Any later status-only documentation commit must itself retain exact-head GREEN before merge.
