@@ -665,8 +665,52 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 								<ul className="narrative-player__inventory">
 									{view.inventoryItems.map(item => (
 										<li key={item.id}>
-											<span>{item.name}</span>
-											{item.placement === 'contained' && <small>внутри</small>}
+											<div className="narrative-player__inventory-line">
+												<span>{item.name}</span>
+												{item.placement === 'contained' && <small>внутри</small>}
+											</div>
+											{(item.canEat ||
+												item.canUnpack ||
+												item.packingOptions.some(option => option.state === 'ready')) && (
+												<div className="narrative-player__inventory-actions">
+													{item.canEat && (
+														<button type="button" onClick={() => executeFoodUse(item.id)}>
+															Съесть
+														</button>
+													)}
+													{item.canUnpack && (
+														<button
+															type="button"
+															onClick={() =>
+																executeItemPlacement(
+																	item.id,
+																	{type: 'character'},
+																	`Достали «${item.name}».`
+																)
+															}
+														>
+															Достать
+														</button>
+													)}
+													{item.packingOptions
+														.filter(option => option.state === 'ready')
+														.map(option => (
+															<button
+																type="button"
+																key={option.id}
+																onClick={() =>
+																	executeItemPlacement(
+																		item.id,
+																		option.target,
+																		`${item.name}: ${option.label.toLowerCase()}.`
+																	)
+																}
+															>
+																{option.label}
+															</button>
+														))}
+												</div>
+											)}
 										</li>
 									))}
 								</ul>
@@ -682,9 +726,19 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 						<section className="narrative-player__panel">
 							<div className="narrative-player__panel-heading">
 								<h3>Деньги</h3>
-								<span>—</span>
+								<span>{view.economy.status === 'available' ? view.economy.currencyCode : '—'}</span>
 							</div>
-							<p className="narrative-player__muted">{view.economy.summary}</p>
+							{view.economy.status === 'available' ? (
+								<strong className="narrative-player__money">
+									{formatMoney(
+										view.economy.balanceMinorUnits,
+										view.economy.minorUnitsPerMajor,
+										view.economy.currencyLabel
+									)}
+								</strong>
+							) : (
+								<p className="narrative-player__muted">{view.economy.summary}</p>
+							)}
 						</section>
 					</aside>
 				</div>
