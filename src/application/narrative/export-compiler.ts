@@ -1,4 +1,5 @@
 import {narrativeEconomyIsStructurallyValid} from '../../domain/narrative/economy';
+import {itemFoodPropertiesAreValid} from '../../domain/narrative/items';
 import {initializeCharacterKnowledge} from '../../domain/narrative/knowledge';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {narrativeTravelRouteIsStructurallyValid} from '../../domain/narrative/travel';
@@ -36,6 +37,7 @@ export type NarrativeCompilerDiagnosticCode =
 	| 'missing-template-period'
 	| 'invalid-initial-runtime'
 	| 'invalid-economy'
+	| 'invalid-food-item'
 	| 'invalid-travel-route'
 	| 'invalid-sleep-option';
 
@@ -209,6 +211,17 @@ export function compileNarrativeRuntimeArtifact(
 					)
 				);
 			}
+		}
+	}
+
+	for (const definition of project.itemDefinitions) {
+		if (definition.food !== undefined && !itemFoodPropertiesAreValid(definition.food)) {
+			diagnostics.push(
+				compilerBlocker(
+					'invalid-food-item',
+					`Cannot compile invalid food properties on ItemDefinition: ${definition.id || '(missing id)'}.`
+				)
+			);
 		}
 	}
 
