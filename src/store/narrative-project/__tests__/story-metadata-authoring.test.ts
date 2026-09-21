@@ -62,6 +62,7 @@ describe('story metadata authoring', () => {
 				description: 'Авторское описание сцены',
 				primaryCharacterId: 'mila',
 				participantIds: ['mila', 'anton'],
+				communication: {channel: 'sms'},
 				runtimePolicy: {
 					occurrenceMode: 'repeatable',
 					durationMinutes: 25,
@@ -78,6 +79,7 @@ describe('story metadata authoring', () => {
 				description: 'Авторское описание сцены',
 				primaryCharacterId: 'mila',
 				participantIds: ['mila', 'anton'],
+				communication: {channel: 'sms'},
 				runtimePolicy: {
 					occurrenceMode: 'repeatable',
 					durationMinutes: 25,
@@ -106,6 +108,19 @@ describe('story metadata authoring', () => {
 			}
 		});
 		expect(invalid).toBe(state);
+
+		const invalidCommunication = narrativeProjectAuthoringReducer(state, {
+			type: 'execute',
+			command: {
+				type: 'story/updateAuthoring',
+				id: 'story-a',
+				kind: 'event',
+				title: 'Невалидный канал',
+				participantIds: ['mila'],
+				communication: {channel: 'email'} as never
+			}
+		});
+		expect(invalidCommunication).toBe(state);
 
 		const updated = narrativeProjectAuthoringReducer(state, {
 			type: 'execute',
