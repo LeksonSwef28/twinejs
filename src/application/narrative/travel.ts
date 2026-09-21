@@ -1,3 +1,8 @@
+import {
+	applyNarrativeCashSpend,
+	evaluateNarrativeCashSpend,
+	NarrativeCashSpendTrace
+} from '../../domain/narrative/economy';
 import {PhysicalActionKind} from '../../domain/narrative/injury';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {
@@ -20,6 +25,7 @@ export type NarrativeTravelRejectionReason =
 	| 'invalid-route'
 	| 'wrong-origin'
 	| 'physical-blocked'
+	| 'insufficient-funds'
 	| 'project-end';
 
 export type NarrativeTravelExecutionResult =
@@ -30,6 +36,8 @@ export type NarrativeTravelExecutionResult =
 			characterId: string;
 			simulation: NarrativeProjectSimulationStepResult;
 			physical?: NarrativePhysicalActionEvaluation;
+			fareMinorUnits?: number;
+			spendTrace?: NarrativeCashSpendTrace;
 	  }
 	| {
 			status: 'rejected';
@@ -122,6 +130,29 @@ export function executeNarrativeTravel(
 		};
 	}
 
+	const fareEvaluation =
+		route.fareMinorUnits === undefined
+			? undefined
+			: evaluateNarrativeCashSpend(
+					project.cashByCharacter,
+					characterId,
+					route.fareMinorUnits,
+					true
+				);
+	if (fareEvaluation && !fareEvaluation.allowed) {
+		return {
+			status: 'rejected',
+			project,
+			route,
+			physical,
+			reason:
+				fareEvaluation.reason === 'insufficient-funds'
+					? 'insufficient-funds'
+					: 'invalid-route',
+			summary: fareEvaluation.summary
+		};
+	}
+
 	const simulation = advanceNarrativeProjectSimulation(
 		project,
 		route.durationMinutes
@@ -137,16 +168,29 @@ export function executeNarrativeTravel(
 		};
 	}
 
+	const paidProject =
+		fareEvaluation?.allowed === true
+			? {
+					...simulation.project,
+					cashByCharacter: applyNarrativeCashSpend(
+						simulation.project.cashByCharacter,
+						fareEvaluation
+					)
+				}
+			: simulation.project;
+
 	return {
 		status: 'applied',
 		project: setNarrativeCharacterActualLocation(
-			simulation.project,
+			paidProject,
 			characterId,
 			route.destinationLocationId
 		),
 		route,
 		characterId,
 		simulation,
-		physical
+		physical,
+		fareMinorUnits: route.fareMinorUnits,
+		spendTrace: fareEvaluation?.allowed ? fareEvaluation.trace : undefined
 	};
 }
