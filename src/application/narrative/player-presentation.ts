@@ -7,6 +7,13 @@ import {
 } from '../../domain/narrative/entities';
 import {NarrativeMoveKind} from '../../domain/narrative/interaction';
 import {NarrativeProject} from '../../domain/narrative/project';
+import {
+	normalizedStoryRuntimePolicy,
+	runtimeExecutionAbsoluteMinute,
+	storyRuntimePolicyIsValid,
+	storyWorkWasConsumed
+} from '../../domain/narrative/runtime-execution';
+import {scheduledStoryWork} from '../../domain/narrative/simulation-kernel';
 import {NarrativeTravelMode} from '../../domain/narrative/travel';
 import {evaluateNarrativePhysicalAction} from './physical';
 import {
@@ -52,6 +59,28 @@ export interface NarrativePlayerTravelOption {
 	summary: string;
 }
 
+export interface NarrativePlayerStoryOpportunity {
+	id: string;
+	storyNodeId: string;
+	title: string;
+	scheduledDay: number;
+	scheduledMinuteOfDay: number;
+	locationName?: string;
+	state: 'ready' | 'wrong-location' | 'expired';
+	summary: string;
+}
+
+export interface NarrativePlayerSleepOption {
+	id: string;
+	label: string;
+	wakeMinuteOfDay: number;
+}
+
+export interface NarrativePlayerSleepWait {
+	durationMinutes: number;
+	targetMinuteOfDay: number;
+}
+
 export interface NarrativePlayerAction {
 	id: string;
 	label: string;
@@ -74,6 +103,9 @@ export interface NarrativePlayerPresentationModel {
 	localCharacters: NarrativeCharacter[];
 	actions: NarrativePlayerAction[];
 	travelOptions: NarrativePlayerTravelOption[];
+	storyOpportunities: NarrativePlayerStoryOpportunity[];
+	sleepOptions: NarrativePlayerSleepOption[];
+	sleepWait?: NarrativePlayerSleepWait;
 	body?: CharacterBodyState;
 	carryLoad?: CharacterCarryLoad;
 	inventoryItems: NarrativePlayerInventoryItem[];
@@ -224,6 +256,145 @@ function playerTravelOptions(
 		);
 }
 
+function storyPlacementIsDue(
+	project: NarrativeProject,
+	node: NarrativeProject['storyNodes'][number]
+) {
+	const day = node.placement?.day;
+	if (day === undefined) {
+		return true;
+	}
+	if (project.simulation.day !== day) {
+		return project.simulation.day > day;
+	}
+	const minuteOfDay = node.placement?.minuteOfDay;
+	return minuteOfDay === undefined || project.simulation.minuteOfDay >= minuteOfDay;
+}
+
+function playerStoryOpportunities(
+	project: NarrativeProject,
+	playerCharacterId: string,
+	locationId: string | undefined
+): NarrativePlayerStoryOpportunity[] {
+	const runtimeNodes = narrativeRuntimeStoryNodes(project);
+	const nodesById = new Map(runtimeNodes.map(node => [node.id, node]));
+	const activeWorkIds = new Set(
+		project.activeStoryExecutions.map(execution => execution.workId)
+	);
+	const nowAbsolute = runtimeExecutionAbsoluteMinute(project.simulation);
+
+	return scheduledStoryWork(project.storyNodes)
+		.flatMap(work => {
+			const node = work.sourceEntityId
+				? nodesById.get(work.sourceEntityId)
+				: undefined;
+			if (
+				!node ||
+				!node.runtimePolicy ||
+				!node.participantIds.includes(playerCharacterId) ||
+				(node.activationState !== 'available' &&
+					node.activationState !== 'active') ||
+				!storyRuntimePolicyIsValid(node.runtimePolicy) ||
+				activeWorkIds.has(work.id)
+			) {
+				return [];
+			}
+			const policy = normalizedStoryRuntimePolicy(node);
+			if (
+				policy.occurrenceMode === 'one-shot' &&
+				storyWorkWasConsumed(project.runtimeOccurrences, work.id)
+			) {
+				return [];
+			}
+			const scheduledAbsolute = runtimeExecutionAbsoluteMinute(work.moment);
+			if (nowAbsolute < scheduledAbsolute) {
+				return [];
+			}
+			const expired =
+				policy.missAfterMinutes !== undefined &&
+				nowAbsolute > scheduledAbsolute + policy.missAfterMinutes;
+			const requiredLocationId = node.placement?.locationId;
+			const locationName = requiredLocationId
+				? project.locations.find(location => location.id === requiredLocationId)?.name
+				: undefined;
+			const atRequiredLocation =
+				!requiredLocationId || requiredLocationId === locationId;
+			const state = expired
+				? ('expired' as const)
+				: atRequiredLocation
+					? ('ready' as const)
+					: ('wrong-location' as const);
+			return [
+				{
+					id: work.id,
+					storyNodeId: node.id,
+					title: node.title,
+					scheduledDay: work.moment.day,
+					scheduledMinuteOfDay: work.moment.minuteOfDay,
+					locationName,
+					state,
+					summary:
+						state === 'expired'
+							? 'Окно этой возможности уже закрылось; пропуск можно зафиксировать в истории.'
+							: state === 'wrong-location'
+								? `Для участия нужно быть в локации «${locationName ?? requiredLocationId}».`
+								: 'Возможность доступна сейчас.'
+				}
+			];
+		})
+		.sort(
+			(a, b) =>
+				a.scheduledDay - b.scheduledDay ||
+				a.scheduledMinuteOfDay - b.scheduledMinuteOfDay ||
+				a.title.localeCompare(b.title) ||
+				a.id.localeCompare(b.id)
+		);
+}
+
+function playerSleepPresentation(
+	project: NarrativeProject,
+	locationId: string | undefined
+): {options: NarrativePlayerSleepOption[]; wait?: NarrativePlayerSleepWait} {
+	if (!locationId || project.simulation.day >= project.template.dayCount) {
+		return {options: []};
+	}
+	const localOptions = (project.sleepOptions ?? [])
+		.filter(option => option.locationId === locationId)
+		.sort(
+			(a, b) =>
+				a.earliestStartMinuteOfDay - b.earliestStartMinuteOfDay ||
+				a.label.localeCompare(b.label) ||
+				a.id.localeCompare(b.id)
+		);
+	const options = localOptions
+		.filter(
+			option =>
+				project.simulation.minuteOfDay >= option.earliestStartMinuteOfDay
+		)
+		.map(option => ({
+			id: option.id,
+			label: option.label,
+			wakeMinuteOfDay: option.wakeMinuteOfDay
+		}));
+	if (options.length > 0) {
+		return {options};
+	}
+	const next = localOptions.find(
+		option =>
+			project.simulation.minuteOfDay < option.earliestStartMinuteOfDay
+	);
+	return next
+		? {
+				options,
+				wait: {
+					durationMinutes:
+						next.earliestStartMinuteOfDay - project.simulation.minuteOfDay,
+					targetMinuteOfDay: next.earliestStartMinuteOfDay
+				}
+			}
+		: {options};
+}
+
 function playerActions(
 	project: NarrativeProject,
 	playerCharacterId: string,
@@ -238,6 +409,7 @@ function playerActions(
 			const node = nodesById.get(move.storyNodeId);
 			if (
 				!node ||
+				!storyPlacementIsDue(project, node) ||
 				(node.activationState !== 'available' &&
 					node.activationState !== 'active') ||
 				(node.placement?.locationId &&
@@ -282,6 +454,8 @@ export function deriveNarrativePlayerPresentation(
 		localCharacters: [],
 		actions: [],
 		travelOptions: [],
+		storyOpportunities: [],
+		sleepOptions: [],
 		inventoryItems: [],
 		economy: {
 			status: 'unavailable',
@@ -306,12 +480,24 @@ export function deriveNarrativePlayerPresentation(
 	);
 	const actions = playerActions(project, characterId, locationId);
 	const travelOptions = playerTravelOptions(project, characterId, locationId);
+	const storyOpportunities = playerStoryOpportunities(
+		project,
+		characterId,
+		locationId
+	);
+	const sleep = playerSleepPresentation(project, locationId);
+	const playerBase = {
+		...base,
+		actions,
+		travelOptions,
+		storyOpportunities,
+		sleepOptions: sleep.options,
+		sleepWait: sleep.wait
+	};
 
 	if (!locationId) {
 		return {
-			...base,
-			actions,
-			travelOptions,
+			...playerBase,
 			body,
 			carryLoad,
 			inventoryItems: inventoryItems(project, carryLoad)
@@ -321,9 +507,7 @@ export function deriveNarrativePlayerPresentation(
 	const location = project.locations.find(candidate => candidate.id === locationId);
 	if (!location) {
 		return {
-			...base,
-			actions,
-			travelOptions,
+			...playerBase,
 			locationState: 'unknown-location',
 			body,
 			carryLoad,
@@ -345,7 +529,7 @@ export function deriveNarrativePlayerPresentation(
 	);
 
 	return {
-		...base,
+		...playerBase,
 		location,
 		locationState: 'resolved',
 		scene,
@@ -356,8 +540,6 @@ export function deriveNarrativePlayerPresentation(
 					? 'none'
 					: 'ambiguous',
 		localCharacters,
-		actions,
-		travelOptions,
 		body,
 		carryLoad,
 		inventoryItems: inventoryItems(project, carryLoad)

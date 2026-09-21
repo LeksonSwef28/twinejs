@@ -1,6 +1,8 @@
 import * as React from 'react';
 import {executeNarrativePlayerAction} from '../application/narrative/player-action';
 import {bootstrapNarrativePlayerHost} from '../application/narrative/player-host';
+import {executeNarrativePlayerSleep} from '../application/narrative/player-sleep';
+import {executeNarrativePlayerStoryWork} from '../application/narrative/player-story-work';
 import {executeNarrativePlayerTravel} from '../application/narrative/player-travel';
 import {executeNarrativePlayerWait} from '../application/narrative/player-wait';
 import {deriveNarrativePlayerPresentation} from '../application/narrative/player-presentation';
@@ -135,6 +137,63 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 		});
 	};
 
+	const executeStoryWork = (
+		workId: string,
+		decision: 'execute' | 'miss'
+	) => {
+		if (view.perspective.status !== 'resolved') {
+			return;
+		}
+		const result = executeNarrativePlayerStoryWork(
+			session,
+			workId,
+			decision,
+			view.perspective.character.id
+		);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({
+				title:
+					decision === 'miss'
+						? 'Возможность пропущена'
+						: 'Событие принято',
+				summary: result.summary,
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Событие недоступно',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
+
+	const executeSleep = (optionId: string) => {
+		if (view.perspective.status !== 'resolved') {
+			return;
+		}
+		const result = executeNarrativePlayerSleep(
+			session,
+			optionId,
+			view.perspective.character.id
+		);
+		if (result.status === 'applied') {
+			setSession(result.session);
+			setFeedback({
+				title: `День ${result.wakeDay}`,
+				summary: `${result.label} · подъём в ${formatMinute(result.wakeMinuteOfDay)}`,
+				tone: 'result'
+			});
+			return;
+		}
+		setFeedback({
+			title: 'Не удалось уснуть',
+			summary: result.summary,
+			tone: 'notice'
+		});
+	};
+
 	const executeAction = (moveId: string) => {
 		if (view.perspective.status !== 'resolved') {
 			return;
@@ -236,6 +295,56 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 							)}
 						</section>
 
+						{view.storyOpportunities.length > 0 && (
+							<section
+								className="narrative-player__panel"
+								aria-labelledby="story-opportunities-title"
+							>
+								<div className="narrative-player__panel-heading">
+									<h3 id="story-opportunities-title">Событие рядом</h3>
+									<span>{view.storyOpportunities.length}</span>
+								</div>
+								<ul className="narrative-player__story-opportunities">
+									{view.storyOpportunities.map(opportunity => (
+										<li key={opportunity.id}>
+											<strong>{opportunity.title}</strong>
+											<small>
+												День {opportunity.scheduledDay} ·{' '}
+												{formatMinute(opportunity.scheduledMinuteOfDay)}
+												{opportunity.locationName
+													? ` · ${opportunity.locationName}`
+													: ''}
+											</small>
+											<div className="narrative-player__story-buttons">
+												<button
+													type="button"
+													disabled={opportunity.state !== 'ready'}
+													onClick={() =>
+														executeStoryWork(opportunity.id, 'execute')
+													}
+												>
+													Участвовать
+												</button>
+												<button
+													type="button"
+													onClick={() =>
+														executeStoryWork(opportunity.id, 'miss')
+													}
+												>
+													{opportunity.state === 'expired'
+														? 'Зафиксировать пропуск'
+														: 'Пропустить'}
+												</button>
+											</div>
+											{opportunity.state !== 'ready' && (
+												<p>{opportunity.summary}</p>
+											)}
+										</li>
+									))}
+								</ul>
+							</section>
+						)}
+
 						<section className="narrative-player__panel" aria-labelledby="travel-title">
 							<div className="narrative-player__panel-heading">
 								<h3 id="travel-title">Куда дальше</h3>
@@ -275,6 +384,47 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 								</ul>
 							)}
 						</section>
+
+						{(view.sleepOptions.length > 0 || view.sleepWait) && (
+							<section
+								className="narrative-player__panel"
+								aria-labelledby="sleep-title"
+							>
+								<div className="narrative-player__panel-heading">
+									<h3 id="sleep-title">Отдых</h3>
+									<span>{view.sleepOptions.length}</span>
+								</div>
+								{view.sleepWait && (
+									<div className="narrative-player__wait-actions">
+										<button
+											type="button"
+											onClick={() =>
+												executeWait(view.sleepWait!.durationMinutes)
+											}
+										>
+											Подождать до {formatMinute(view.sleepWait.targetMinuteOfDay)}
+										</button>
+									</div>
+								)}
+								{view.sleepOptions.length > 0 && (
+									<ul className="narrative-player__sleep-options">
+										{view.sleepOptions.map(option => (
+											<li key={option.id}>
+												<button
+													type="button"
+													onClick={() => executeSleep(option.id)}
+												>
+													<span>{option.label}</span>
+													<small>
+														Подъём в {formatMinute(option.wakeMinuteOfDay)}
+													</small>
+												</button>
+											</li>
+										))}
+									</ul>
+								)}
+							</section>
+						)}
 
 						<section className="narrative-player__panel" aria-labelledby="actions-title">
 							<div className="narrative-player__panel-heading">

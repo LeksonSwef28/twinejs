@@ -409,3 +409,70 @@ select {
 	color: rgba(242, 239, 232, 0.95);
 	outline: none;
 }
+
+
+.narrative-player__story-opportunities,
+.narrative-player__sleep-options {
+	display: grid;
+	gap: 0.6rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.narrative-player__story-opportunities li {
+	display: grid;
+	gap: 0.4rem;
+	padding: 0.85rem 0.95rem;
+	border: 1px solid rgba(242, 239, 232, 0.18);
+	border-radius: 0.35rem;
+	background: rgba(242, 239, 232, 0.035);
+}
+
+.narrative-player__story-opportunities li > small,
+.narrative-player__story-opportunities li > p,
+.narrative-player__sleep-options button small {
+	color: rgba(242, 239, 232, 0.46);
+	font-size: 0.72rem;
+}
+
+.narrative-player__story-opportunities li > p {
+	margin: 0;
+}
+
+.narrative-player__story-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.narrative-player__story-buttons button,
+.narrative-player__sleep-options button {
+	padding: 0.55rem 0.7rem;
+	border: 1px solid rgba(242, 239, 232, 0.16);
+	border-radius: 0.35rem;
+	background: rgba(242, 239, 232, 0.03);
+	color: rgba(242, 239, 232, 0.82);
+	cursor: pointer;
+}
+
+.narrative-player__story-buttons button:hover:not(:disabled),
+.narrative-player__story-buttons button:focus-visible:not(:disabled),
+.narrative-player__sleep-options button:hover,
+.narrative-player__sleep-options button:focus-visible {
+	border-color: rgba(242, 239, 232, 0.38);
+	color: rgba(242, 239, 232, 0.95);
+	outline: none;
+}
+
+.narrative-player__story-buttons button:disabled {
+	color: rgba(242, 239, 232, 0.42);
+	cursor: not-allowed;
+}
+
+.narrative-player__sleep-options button {
+	display: grid;
+	gap: 0.25rem;
+	width: 100%;
+	text-align: left;
+}
