@@ -437,7 +437,8 @@ function playerTravelOptions(
 							true
 						);
 			const blockedByPhysical = Boolean(physical && !physical.allowed);
-			const blockedByFare = Boolean(fare && !fare.allowed);
+			const fareBlockSummary =
+				fare && !fare.allowed ? fare.summary : undefined;
 			return [
 				{
 					id: route.id,
@@ -448,16 +449,12 @@ function playerTravelOptions(
 					mode: route.mode,
 					fareMinorUnits: route.fareMinorUnits,
 					state:
-						blockedByPhysical || blockedByFare
+						blockedByPhysical || fareBlockSummary
 							? ('blocked' as const)
 							: ('ready' as const),
 					summary: blockedByPhysical
 						? physical!.blockers.map(blocker => blocker.message).join(' ')
-						: blockedByFare
-							? fare!.allowed
-								? `${route.durationMinutes} мин.`
-								: fare!.summary
-							: `${route.durationMinutes} мин.`
+						: fareBlockSummary ?? `${route.durationMinutes} мин.`
 				}
 			];
 		})
