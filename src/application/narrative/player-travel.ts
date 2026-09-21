@@ -13,6 +13,7 @@ export type NarrativePlayerTravelExecutionResult =
 			destinationLocationId: string;
 			destinationName: string;
 			durationMinutes: number;
+			fareMinorUnits?: number;
 	  }
 	| {
 			status: 'rejected';
@@ -70,6 +71,7 @@ export function executeNarrativePlayerTravel(
 		routeLabel: travelled.route.label,
 		destinationLocationId: travelled.route.destinationLocationId,
 		destinationName: destination?.name ?? travelled.route.destinationLocationId,
-		durationMinutes: travelled.route.durationMinutes
+		durationMinutes: travelled.route.durationMinutes,
+		fareMinorUnits: travelled.fareMinorUnits
 	};
 }
