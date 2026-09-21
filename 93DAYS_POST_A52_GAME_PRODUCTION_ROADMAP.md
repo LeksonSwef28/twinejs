@@ -155,7 +155,7 @@ Exit proof: two runs can legitimately produce different knowledge/relationships/
 
 ### A58 — Everyday Systems Integration for the Slice
 
-**Status:** **IMPLEMENTATION VERIFIED / CLOSURE VERIFICATION** — exact implementation head `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435` verified by **#559 GREEN** (367/367 Jest suites, 2175 passed, Chromium 6/6, Vite/Electron PASS); PR #31 is open and Ready for review, while the docs-only closure head still requires its own exact-head full CI before the merge gate.
+**Status:** **DONE / MERGE REVIEW READY** — implementation head `4cfca9c75c1b0bef25192719b2f9ccd85a7bb435` verified by **#559 GREEN**; closure docs head `9089cddb9d0c48f2a84ef2d1bde777e4275a4ec5` verified by **#562 GREEN** (367/367 Jest suites, 2175 passed, Chromium 6/6, Vite/Electron PASS). PR #31 is open and Ready for review; merge requires explicit authorization.
 
 **Goal:** use existing physical systems only where the actual slice creates decisions, and close only proven missing contracts.
 
