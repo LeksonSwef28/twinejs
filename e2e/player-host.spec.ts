@@ -13,6 +13,7 @@ import {
 	create93DaysArrivalCorridorProject
 } from '../src/domain/narrative/content/93-days-arrival-corridor';
 import {create93DaysDayOneDayTwoProject} from '../src/domain/narrative/content/93-days-day-one-day-two';
+import {create93DaysEverydaySystemsProject} from '../src/domain/narrative/content/93-days-everyday-systems';
 import {createNarrativeProject} from '../src/domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../src/domain/narrative/templates/93-days';
 import {narrativePlayerDevelopmentHandoffKey} from '../src/player/artifact-source';
@@ -407,6 +408,125 @@ test('plays the real A57 Day One to Day Two path in the standalone player', asyn
 			name: /Поймать ощущение, что утром на вокзале что-то прошло мимо/
 		})
 	).toHaveCount(0);
+});
+
+
+test('plays the real A58 everyday systems path into Day Two', async ({page}) => {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysEverydaySystemsProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected real A58 fixture to compile.');
+	}
+	expect(
+		compiled.artifact.initialRuntime.simulation.actualLocationByCharacter
+	).toEqual({});
+	expect(compiled.artifact.initialRuntime.cashByCharacter).toEqual({
+		player: 12000
+	});
+	await page.setViewportSize({width: 390, height: 844});
+
+	await page.route('**/player.html', async route => {
+		const response = await route.fetch();
+		const template = await response.text();
+		await route.fulfill({
+			response,
+			body: embedNarrativeRuntimeArtifactInPlayerHtml(
+				template,
+				compiled.artifact
+			)
+		});
+	});
+
+	await page.goto('http://localhost:5173/player.html');
+
+	await expect(page.locator('[data-player-view="world"]')).toBeVisible();
+	await expect(
+		page.getByRole('heading', {name: 'Междугородний автовокзал'})
+	).toBeVisible();
+	await expect(page.getByText('120 руб.', {exact: true})).toBeVisible();
+
+	await page
+		.getByRole('button', {name: /Позвонить по записанному номеру/})
+		.click();
+	await page
+		.getByRole('button', {
+			name: /Вежливо спросить про водонапорную башню/
+		})
+		.click();
+	await page
+		.getByRole('button', {name: /Уточнить, где пересаживаться после башни/})
+		.click();
+
+	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
+	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
+	await page.getByRole('button', {name: 'Участвовать'}).click();
+
+	await page
+		.getByRole('button', {name: /Выйти на транспортную площадь/})
+		.click();
+	await page.getByRole('button', {name: /Подойти к киоскам/}).click();
+	await expect(
+		page.getByRole('heading', {name: 'Киоски у транспортной площади'})
+	).toBeVisible();
+
+	const buy = page.getByRole('button', {
+		name: /Купить плотный перекус.*18 руб/
+	});
+	await expect(buy).toBeEnabled();
+	await buy.click();
+	await expect(page.getByText('102 руб.', {exact: true})).toBeVisible();
+
+	let meal = page
+		.locator('.narrative-player__inventory li')
+		.filter({hasText: 'Плотный перекус'});
+	await expect(meal).toHaveCount(1);
+	await meal.getByRole('button', {name: 'В «Дорожная сумка»'}).click();
+
+	meal = page
+		.locator('.narrative-player__inventory li')
+		.filter({hasText: 'Плотный перекус'});
+	await expect(meal.getByText('внутри')).toBeVisible();
+	await meal.getByRole('button', {name: 'Съесть'}).click();
+	await expect(page.getByText('Плотный перекус', {exact: true})).toHaveCount(0);
+	await expect(page.getByText('После еды')).toBeVisible();
+	await expect(
+		page.getByText('30 мин.', {exact: true})
+	).toBeVisible();
+
+	await page
+		.getByRole('button', {name: /Вернуться на транспортную площадь/})
+		.click();
+	await page.getByRole('button', {name: /Дойти до остановки/}).click();
+
+	const paidBus = page.getByRole('button', {
+		name: /Ехать городским автобусом к башне.*26 мин.*6 руб/
+	});
+	await expect(paidBus).toBeEnabled();
+	await paidBus.click();
+	await expect(page.getByText('96 руб.', {exact: true})).toBeVisible();
+	await expect(page.getByRole('status')).toContainText('−6 руб.');
+	await expect(page.getByText('После еды')).toHaveCount(0);
+
+	await page
+		.getByRole('button', {name: /Идти от башни к общежитию/})
+		.click();
+	await expect(
+		page.getByRole('heading', {name: 'Студенческое общежитие'})
+	).toBeVisible();
+
+	await page.getByRole('button', {name: 'Подождать до 22:30'}).click();
+	await page.getByRole('button', {name: /Лечь спать до утра/}).click();
+
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 2');
+	await expect(page.locator('.narrative-player__clock')).toContainText('07:30');
+	await expect(page.getByText('96 руб.', {exact: true})).toBeVisible();
+	await expect(
+		page.getByRole('button', {name: /Вспомнить точный совет кассира/})
+	).toBeEnabled();
+	await expect(
+		page.getByRole('button', {name: /Вспомнить утреннее объявление на вокзале/})
+	).toBeEnabled();
 });
 
 test('renders Actual Presence and applies a canonical Move in the standalone player', async ({
