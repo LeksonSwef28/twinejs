@@ -14,6 +14,7 @@ import {
 } from '../src/domain/narrative/content/93-days-arrival-corridor';
 import {create93DaysDayOneDayTwoProject} from '../src/domain/narrative/content/93-days-day-one-day-two';
 import {create93DaysEverydaySystemsProject} from '../src/domain/narrative/content/93-days-everyday-systems';
+import {create93DaysPhoneSocialLoopProject} from '../src/domain/narrative/content/93-days-phone-social-loop';
 import {createNarrativeProject} from '../src/domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../src/domain/narrative/templates/93-days';
 import {narrativePlayerDevelopmentHandoffKey} from '../src/player/artifact-source';
@@ -527,6 +528,66 @@ test('plays the real A58 everyday systems path into Day Two', async ({page}) => 
 	await expect(
 		page.getByRole('button', {name: /Вспомнить утреннее объявление на вокзале/})
 	).toBeEnabled();
+});
+
+test('renders and uses the derived A60 phone SMS surface in the standalone Player', async ({page}) => {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysPhoneSocialLoopProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected real A60 phone fixture to compile.');
+	}
+	compiled.artifact.initialRuntime.simulation.day = 2;
+	compiled.artifact.initialRuntime.simulation.minuteOfDay = 10 * 60 + 30;
+	await page.setViewportSize({width: 390, height: 844});
+
+	await page.route('**/player.html', async route => {
+		const response = await route.fetch();
+		const template = await response.text();
+		await route.fulfill({
+			response,
+			body: embedNarrativeRuntimeArtifactInPlayerHtml(
+				template,
+				compiled.artifact
+			)
+		});
+	});
+
+	await page.goto('http://localhost:5173/player.html');
+
+	const phone = page
+		.getByRole('heading', {name: 'Телефон'})
+		.locator('xpath=ancestor::section[1]');
+	await expect(phone).toBeVisible();
+	await expect(phone).toContainText('Контакт по записанному номеру');
+	await expect(phone).toContainText('Сообщение с записанного номера');
+	await expect(phone).toContainText('не прочитано');
+
+	const nearby = page.getByRole('heading', {name: 'Событие рядом'});
+	if (await nearby.count()) {
+		const nearbyPanel = nearby.locator('xpath=ancestor::section[1]');
+		await expect(nearbyPanel).not.toContainText('Сообщение с записанного номера');
+	}
+
+	await phone.getByRole('button', {name: 'Открыть SMS'}).click();
+	await expect(page.getByRole('status')).toContainText('SMS прочитано');
+	await expect(phone).toContainText('прочитано');
+
+	const accept = phone.getByRole('button', {
+		name: /Ответить, что придёшь вечером/
+	});
+	const decline = phone.getByRole('button', {
+		name: /Ответить, что сегодня не получится/
+	});
+	await expect(accept).toBeEnabled();
+	await expect(decline).toBeEnabled();
+	await accept.click();
+
+	await expect(page.getByRole('status')).toContainText(
+		'Договориться встретиться вечером во дворе общежития'
+	);
+	await expect(accept).toHaveCount(0);
+	await expect(decline).toHaveCount(0);
 });
 
 test('saves, reloads and explicitly continues the real A59 Player session', async ({page}) => {
