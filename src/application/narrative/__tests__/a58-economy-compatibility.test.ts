@@ -35,6 +35,13 @@ function authoredEconomyProject(): NarrativeProject {
 			defaultBehaviorProfileId: 'player-default'
 		}
 	];
+	project.behaviorProfiles = [
+		{
+			id: 'player-default',
+			characterId: 'player',
+			name: 'Player default'
+		}
+	];
 	project.economy = {
 		currency: {code: 'RUB', label: 'руб.', minorUnitsPerMajor: 100},
 		initialCashByCharacter: {player: 12500},
