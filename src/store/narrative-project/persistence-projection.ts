@@ -9,6 +9,7 @@ type RuntimeProjectionKeys =
 	| 'relationships'
 	| 'pendingReactions'
 	| 'mindStates'
+	| 'cashByCharacter'
 	| 'injuriesByCharacter'
 	| 'itemPlacementOverrides'
 	| 'storyNodeStateOverrides'
@@ -33,6 +34,8 @@ export interface NarrativeProjectRuntimeProjection {
 	relationships: NarrativeProject['relationships'];
 	pendingReactions: NarrativeProject['pendingReactions'];
 	mindStates: NarrativeProject['mindStates'];
+	/** Optional only so pre-A58 projection-v1 payloads remain readable. */
+	cashByCharacter?: NarrativeProject['cashByCharacter'];
 	/** Optional only so pre-A39 projection-v1 payloads remain readable. */
 	injuriesByCharacter?: NarrativeProject['injuriesByCharacter'];
 	/** Optional only so pre-A39 projection-v1 payloads remain readable. */
@@ -64,6 +67,7 @@ export function projectNarrativePersistence(
 		relationships,
 		pendingReactions,
 		mindStates,
+		cashByCharacter,
 		injuriesByCharacter,
 		itemPlacementOverrides,
 		storyNodeStateOverrides,
@@ -83,6 +87,7 @@ export function projectNarrativePersistence(
 			relationships,
 			pendingReactions,
 			mindStates,
+			cashByCharacter,
 			injuriesByCharacter,
 			itemPlacementOverrides,
 			storyNodeStateOverrides,
@@ -125,6 +130,7 @@ export function composeNarrativeProjectPersistence(
 		relationships: envelope.runtime.relationships,
 		pendingReactions: envelope.runtime.pendingReactions,
 		mindStates: envelope.runtime.mindStates,
+		cashByCharacter: envelope.runtime.cashByCharacter ?? {},
 		injuriesByCharacter: envelope.runtime.injuriesByCharacter ?? {},
 		itemPlacementOverrides: envelope.runtime.itemPlacementOverrides ?? {},
 		storyNodeStateOverrides: envelope.runtime.storyNodeStateOverrides ?? {},
