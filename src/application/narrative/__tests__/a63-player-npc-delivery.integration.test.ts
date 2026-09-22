@@ -13,6 +13,8 @@ import {
 import {createNarrativePlayerSave, restoreNarrativePlayerSave} from '../player-save';
 import {executeNarrativePlayerStoryWork} from '../player-story-work';
 import {executeNarrativePlayerWait} from '../player-wait';
+import {executeNarrativePlayerTravel} from '../player-travel';
+import {executeNarrativePlayerSleep} from '../player-sleep';
 import {bootstrapNarrativePlayerWorldStart} from '../player-world-start';
 import {arrivalCorridorIds} from '../../../domain/narrative/content/93-days-arrival-corridor';
 import {dayOneNarrativeIds} from '../../../domain/narrative/content/93-days-day-one-day-two';
@@ -325,6 +327,86 @@ describe('A63 S2 automatic delivery through ordinary Player wait', () => {
 		expect(delivered.currentProject.runtimeOccurrences.filter(
 			item => item.type === 'story-work' &&
 				item.workId === reportWorkId && item.result === 'executed'
+		)).toHaveLength(1);
+	});
+});
+
+describe('A63 S4 shared Player-time integration', () => {
+	test('travel crossing 08:15 delivers the NPC report before Player arrival', () => {
+		let {session} = beforeReport('declined', 0.65, true);
+		session = place(session, playerId, arrivalCorridorIds.locations.stationStop);
+		const result = executeNarrativePlayerTravel(
+			session,
+			arrivalCorridorIds.routes.stopToTowerRouteTaxi,
+			playerId
+		);
+		expect(result.status).toBe('applied');
+		if (result.status !== 'applied') {
+			throw new Error('A63 route should remain available.');
+		}
+		expect(result.session.currentProject.simulation).toMatchObject({
+			day: 3, minuteOfDay: 8 * 60 + 18
+		});
+		expect(result.session.currentProject.simulation.actualLocationByCharacter[playerId])
+			.toBe(arrivalCorridorIds.locations.waterTowerTransfer);
+		expect(occurrences(result.session, branches.declined.report)).toHaveLength(1);
+		expect(result.session.currentProject.runtimeOccurrences.filter(
+			item => item.type === 'story-work' &&
+				item.workId === reportWorkId &&
+				item.result === 'executed' &&
+				item.moment.day === 3 &&
+				item.moment.minuteOfDay === 8 * 60 + 15
+		)).toHaveLength(1);
+		expect(result.session.currentProject.simulation.characterKnowledge.some(
+			item => item.characterId === listenerId &&
+				item.claimId === branches.declined.claim
+		)).toBe(true);
+	});
+
+	test('sleep crossing 08:15 applies canonical sleep state and NPC delivery', () => {
+		const project = create93DaysPlayerNpcSocialDeliveryProject();
+		const standard = (project.sleepOptions ?? []).find(
+			option => option.id === 'day1-dorm-overnight-sleep'
+		);
+		if (!standard) {
+			throw new Error('A63 requires the inherited authored sleep option.');
+		}
+		project.sleepOptions = [
+			...(project.sleepOptions ?? []),
+			{
+				...standard,
+				id: 'a63-test-late-wake',
+				wakeMinuteOfDay: 8 * 60 + 30
+			}
+		];
+		const compiled = compileNarrativeRuntimeArtifact(project);
+		if (compiled.status !== 'compiled') {
+			throw new Error('A63 late-wake authored fixture did not compile.');
+		}
+		let session = start(compiled.artifact);
+		session = waitUntil(session, 2, 10 * 60 + 30);
+		session = story(session, smsWorkId, 'execute');
+		session = move(session, phoneSocialLoopIds.moves.decline);
+		session = waitUntil(session, 2, 22 * 60 + 30);
+		session = place(session, playerId, dormId);
+		session = place(session, contactId, dormId);
+		session = trust(session, 0.65);
+		const result = executeNarrativePlayerSleep(session, 'a63-test-late-wake', playerId);
+		expect(result.status).toBe('applied');
+		if (result.status !== 'applied') {
+			throw new Error('A63 overnight delivery was rejected.');
+		}
+		expect(result.session.currentProject.simulation).toMatchObject({
+			day: 3, minuteOfDay: 8 * 60 + 30
+		});
+		expect(result.session.currentProject.simulation.bodyByCharacter[playerId]
+			.sleepRemainingMinutes).toBe(0);
+		expect(occurrences(result.session, branches.declined.report)).toHaveLength(1);
+		expect(result.session.currentProject.runtimeOccurrences.filter(
+			item => item.type === 'story-work' &&
+				item.workId === reportWorkId &&
+				item.result === 'executed' &&
+				item.moment.minuteOfDay === 8 * 60 + 15
 		)).toHaveLength(1);
 	});
 });
