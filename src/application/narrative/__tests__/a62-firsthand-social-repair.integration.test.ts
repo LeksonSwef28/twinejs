@@ -297,8 +297,9 @@ describe('A62 artifact and initial runtime boundary', () => {
 		expect(
 			session.currentProject.storyNodeStateOverrides[ids.story.answer]
 		).toBeUndefined();
-		expect(session.currentProject.simulation.actualLocationByCharacter).toEqual({
-			[playerId]: arrivalCorridorIds.locations.busStation
+		expect(session.currentProject.simulation.actualLocationByCharacter).toMatchObject({
+			[playerId]: arrivalCorridorIds.locations.busStation,
+			[listenerId]: dormId
 		});
 	});
 });
