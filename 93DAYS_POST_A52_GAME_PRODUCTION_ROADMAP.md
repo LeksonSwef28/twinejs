@@ -250,7 +250,7 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 
 ### A62 — Firsthand Social Repair & Day Four Follow-up
 
-**Status:** **IN PROGRESS / FEATURE BRANCH** — `feature/a62-firsthand-social-repair`, based on exact A61 stable `44ade5dcbcb53e814cac131db383daeddb18b01f`. Contract: `93DAYS_A62_FIRSTHAND_SOCIAL_REPAIR_CONTRACT.md`. No merge authorization is implied.
+**Status:** **IMPLEMENTATION VERIFIED / PR #35 DRAFT** — exact implementation `4702b211692a52575fc5a0e69a6ab84ca64d7520` passed **Branch Check #634 GREEN** (375/375 Jest suites; 2217 passed; Chromium 10/10; audit 0; builds and Vite/Electron smoke PASS). Feature `feature/a62-firsthand-social-repair`, based on A61 stable `44ade5dcbcb53e814cac131db383daeddb18b01f`. Contract: `93DAYS_A62_FIRSTHAND_SOCIAL_REPAIR_CONTRACT.md`. Change record: `93DAYS_A62_CHANGE_RECORD.md`. Docs-closure exact-head CI still required before review; no merge authorization is implied.
 
 **Goal:** extend A61 so the player's social story is not settled solely by another person's report. Let the player meet the listener in person, make one version-consistent direct statement or decline to discuss the report, then experience a different follow-up on Day Four.
 
