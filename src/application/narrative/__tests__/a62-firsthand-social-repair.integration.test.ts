@@ -314,7 +314,9 @@ describe('A62 firsthand answers preserve the original rumor', () => {
 	] as const)(
 		'%s history with source trust %s opens only its truthful direct answer',
 		(history, trust) => {
-			let {session, branch} = reachEcho(history, trust);
+			const prepared = reachEcho(history, trust);
+			let session = prepared.session;
+			const branch = prepared.branch;
 			const echoMoveId =
 				trust >= 0.5
 					? branch.believeEcho
@@ -442,7 +444,9 @@ describe('A62 firsthand answers preserve the original rumor', () => {
 
 describe('A62 leave / follow-up / persistence', () => {
 	test('leaving preserves third-party Knowledge but opens only the unanswered Day Four', () => {
-		let {session, branch} = reachEcho('missed', 0.65);
+		const prepared = reachEcho('missed', 0.65);
+		let session = prepared.session;
+		const branch = prepared.branch;
 		session = move(session, branch.believeEcho);
 		const goodwillBefore = goodwill(session.currentProject);
 		session = move(session, ids.moves.walkAway);
@@ -486,7 +490,9 @@ describe('A62 leave / follow-up / persistence', () => {
 		'%s history keeps exactly one day-four story after save/restore',
 		choice => {
 			const artifact = compileFixture();
-			let {session, branch} = reachEcho('declined', 0.3, artifact);
+			const prepared = reachEcho('declined', 0.3, artifact);
+			let session = prepared.session;
+			const branch = prepared.branch;
 			session = move(session, rumorSocialEchoIds.moves.cautiousEcho);
 			session = move(
 				session,
