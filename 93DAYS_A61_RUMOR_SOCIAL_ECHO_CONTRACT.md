@@ -1,10 +1,11 @@
 # A61 Contract — Rumor & Social Echo
 
-Status: **IMPLEMENTATION VERIFIED / CLOSURE PENDING**  
+Status: **DONE / STABLE — PR #34 merged 2026-09-22**  
 Stage: **A61 — Rumor & Social Echo**  
 Risk: **MEDIUM** with explicit HIGH re-scope triggers  
 Stable source: `93-days-editor` @ `9531bc4a9c1d919fe30e034060232b18cba2cb30`  
 Feature branch: `feature/a61-rumor-social-echo`  
+Merged stable SHA: `44ade5dcbcb53e814cac131db383daeddb18b01f`  
 Decision date: **2026-09-22**
 
 ## 1. Evidence boundary
@@ -248,7 +249,16 @@ Stable-to-implementation review: **12 commits ahead / 0 behind** stable. Changed
 - E4 S1 rumor provenance: **PASS — #620 / #626 GREEN**
 - E5 S2 source-trust NPC reaction: **PASS — #624 / #626 GREEN**
 - E6 S3 Player-visible echo + persistence: **PASS — #624 / #625 / #626 GREEN**
-- E7 Self-review / implementation CI: **PASS — #626 GREEN; docs-only closure exact-head CI pending**
-- E8 Merge: **PENDING — requires a new explicit user message “мердж” immediately before merge**
-- E9 Post-merge: **PENDING**
+- E7 Self-review / implementation CI: **PASS — #626 implementation GREEN; #627 exact closure head `e59f40ecde52bcada54e2b75fc6429d195a0dee6` GREEN**
+- E8 Merge: **PASS — new explicit user “мердж”; PR #34 merged using exact expected head SHA**
+- E9 Post-merge: **PASS — stable exact `44ade5dcbcb53e814cac131db383daeddb18b01f`; Jest / Playwright / ESLint / Prettify on merged commit all GREEN**
 - E10 Recovery: **PASS**
+
+
+## 15. A61 closure (2026-09-22)
+
+- Implementation Branch Check **#626 GREEN**: 374/374 suites, 2207 passed, Chromium 10/10, audit 0, all builds and smoke checks passed.
+- Docs-only final PR head `e59f40ecde52bcada54e2b75fc6429d195a0dee6` passed **Branch Check #627 GREEN** before Ready for Review.
+- An explicitly authorized SHA-locked merge of [PR #34](https://github.com/LeksonSwef28/twinejs/pull/34) produced stable merge commit `44ade5dcbcb53e814cac131db383daeddb18b01f`. Comparing this merge commit to `93-days-editor` returned identical/0 ahead/0 behind.
+- The merged commit's separately triggered Jest, Playwright, ESLint and Prettify workflows completed successfully. Do not mislabel pre-merge Branch Check #627 as a post-merge workflow.
+- A62 is a separate additive stage; no A61 authored/runtime ownership changes are required for the A61 closure.
