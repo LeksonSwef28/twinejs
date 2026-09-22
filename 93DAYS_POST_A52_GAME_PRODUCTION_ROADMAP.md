@@ -219,7 +219,7 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 
 ### A60 — Phone / SMS & Flexible Social Contact Loop
 
-**Status:** **ACTIVE / CONTRACT LOCKED** — source stable `787db91868c7ce4f7c52795ac03ce7bf44f105cc`; contract `93DAYS_A60_PHONE_SMS_SOCIAL_LOOP_CONTRACT.md`; feature branch `feature/a60-phone-social-loop`.
+**Status:** **IMPLEMENTATION VERIFIED / CLOSURE VERIFICATION** — S1 #588 GREEN, S2 #597 GREEN, S3/S4 implementation head `db0895bb351ba038d32ffc77737d3e84f16bdb19` verified by **#608 GREEN** (373/373 Jest suites, 2192 passed, Chromium 10/10, Vite/Electron PASS). Change record present; final closure exact-head CI pending on PR #33.
 
 **Goal:** prove the first scalable early-2000s social loop through canonical Story/Moves/Knowledge/relationships before adding any new mutable communication subsystem.
 
