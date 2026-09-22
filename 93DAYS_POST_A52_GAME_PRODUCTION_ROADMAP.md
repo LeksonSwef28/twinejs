@@ -235,7 +235,7 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 
 ### A61 — Rumor & Social Echo
 
-**Status:** **ACTIVE / CONTRACT LOCKED** — source stable `9531bc4a9c1d919fe30e034060232b18cba2cb30`; contract `93DAYS_A61_RUMOR_SOCIAL_ECHO_CONTRACT.md`; feature branch `feature/a61-rumor-social-echo`.
+**Status:** **IMPLEMENTATION VERIFIED / CLOSURE PENDING** — exact implementation head `930be316fca8622d22b790393fba4de0db059171` passed **#626 GREEN** (374/374 Jest suites, 2207 passed, Chromium 10/10, Vite/Electron PASS, audit 0); contract `93DAYS_A61_RUMOR_SOCIAL_ECHO_CONTRACT.md`; feature branch `feature/a61-rumor-social-echo`.
 
 **Goal:** scale A60 from one direct phone relationship into an explainable NPC-to-NPC social echo using canonical Claims, Knowledge provenance, relationships, memories, ReactionCandidateSets and explicit NPC decisions.
 
@@ -245,4 +245,4 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 - S2 — listener evaluates the report using source trust and existing reaction scoring;
 - S3 — player later sees a different authored social reaction for met / missed / declined histories.
 
-**Exit proof:** one player action can affect a later NPC who was not present, while the runtime still has no automatic rumor graph, hidden spread RNG or second cognition engine.
+**Exit proof:** one player action can affect a later NPC who was not present, while the runtime still has no automatic rumor graph, hidden spread RNG or second cognition engine. Source trust remains runtime-owned; A61 authors and tests the trust criterion rather than embedding initial runtime relationships in authored content.

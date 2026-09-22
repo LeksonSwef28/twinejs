@@ -1,6 +1,6 @@
 # A61 Contract — Rumor & Social Echo
 
-Status: **ACTIVE / CONTRACT LOCKED**  
+Status: **IMPLEMENTATION VERIFIED / CLOSURE PENDING**  
 Stage: **A61 — Rumor & Social Echo**  
 Risk: **MEDIUM** with explicit HIGH re-scope triggers  
 Stable source: `93-days-editor` @ `9531bc4a9c1d919fe30e034060232b18cba2cb30`  
@@ -66,7 +66,7 @@ A61 stays **MEDIUM** while it adds:
 
 - canonical Claims/Story/Moves/Outcomes;
 - explicit NPC-to-NPC communication;
-- authored relationships/memories;
+- authored relationship/memory effects over canonical runtime relationship/memory state;
 - ReactionCandidateSet content;
 - explicit NPC decision opportunities in tests/application orchestration;
 - Player-visible follow-up content;
@@ -106,7 +106,9 @@ No generic rumor subsystem is added.
 
 Use existing ReactionCandidateSet + NPC decision selection.
 
-The listener has an authored directional trust relationship toward the source NPC.
+Source trust is canonical runtime interpersonal state, not authored initial data. A61 authors the trust threshold/weight and evaluates the current `RelationshipState` at the explicit NPC decision boundary.
+
+Fresh compiled artifacts correctly materialize with no pre-authored runtime relationships. Integration evidence supplies explicit runtime trust premises (`0.65` for trusted-source proof and `0.30` for reserve-judgment proof); A61 does not smuggle runtime relationship state into authored content.
 
 Candidate reactions should be authored, not hardcoded:
 
@@ -225,16 +227,28 @@ It must not:
 - merge authorization;
 - post-merge exact stable verification.
 
-## 13. Gate state
+## 13. Implementation evidence
+
+- **#619 FAILURE** on `e073b71c6755ba0ee03827295432f338662e73bf`: A61 echo Story nodes used partial `{day, locationId}` placement. The blocking Story Brain diagnostic was corrected by keeping those dormant echo nodes location-scoped and opening them from the Day Three assessment.
+- **#620 GREEN** on `16feef426ec0f8bcecc306dc5323580dbd83aafe`: S1 compile/runtime provenance proof passed.
+- **#621 FAILURE** on `25e16539668c96e984e549b5e870e47c65cb3910`: the source-trust test exposed an ownership mistake. `relationships` are runtime state and fresh compiled artifacts intentionally start without an authored runtime relationship baseline.
+- The false builder-side trust initializer was removed. S2 now tests the authored trust criterion against explicit canonical runtime relationship premises instead of pretending runtime state is authored data.
+- **#624 GREEN** on `aa583552977e89d92b38e18c6733bd0ee726ed6f`: deterministic source-trust ranking plus Player-visible warm/guarded/neutral social echo passed.
+- **#625 GREEN** on `0e474a7eb0d3b3a3614a9d1342205cdb212e58b1`: Player save/fresh materialization/restore preserves rumor provenance, runtime trust, NPC assessment and the opened echo.
+- **#626 GREEN** on exact implementation head `930be316fca8622d22b790393fba4de0db059171`: 374/374 Jest suites; 2207 passed, 23 skipped, 42 todo, 2272 total; Chromium 10/10; audit 0 vulnerabilities; Vite/Electron PASS. Story Brain explains the trust score and Preview compares believe/reserve runtime differences.
+
+Stable-to-implementation review: **12 commits ahead / 0 behind** stable. Changed boundaries are limited to the A61 contract/roadmap, one A61 content module and one focused integration-evidence suite. No runtime field, save format, artifact version, project schema, hidden RNG or second rumor/cognition engine was added.
+
+## 14. Gate state
 
 - E0 Evidence: **PASS**
 - E1 Scope / ownership: **PASS**
 - E2 Contract / invariants: **PASS**
 - E3 Verification design: **PASS**
-- E4 S1 rumor provenance: **PENDING**
-- E5 S2 source-trust NPC reaction: **PENDING**
-- E6 S3 Player-visible echo: **PENDING**
-- E7 Self-review / PR CI: **PENDING**
-- E8 Merge: **AUTHORIZED by user; fresh merge gate required**
+- E4 S1 rumor provenance: **PASS — #620 / #626 GREEN**
+- E5 S2 source-trust NPC reaction: **PASS — #624 / #626 GREEN**
+- E6 S3 Player-visible echo + persistence: **PASS — #624 / #625 / #626 GREEN**
+- E7 Self-review / implementation CI: **PASS — #626 GREEN; docs-only closure exact-head CI pending**
+- E8 Merge: **PENDING — requires a new explicit user message “мердж” immediately before merge**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
