@@ -576,28 +576,6 @@ export function create93DaysRumorSocialEchoProject(): NarrativeProject {
 		}
 	];
 
-	const existingTrust = project.relationships.find(
-		relationship =>
-			relationship.fromCharacterId === dormDutyId &&
-			relationship.toCharacterId === contactId
-	);
-	project.relationships = existingTrust
-		? project.relationships.map(relationship =>
-				relationship === existingTrust
-					? {
-							...relationship,
-							values: {...relationship.values, trust: 0.65}
-						}
-					: relationship
-			)
-		: [
-				...project.relationships,
-				{
-					fromCharacterId: dormDutyId,
-					toCharacterId: contactId,
-					values: {trust: 0.65}
-				}
-			];
 
 	return project;
 }
