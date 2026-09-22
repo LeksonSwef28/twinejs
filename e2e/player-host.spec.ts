@@ -630,7 +630,12 @@ test('plays the A60 accepted SMS meeting through save reload and Day Three', asy
 	await page.getByRole('button', {name: /Выйти во двор общежития/}).click();
 	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
 	await expect(page.locator('.narrative-player__clock')).toContainText('19:02');
-	await expect(page.getByText('Контакт по записанному номеру', {exact: true})).toBeVisible();
+	const people = page
+		.getByRole('heading', {name: 'Здесь'})
+		.locator('xpath=ancestor::section[1]');
+	await expect(
+		people.getByText('Контакт по записанному номеру', {exact: true})
+	).toBeVisible();
 
 	const meeting = page
 		.locator('.narrative-player__story-opportunities li')
