@@ -16,6 +16,12 @@ import {
 import {executeNarrativePlayerWait} from '../player-wait';
 import {deriveNarrativePlayerPresentation} from '../player-presentation';
 import {
+	comparePreviewScenarios,
+	createPreviewScenario,
+	executePreviewMove
+} from '../preview-laboratory';
+import {queryStoryBrain} from '../story-brain-query';
+import {
 	createNarrativeReactionDecisionOpportunity,
 	evaluateNarrativeNpcDecision,
 	executeNarrativeNpcDecision
@@ -653,6 +659,98 @@ describe('A61 runtime persistence', () => {
 						state: 'ready'
 					})
 				])
+			);
+		}
+	);
+});
+
+
+describe('A61 Story Brain and Preview production evidence', () => {
+	test.each(['met', 'missed', 'declined'] as const)(
+		'%s branch explains trust scoring and compares believe/reserve outcomes',
+		branch => {
+			const session = reachRumorMoment(branch);
+			const report = expectedReport(branch);
+			const reported = resolveAndApplyNarrativeProjectMove(
+				session.currentProject,
+				report.moveId
+			);
+			expect(reported.resolution.status).toBe('resolved');
+
+			const trustedProject = withRelationshipValue(
+				reported.project,
+				dormDutyId,
+				contactId,
+				'trust',
+				0.65
+			);
+			const expected = expectedAssessment(branch);
+			const brain = queryStoryBrain(trustedProject, {
+				kind: 'story-node',
+				id: rumorSocialEchoIds.story.dormDutyAssessesReport
+			});
+			const reaction = brain.reactions.find(
+				candidate =>
+					candidate.setId ===
+					rumorSocialEchoIds.reactionSets.dormDutyAssessesReport
+			);
+			const believe = reaction?.candidates.find(
+				candidate => candidate.moveId === expected.believeMoveId
+			);
+			const reserve = reaction?.candidates.find(
+				candidate => candidate.moveId === expected.reserveMoveId
+			);
+			expect(believe).toEqual(
+				expect.objectContaining({
+					availability: 'available',
+					score: 4
+				})
+			);
+			expect(reserve).toEqual(
+				expect.objectContaining({
+					availability: 'available',
+					score: 2
+				})
+			);
+			expect(
+				believe?.considerationTraces.find(trace =>
+					trace.considerationId.endsWith(':source-trust')
+				)
+			).toEqual(
+				expect.objectContaining({
+					status: 'met',
+					appliedWeight: 3
+				})
+			);
+
+			const base = createPreviewScenario(
+				trustedProject,
+				`a61-${branch}-reaction-base`,
+				`A61 ${branch} reaction base`
+			);
+			const believePreview = executePreviewMove(base, expected.believeMoveId);
+			const reservePreview = executePreviewMove(base, expected.reserveMoveId);
+			expect(believePreview.resolution.status).toBe('resolved');
+			expect(reservePreview.resolution.status).toBe('resolved');
+
+			const comparison = comparePreviewScenarios(
+				believePreview.scenario,
+				reservePreview.scenario
+			);
+			expect(comparison.changedPaths).toEqual(
+				expect.arrayContaining([
+					'runtime.relationships',
+					'runtime.memories',
+					'runtime.runtimeOccurrences'
+				])
+			);
+			expect(
+				comparison.changedPaths.some(path =>
+					path.startsWith('runtime.storyNodeStateOverrides.')
+				)
+			).toBe(true);
+			expect(comparison.leftOccurrenceIds).not.toEqual(
+				comparison.rightOccurrenceIds
 			);
 		}
 	);
