@@ -17,11 +17,24 @@ export const playerNpcSocialDeliveryProjectId =
 
 /** Explicit A63-only authored movement: courtyard at 08:00 -> dorm after 15 min. */
 export const a63ContactArrivalStoryId = 'a63-day3-contact-walks-to-dorm';
+export const a63ContactTravelLocationId = 'a63-path-from-courtyard-to-dorm';
 
 export function create93DaysPlayerNpcSocialDeliveryProject(): NarrativeProject {
 	const project = create93DaysFirsthandSocialRepairProject();
 	project.projectId = playerNpcSocialDeliveryProjectId;
 	project.name = '93 дня до конца нашего лета — встречи, слухи и последствия';
+	project.locations = [
+		...project.locations,
+		{id: a63ContactTravelLocationId, name: 'Дорожка от двора к вахте'}
+	];
+	project.scenes = [
+		...project.scenes,
+		{
+			id: 'a63-contact-path-scene',
+			locationId: a63ContactTravelLocationId,
+			name: 'Дорожка от двора к вахте'
+		}
+	];
 	project.playerStart = {
 		...project.playerStart!,
 		initialActualPresenceByCharacter: {
