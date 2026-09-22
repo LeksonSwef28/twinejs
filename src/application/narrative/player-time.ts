@@ -33,6 +33,8 @@ export interface NarrativePlayerTimeAdvanceResult {
 	appliedMinutes: number;
 	clampedAtProjectEnd: boolean;
 	handledWorkIds: string[];
+	/** Canonical kernel advances underlying the segments (for typed adapters). */
+	stepResults: NarrativeProjectSimulationStepResult[];
 }
 
 function uniqueDueWork(work: SimulationScheduledWork[]) {
@@ -92,6 +94,7 @@ export function advanceNarrativePlayerTimeSegmented(
 	const dueWork: SimulationScheduledWork[] = [];
 	const segments: NarrativePlayerTimeSegmentTrace[] = [];
 	const handledWorkIds: string[] = [];
+	const stepResults: NarrativeProjectSimulationStepResult[] = [];
 
 	while (remaining > 0) {
 		const currentAbsolute = simulationKernelAbsoluteMinute(
@@ -111,6 +114,7 @@ export function advanceNarrativePlayerTimeSegmented(
 				currentProject,
 				requestedStepMinutes
 			);
+		stepResults.push(advanced);
 		const applied = advanced.trace.appliedMinutes;
 		dueWork.push(...advanced.dueWork);
 		segments.push({
@@ -140,6 +144,49 @@ export function advanceNarrativePlayerTimeSegmented(
 		segments,
 		appliedMinutes,
 		clampedAtProjectEnd,
-		handledWorkIds
+		handledWorkIds,
+		stepResults
 	};
 }
+
+/**
+ * Preserve the project-level simulation result contract for existing callers
+ * (notably the travel executor) while delivering A63 work between exact steps.
+ * Detailed body/injury/story traces remain the unmodified canonical step traces.
+ */
+export function advanceNarrativePlayerTimeAsSimulation(
+	project: NarrativeProject,
+	deltaMinutes: number,
+	dueWorkHandler: NarrativePlayerTimeDueWorkHandler
+): NarrativeProjectSimulationStepResult {
+	const advanced = advanceNarrativePlayerTimeSegmented(
+		project,
+		deltaMinutes,
+		dueWorkHandler
+	);
+	return {
+		project: advanced.project,
+		dueWork: advanced.dueWork,
+		trace: {
+			from: {
+				day: project.simulation.day,
+				minuteOfDay: project.simulation.minuteOfDay
+			},
+			to: {
+				day: advanced.project.simulation.day,
+				minuteOfDay: advanced.project.simulation.minuteOfDay
+			},
+			requestedMinutes: deltaMinutes,
+			appliedMinutes: advanced.appliedMinutes,
+			clampedAtProjectEnd: advanced.clampedAtProjectEnd,
+			dueWorkIds: advanced.dueWork.map(work => work.id),
+			actualPresenceChanged: false
+		},
+		bodyTraces: advanced.stepResults.flatMap(step => step.bodyTraces),
+		injuryTraces: advanced.stepResults.flatMap(step => step.injuryTraces),
+		storyExecutionTraces: advanced.stepResults.flatMap(
+			step => step.storyExecutionTraces
+		)
+	};
+}
+
