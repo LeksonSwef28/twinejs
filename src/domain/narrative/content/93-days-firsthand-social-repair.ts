@@ -46,7 +46,7 @@ const playerId = arrivalCorridorIds.characters.player;
 const listenerId = arrivalCorridorIds.characters.dormDuty;
 const dormLocation = arrivalCorridorIds.locations.studentDormitory;
 
-function storyStateGuard(id: string, storyNodeId: string, state: 'completed' | 'blocked') {
+function storyStateGuard(id: string, storyNodeId: string, state: 'available' | 'completed' | 'blocked') {
 	return {
 		id,
 		condition: {
@@ -119,6 +119,7 @@ function firsthandMove(
 		communicationIntent: 'honest',
 		guards: [
 			samePlaceGuard(id + ':same-place'),
+			storyStateGuard(id + ':answer-available', firsthandSocialRepairIds.story.answer, 'available'),
 			storyStateGuard(id + ':echo-completed', echoStoryId, 'completed'),
 			...historyGuards(id, history)
 		],
@@ -239,7 +240,10 @@ function playerAnswerMoves(): NarrativeMoveDefinition[] {
 			label: 'Не обсуждать чужой рассказ и пройти мимо',
 			actorCharacterId: playerId,
 			targetCharacterIds: [listenerId],
-			guards: [samePlaceGuard(ids.moves.walkAway + ':same-place')],
+			guards: [
+				samePlaceGuard(ids.moves.walkAway + ':same-place'),
+				storyStateGuard(ids.moves.walkAway + ':answer-available', ids.story.answer, 'available')
+			],
 			resolution: {type: 'automatic', outcomeId: ids.moves.walkAway + ':outcome'},
 			outcomes: [
 				{
