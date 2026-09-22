@@ -295,7 +295,10 @@ function followupMove(
 		label,
 		actorCharacterId: playerId,
 		targetCharacterIds: [listenerId],
-		guards: [samePlaceGuard(id + ':same-place')],
+		guards: [
+			samePlaceGuard(id + ':same-place'),
+			storyStateGuard(id + ':followup-available', storyNodeId, 'available')
+		],
 		resolution: {type: 'automatic', outcomeId: id + ':outcome'},
 		outcomes: [
 			{
@@ -375,7 +378,7 @@ export function create93DaysFirsthandSocialRepairProject(): NarrativeProject {
 				'Дежурная помнит, что новенький заговорил с ней сам. Чужой рассказ не исчез, но теперь у неё есть и собственный разговор.',
 			primaryCharacterId: listenerId,
 			participantIds: [playerId, listenerId],
-			placement: {day: 4, minuteOfDay: 9 * 60, locationId: dormLocation},
+			placement: {day: 4, minuteOfDay: 0, locationId: dormLocation},
 			activationState: 'dormant'
 		},
 		{
@@ -386,7 +389,7 @@ export function create93DaysFirsthandSocialRepairProject(): NarrativeProject {
 				'О вчерашней встрече так и не заговорили напрямую. При новой встрече у вахты старое впечатление остаётся без собственного продолжения.',
 			primaryCharacterId: listenerId,
 			participantIds: [playerId, listenerId],
-			placement: {day: 4, minuteOfDay: 9 * 60, locationId: dormLocation},
+			placement: {day: 4, minuteOfDay: 0, locationId: dormLocation},
 			activationState: 'dormant'
 		}
 	];
@@ -402,6 +405,10 @@ export function create93DaysFirsthandSocialRepairProject(): NarrativeProject {
 			echoMoves.has(move.id)
 				? {
 						...move,
+						guards: [
+							...move.guards,
+							storyStateGuard(move.id + ':a62-echo-available', move.storyNodeId, 'available')
+						],
 						outcomes: move.outcomes.map(outcome => ({
 							...outcome,
 							effects: [
