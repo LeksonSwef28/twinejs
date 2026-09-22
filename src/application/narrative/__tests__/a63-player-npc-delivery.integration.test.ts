@@ -21,7 +21,8 @@ import {dayOneNarrativeIds} from '../../../domain/narrative/content/93-days-day-
 import {firsthandSocialRepairIds} from '../../../domain/narrative/content/93-days-firsthand-social-repair';
 import {
 	create93DaysPlayerNpcSocialDeliveryProject,
-	a63ContactArrivalStoryId
+	a63ContactArrivalStoryId,
+	a63ContactTravelLocationId
 } from '../../../domain/narrative/content/93-days-player-npc-social-delivery';
 import {phoneSocialLoopIds} from '../../../domain/narrative/content/93-days-phone-social-loop';
 import {rumorSocialEchoIds} from '../../../domain/narrative/content/93-days-rumor-social-echo';
@@ -189,6 +190,15 @@ function beforeReport(history: History, sourceTrust: number, contactArrives: boo
 	}
 	session = trust(session, sourceTrust);
 	session = waitUntil(session, 3, 8 * 60);
+	if (contactArrives) {
+		expect(session.currentProject.simulation.actualLocationByCharacter[contactId])
+			.toBe(a63ContactTravelLocationId);
+		expect(session.currentProject.activeStoryExecutions.some(
+			execution => execution.storyNodeId === a63ContactArrivalStoryId &&
+				execution.completesAt.day === 3 &&
+				execution.completesAt.minuteOfDay === 8 * 60 + 15
+		)).toBe(true);
+	}
 	return {session, artifact};
 }
 
