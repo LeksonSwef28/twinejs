@@ -219,7 +219,7 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 
 ### A60 — Phone / SMS & Flexible Social Contact Loop
 
-**Status:** **DONE / MERGE READY** — S1 #588 GREEN, S2 #597 GREEN, S3/S4 #608 GREEN; closure #610 GREEN; final status-only head `d06f87723543e6ca10fbdc24007252bf13792fc9` verified by **#612 GREEN** (373/373 Jest suites, 2192 passed, Chromium 10/10, Vite/Electron PASS). Merge is authorized subject to a fresh exact-head/base gate.
+**Status:** **DONE / STABLE** — merged as `9531bc4a9c1d919fe30e034060232b18cba2cb30`; post-merge **#615 GREEN** (373/373 Jest suites, 2192 passed, Chromium 10/10, Vite/Electron PASS) with separate Jest / Playwright / ESLint / Prettify workflows GREEN.
 
 **Goal:** prove the first scalable early-2000s social loop through canonical Story/Moves/Knowledge/relationships before adding any new mutable communication subsystem.
 
@@ -231,3 +231,18 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 - S4 — first social destination loop and browser/save closure.
 
 **Exit proof:** communication feels like a real player-facing social system while Story/runtime/save ownership remains singular and existing.
+
+
+### A61 — Rumor & Social Echo
+
+**Status:** **ACTIVE / CONTRACT LOCKED** — source stable `9531bc4a9c1d919fe30e034060232b18cba2cb30`; contract `93DAYS_A61_RUMOR_SOCIAL_ECHO_CONTRACT.md`; feature branch `feature/a61-rumor-social-echo`.
+
+**Goal:** scale A60 from one direct phone relationship into an explainable NPC-to-NPC social echo using canonical Claims, Knowledge provenance, relationships, memories, ReactionCandidateSets and explicit NPC decisions.
+
+**Slices:**
+
+- S1 — A60 history -> NPC tells NPC -> listener stores Claim with teller provenance;
+- S2 — listener evaluates the report using source trust and existing reaction scoring;
+- S3 — player later sees a different authored social reaction for met / missed / declined histories.
+
+**Exit proof:** one player action can affect a later NPC who was not present, while the runtime still has no automatic rumor graph, hidden spread RNG or second cognition engine.
