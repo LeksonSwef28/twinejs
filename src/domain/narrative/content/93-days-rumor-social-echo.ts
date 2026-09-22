@@ -418,7 +418,6 @@ export function create93DaysRumorSocialEchoProject(): NarrativeProject {
 			primaryCharacterId: dormDutyId,
 			participantIds: [playerId, dormDutyId],
 			placement: {
-				day: 3,
 				locationId: arrivalCorridorIds.locations.studentDormitory
 			},
 			activationState: 'dormant' as const
