@@ -235,7 +235,7 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 
 ### A61 — Rumor & Social Echo
 
-**Status:** **IMPLEMENTATION VERIFIED / CLOSURE PENDING** — exact implementation head `930be316fca8622d22b790393fba4de0db059171` passed **#626 GREEN** (374/374 Jest suites, 2207 passed, Chromium 10/10, Vite/Electron PASS, audit 0); contract `93DAYS_A61_RUMOR_SOCIAL_ECHO_CONTRACT.md`; feature branch `feature/a61-rumor-social-echo`.
+**Status:** **DONE / STABLE** — PR #34 merged as `44ade5dcbcb53e814cac131db383daeddb18b01f` on 2026-09-22; A61 closure Branch Check **#627 GREEN** on exact PR head `e59f40ecde52bcada54e2b75fc6429d195a0dee6`; post-merge Jest / Playwright / ESLint / Prettify workflows all **GREEN**.
 
 **Goal:** scale A60 from one direct phone relationship into an explainable NPC-to-NPC social echo using canonical Claims, Knowledge provenance, relationships, memories, ReactionCandidateSets and explicit NPC decisions.
 
@@ -246,3 +246,18 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 - S3 — player later sees a different authored social reaction for met / missed / declined histories.
 
 **Exit proof:** one player action can affect a later NPC who was not present, while the runtime still has no automatic rumor graph, hidden spread RNG or second cognition engine. Source trust remains runtime-owned; A61 authors and tests the trust criterion rather than embedding initial runtime relationships in authored content.
+
+
+### A62 — Firsthand Social Repair & Day Four Follow-up
+
+**Status:** **IN PROGRESS / FEATURE BRANCH** — `feature/a62-firsthand-social-repair`, based on exact A61 stable `44ade5dcbcb53e814cac131db383daeddb18b01f`. Contract: `93DAYS_A62_FIRSTHAND_SOCIAL_REPAIR_CONTRACT.md`. No merge authorization is implied.
+
+**Goal:** extend A61 so the player's social story is not settled solely by another person's report. Let the player meet the listener in person, make one version-consistent direct statement or decline to discuss the report, then experience a different follow-up on Day Four.
+
+**Slices:**
+
+- S1 — A61 echo opens an authored direct-answer Story; exactly the truthful kept/missed/declined answer is available alongside leaving. Learning uses the canonical Player Move and a distinct Claim with `told(player)` provenance.
+- S2 — listener's firsthand memory and modest goodwill change coexist with the intact A61 third-party rumor; no automatic rumor erasure, no duplicate Knowledge store or hidden RNG.
+- S3 — separate location/day-scoped Day Four follow-ups for having spoken or walked away, with Player save/restore and exact-head integration/CI proof.
+
+**Exit proof:** at least three Day Two histories plus a cautious A61 source-trust variant yield a deterministic direct-answer choice; the original source stays identifiable; one Day Four consequence survives runtime-only save/restore. New A62 content extends the A61 builder without modifying older A61 artifacts or requiring any schema or save-format changes.
