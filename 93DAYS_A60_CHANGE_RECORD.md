@@ -228,7 +228,7 @@ Rollback is additive:
 - E5 S2 metadata/presentation: **PASS — #597 GREEN**
 - E6 S3/S4 Player/social loop: **PASS — #608 GREEN**
 - E7 Self-review: **PASS**
-- E8 Merge: **PENDING — explicit authorization required at merge time**
+- E8 Merge: **AUTHORIZED — user granted merge permission on 2026-09-22; fresh merge gate required immediately before merge**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
 
@@ -236,7 +236,7 @@ Rollback is additive:
 
 A60 has proved the first scalable phone/social loop without introducing a second communication runtime.
 
-Closure documentation is verified by #610 GREEN on `cf468e4c3e1922c27e4503459db5f6503e89bf5d`. One final status-only exact-head Branch Check remains before PR #33 leaves draft; merge remains separately authorized.
+Closure documentation is verified by #610 GREEN on `cf468e4c3e1922c27e4503459db5f6503e89bf5d`. Final status-only exact-head `d06f87723543e6ca10fbdc24007252bf13792fc9` passed **#612 GREEN** with 373/373 Jest suites, 2192 passed and Chromium 10/10. PR #33 is Ready for review and merge is authorized subject to a fresh merge gate.
 
 
 ## Closure verification
@@ -252,3 +252,22 @@ Closure documentation is verified by #610 GREEN on `cf468e4c3e1922c27e4503459db5
 - Electron smoke: PASS.
 
 No unresolved BLOCKER/HIGH item remains.
+
+
+## Final pre-merge verification
+
+Final status-only exact head:
+
+`d06f87723543e6ca10fbdc24007252bf13792fc9`
+
+**93 Days Branch Check #612 — GREEN**
+
+- production audit: **0 vulnerabilities**;
+- Jest: **373/373 suites**;
+- tests: **2192 passed, 23 skipped, 42 todo, 2257 total**;
+- snapshots: **0**;
+- Chromium: **10/10 passed**;
+- Vite smoke: PASS;
+- Electron smoke: PASS.
+
+No unresolved BLOCKER/HIGH item remains. Fresh base/head/mergeable/exact-CI verification is required immediately before merge.
