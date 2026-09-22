@@ -419,6 +419,21 @@ describe('A62 firsthand answers preserve the original rumor', () => {
 				playerId
 			);
 			expect(secondChoice.status).toBe('rejected');
+			expect(secondChoice.session).toBe(session);
+			const replayedEcho = executeNarrativePlayerAction(
+				session,
+				echoMoveId,
+				playerId
+			);
+			expect(replayedEcho.status).toBe('rejected');
+			expect(replayedEcho.session).toBe(session);
+			expect(
+				deriveNarrativePlayerPresentation(session.currentProject).actions
+					.filter(action =>
+						action.storyNodeId === ids.story.dayFourAnswered ||
+						action.storyNodeId === ids.story.dayFourSilent
+					)
+			).toEqual([]);
 			expect(JSON.stringify({
 				claims: session.currentProject.claims,
 				storyNodes: session.currentProject.storyNodes,
@@ -439,6 +454,13 @@ describe('A62 firsthand answers preserve the original rumor', () => {
 			expect(
 				session.currentProject.storyNodeStateOverrides[ids.story.dayFourAnswered]
 			).toBe('completed');
+			const repeatedFollowup = executeNarrativePlayerAction(
+				session,
+				ids.moves.dayFourAnswered,
+				playerId
+			);
+			expect(repeatedFollowup.status).toBe('rejected');
+			expect(repeatedFollowup.session).toBe(session);
 		}
 	);
 });
@@ -452,6 +474,13 @@ describe('A62 leave / follow-up / persistence', () => {
 		const goodwillBefore = goodwill(session.currentProject);
 		session = move(session, ids.moves.walkAway);
 		expect(goodwill(session.currentProject)).toBe(goodwillBefore);
+		const lateExplanation = executeNarrativePlayerAction(
+			session,
+			branch.explainBelieve,
+			playerId
+		);
+		expect(lateExplanation.status).toBe('rejected');
+		expect(lateExplanation.session).toBe(session);
 		expect(
 			session.currentProject.simulation.characterKnowledge.some(
 				item =>
