@@ -1,7 +1,6 @@
 import {NarrativeMoveDefinition} from '../interaction';
 import {NarrativeProject} from '../project';
 import {arrivalCorridorIds} from './93-days-arrival-corridor';
-import {dayOneNarrativeIds} from './93-days-day-one-day-two';
 import {
 	phoneSocialLoopIds
 } from './93-days-phone-social-loop';
@@ -44,7 +43,6 @@ export const firsthandSocialRepairIds = {
 type DayTwoHistory = 'kept' | 'missed' | 'declined';
 
 const playerId = arrivalCorridorIds.characters.player;
-const contactId = dayOneNarrativeIds.characters.localContact;
 const listenerId = arrivalCorridorIds.characters.dormDuty;
 const dormLocation = arrivalCorridorIds.locations.studentDormitory;
 
@@ -432,8 +430,6 @@ export function create93DaysFirsthandSocialRepairProject(): NarrativeProject {
 		)
 	];
 
-	// The A61 report still belongs to the contact; this module never edits the
-	// third-party Claim, its source, the listener's trust or Actual Presence.
-	void contactId;
+	// The A61 teller's Claim and runtime provenance are left unchanged.
 	return project;
 }
