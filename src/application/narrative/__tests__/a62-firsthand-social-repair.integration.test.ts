@@ -5,7 +5,7 @@ import {
 import {
 	createNarrativeReactionDecisionOpportunity,
 	executeNarrativeNpcDecision
-} from '../npc-decisions';
+} from '../npc-decision';
 import {
 	resolveAndApplyNarrativeProjectMove,
 	setNarrativeCharacterActualLocation
