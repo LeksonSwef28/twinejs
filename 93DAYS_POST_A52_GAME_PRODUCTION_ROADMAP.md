@@ -261,3 +261,21 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 - S3 — separate location/day-scoped Day Four follow-ups for having spoken or walked away, with Player save/restore and exact-head integration/CI proof.
 
 **Exit proof:** at least three Day Two histories plus a cautious A61 source-trust variant yield a deterministic direct-answer choice; the original source stays identifiable; one Day Four consequence survives runtime-only save/restore. New A62 content extends the A61 builder without modifying older A61 artifacts or requiring any schema or save-format changes.
+
+
+### A63 — Player-Time NPC Social Delivery
+
+**Status:** **DESIGN / REGRESSION-FIRST (STACKED ON A62)** — `feature/a63-player-npc-social-delivery`, based on exact A62 PR #35 head `fbff032730199e46fd5ff69737ac71ea321190be`. Contract: `93DAYS_A63_PLAYER_NPC_SOCIAL_DELIVERY_CONTRACT.md`. A63 must not merge before A62 is merged and post-merge verified.
+
+**Confirmed gap:** ordinary Player wait/travel/sleep advance the canonical Simulation Playhead and may return declarative due work, but no current Player-session boundary automatically delivers the A61 NPC report/assessment. A63 begins by preserving a passing E0 regression that demonstrates this gap without pretending it is already solved.
+
+**Goal:** introduce one exact-time, deterministic, reusable application orchestration path for explicitly authored NPC-only scheduled Story work. It must segment long Player time actions at due moments, compose existing Story/Move/NPC decision APIs, preserve real Actual Presence and source provenance, and reach the A61/A62 Player-visible social consequence without a second clock, rumor queue or hidden RNG.
+
+**First verification slices:**
+
+- S1 — exact due-moment segmented Player time orchestration and trace contract;
+- S2 — concrete A61 report delivery only when contact + listener share real Actual Presence;
+- S3 — trust-sensitive assessment through the existing ReactionCandidateSet, no duplicated cognition logic;
+- S4 — wait / travel / sleep equivalence, save/restore no-replay and standalone Player smoke.
+
+**Stop conditions:** if generic execution requires a new persistence queue, schema/artifact bump, automatic schedule→presence projection or broad autonomous ReactionCandidate execution, stop and re-scope before implementation.
