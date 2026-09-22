@@ -1,4 +1,4 @@
-import {advanceNarrativeProjectSimulation} from './simulation';
+import {advanceNarrativePlayerTimeSegmented} from './player-time';
 import {
 	NarrativePlayerSession,
 	replaceNarrativePlayerSessionProject
@@ -35,11 +35,11 @@ export function executeNarrativePlayerWait(
 		};
 	}
 
-	const advanced = advanceNarrativeProjectSimulation(
+	const advanced = advanceNarrativePlayerTimeSegmented(
 		session.currentProject,
 		durationMinutes
 	);
-	if (advanced.trace.appliedMinutes !== durationMinutes) {
+	if (advanced.appliedMinutes !== durationMinutes) {
 		return {
 			status: 'rejected',
 			session,
