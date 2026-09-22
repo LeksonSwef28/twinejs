@@ -80,6 +80,32 @@ function actionStateLabel(state: string) {
 	}
 }
 
+function phoneEntryStateLabel(state: string) {
+	switch (state) {
+		case 'unread':
+			return 'не прочитано';
+		case 'ringing':
+			return 'входящий звонок';
+		case 'expired':
+			return 'пропущено';
+		case 'read':
+			return 'прочитано';
+		case 'answered':
+			return 'принято';
+		case 'missed':
+			return 'пропущено';
+		default:
+			return 'история';
+	}
+}
+
+function phoneChannelLabel(channel: string, direction: string) {
+	if (channel === 'sms') {
+		return direction === 'outgoing' ? 'исходящее SMS' : 'SMS';
+	}
+	return direction === 'outgoing' ? 'исходящий звонок' : 'звонок';
+}
+
 export interface PlayerAppProps {
 	artifactSource: NarrativePlayerArtifactSource;
 }
@@ -311,7 +337,8 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 	};
 	const executeStoryWork = (
 		workId: string,
-		decision: 'execute' | 'miss'
+		decision: 'execute' | 'miss',
+		feedbackTitle?: string
 	) => {
 		if (view.perspective.status !== 'resolved') {
 			return;
@@ -326,9 +353,10 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 			setSession(result.session);
 			setFeedback({
 				title:
-					decision === 'miss'
+					feedbackTitle ??
+					(decision === 'miss'
 						? 'Возможность пропущена'
-						: 'Событие принято',
+						: 'Событие принято'),
 				summary: result.summary,
 				tone: 'result'
 			});
@@ -724,6 +752,141 @@ export const PlayerApp: React.FC<PlayerAppProps> = ({artifactSource}) => {
 								</dl>
 							)}
 						</section>
+
+						{view.phone.status === 'available' && (
+							<section
+								className="narrative-player__panel narrative-player__phone"
+								aria-labelledby="phone-title"
+							>
+								<div className="narrative-player__panel-heading">
+									<h3 id="phone-title">Телефон</h3>
+									<span>
+										{
+											view.phone.entries.filter(
+												entry =>
+													entry.state === 'unread' ||
+													entry.state === 'ringing'
+											).length
+										}{' '}
+										новых
+									</span>
+								</div>
+
+								{view.phone.contacts.length > 0 && (
+									<div className="narrative-player__phone-contacts">
+										<small>Телефонная книга</small>
+										<p>
+											{view.phone.contacts
+												.map(contact => contact.name)
+												.join(' · ')}
+										</p>
+									</div>
+								)}
+
+								{view.phone.entries.length === 0 ? (
+									<p className="narrative-player__muted">
+										Сообщений и звонков в истории пока нет.
+									</p>
+								) : (
+									<ul className="narrative-player__phone-entries">
+										{view.phone.entries.map(entry => (
+											<li key={entry.id} data-phone-state={entry.state}>
+												<div className="narrative-player__phone-entry-heading">
+													<strong>{entry.title}</strong>
+													<small>{phoneEntryStateLabel(entry.state)}</small>
+												</div>
+												<small>
+													{phoneChannelLabel(entry.channel, entry.direction)}
+													{entry.scheduledDay !== undefined &&
+													entry.scheduledMinuteOfDay !== undefined
+														? ` · День ${entry.scheduledDay} · ${formatMinute(
+																entry.scheduledMinuteOfDay
+															)}`
+														: ''}
+												</small>
+												{entry.summary && <p>{entry.summary}</p>}
+												{entry.workId && entry.state === 'unread' && (
+													<button
+														type="button"
+														onClick={() =>
+															executeStoryWork(
+																entry.workId!,
+																'execute',
+																'SMS прочитано'
+															)
+														}
+													>
+														Открыть SMS
+													</button>
+												)}
+												{entry.workId && entry.state === 'ringing' && (
+													<button
+														type="button"
+														onClick={() =>
+															executeStoryWork(
+																entry.workId!,
+																'execute',
+																'Звонок принят'
+															)
+														}
+													>
+														Ответить
+													</button>
+												)}
+												{entry.workId && entry.state === 'expired' && (
+													<button
+														type="button"
+														onClick={() =>
+															executeStoryWork(
+																entry.workId!,
+																'miss',
+																'Пропущенный звонок'
+															)
+														}
+													>
+														Зафиксировать пропущенный
+													</button>
+												)}
+											</li>
+										))}
+									</ul>
+								)}
+
+								{view.phone.actions.length > 0 && (
+									<div className="narrative-player__phone-actions">
+										<small>Действия связи</small>
+										<ul className="narrative-player__actions">
+											{view.phone.actions.map(action => (
+												<li key={action.id}>
+													<button
+														type="button"
+														disabled={action.state !== 'ready'}
+														onClick={() => executeAction(action.id)}
+														data-action-state={action.state}
+													>
+														<span>{action.label}</span>
+														<small>
+															{action.dialogue
+																? 'диалог'
+																: action.storyTitle}
+														</small>
+													</button>
+													{action.state !== 'ready' && (
+														<p>
+															{actionStateLabel(action.state)}
+															{action.state !== 'input-required' &&
+															action.summary
+																? ` · ${action.summary}`
+																: ''}
+														</p>
+													)}
+												</li>
+											))}
+										</ul>
+									</div>
+								)}
+							</section>
+						)}
 
 						<section className="narrative-player__panel">
 							<div className="narrative-player__panel-heading">

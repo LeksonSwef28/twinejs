@@ -7,6 +7,7 @@ import {
 } from '../../application/narrative/export-compiler';
 import {create93DaysDayOneDayTwoProject} from '../../domain/narrative/content/93-days-day-one-day-two';
 import {create93DaysEverydaySystemsProject} from '../../domain/narrative/content/93-days-everyday-systems';
+import {create93DaysPhoneSocialLoopProject} from '../../domain/narrative/content/93-days-phone-social-loop';
 import {NarrativeMoveDefinition} from '../../domain/narrative/interaction';
 import {createNarrativeProject} from '../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../domain/narrative/templates/93-days';
@@ -129,6 +130,22 @@ function a58Source(): NarrativePlayerArtifactSource {
 	if (compiled.status !== 'compiled') {
 		throw new Error('Expected A58 Player fixture to compile.');
 	}
+	return {
+		status: 'found',
+		source: 'inline',
+		serializedArtifact: serializeNarrativeRuntimeArtifact(compiled.artifact)
+	};
+}
+
+function a60PhoneSourceAtSms(): NarrativePlayerArtifactSource {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysPhoneSocialLoopProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error('Expected A60 Player phone fixture to compile.');
+	}
+	compiled.artifact.initialRuntime.simulation.day = 2;
+	compiled.artifact.initialRuntime.simulation.minuteOfDay = 10 * 60 + 30;
 	return {
 		status: 'found',
 		source: 'inline',
@@ -321,6 +338,49 @@ describe('<PlayerApp> presentation', () => {
 		fireEvent.click(bus);
 		expect(screen.getByText('96 руб.')).toBeInTheDocument();
 		expect(screen.getByRole('status')).toHaveTextContent('−6 руб.');
+	});
+
+	test('renders the derived A60 phone surface and reads SMS without duplicating it as a nearby event', () => {
+		render(<PlayerApp artifactSource={a60PhoneSourceAtSms()} />);
+
+		const phoneTitle = screen.getByRole('heading', {name: 'Телефон'});
+		const phonePanel = phoneTitle.closest('section');
+		if (!phonePanel) {
+			throw new Error('Expected Player phone panel.');
+		}
+		expect(
+			within(phonePanel).getByText('Сообщение с записанного номера')
+		).toBeInTheDocument();
+		expect(within(phonePanel).getByText('не прочитано')).toBeInTheDocument();
+		expect(
+			within(phonePanel).getByText('Контакт по записанному номеру')
+		).toBeInTheDocument();
+
+		const nearbyTitle = screen.queryByRole('heading', {name: 'Событие рядом'});
+		if (nearbyTitle) {
+			const nearbyPanel = nearbyTitle.closest('section');
+			if (!nearbyPanel) {
+				throw new Error('Expected nearby-event panel.');
+			}
+			expect(
+				within(nearbyPanel).queryByText('Сообщение с записанного номера')
+			).not.toBeInTheDocument();
+		}
+
+		fireEvent.click(within(phonePanel).getByRole('button', {name: 'Открыть SMS'}));
+
+		expect(screen.getByRole('status')).toHaveTextContent('SMS прочитано');
+		expect(within(phonePanel).getByText('прочитано')).toBeInTheDocument();
+		expect(
+			within(phonePanel).getByRole('button', {
+				name: /Ответить, что придёшь вечером/
+			})
+		).toBeEnabled();
+		expect(
+			within(phonePanel).getByRole('button', {
+				name: /Ответить, что сегодня не получится/
+			})
+		).toBeEnabled();
 	});
 
 	test('saves and continues a fresh matching Player session through browser storage', () => {

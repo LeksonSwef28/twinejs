@@ -8,6 +8,8 @@ import {
 import {NarrativeProject} from '../../domain/narrative/project';
 import {RoutineRule} from '../../domain/narrative/schedule';
 import {
+	StoryCommunicationDefinition,
+	storyCommunicationIsValid,
 	StoryNodeKind,
 	StoryRuntimePolicyDefinition
 } from '../../domain/narrative/story';
@@ -29,6 +31,7 @@ export interface StoryMetadataAuthoringCommand {
 	description?: string;
 	primaryCharacterId?: string;
 	participantIds: string[];
+	communication?: StoryCommunicationDefinition;
 	runtimePolicy?: StoryRuntimePolicyDefinition;
 }
 
@@ -166,6 +169,8 @@ function storyMetadataCommandIsAuthoringValid(
 	if (
 		!project.storyNodes.some(node => node.id === command.id) ||
 		!command.title.trim() ||
+		(command.communication !== undefined &&
+			!storyCommunicationIsValid(command.communication)) ||
 		!runtimePolicyIsAuthoringValid(command.runtimePolicy)
 	) {
 		return false;
@@ -281,6 +286,7 @@ function applyStoryMetadataCommand(
 						description: command.description?.trim() || undefined,
 						primaryCharacterId: command.primaryCharacterId || undefined,
 						participantIds: [...command.participantIds],
+						communication: command.communication,
 						runtimePolicy: command.runtimePolicy
 				  }
 				: node

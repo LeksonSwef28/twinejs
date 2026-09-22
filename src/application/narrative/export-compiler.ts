@@ -67,6 +67,7 @@ const blockingStoryBrainKinds = new Set<StoryBrainFinding['kind']>([
 	'broken-authored-reference',
 	'partial-story-placement',
 	'invalid-story-placement',
+	'invalid-story-communication',
 	'runtime-policy-without-exact-placement'
 ]);
 

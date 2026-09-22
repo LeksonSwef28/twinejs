@@ -27,6 +27,21 @@ export interface StoryPlacement {
 
 export type StoryOccurrenceMode = 'one-shot' | 'repeatable';
 export type StoryInterruptionPolicy = 'interruptible' | 'locked';
+export type StoryCommunicationChannel = 'sms' | 'phone-call';
+
+export interface StoryCommunicationDefinition {
+	channel: StoryCommunicationChannel;
+}
+
+export function storyCommunicationIsValid(
+	value: unknown
+): value is StoryCommunicationDefinition {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return false;
+	}
+	const candidate = value as Partial<StoryCommunicationDefinition>;
+	return candidate.channel === 'sms' || candidate.channel === 'phone-call';
+}
 
 /**
  * Optional A42 execution semantics for an exactly scheduled Story node.
@@ -50,6 +65,11 @@ export interface StoryNodeDefinition {
 	participantIds: EntityId[];
 	placement?: StoryPlacement;
 	activationState: StoryNodeActivationState;
+	/**
+	 * Optional authored presentation metadata for remote communication.
+	 * Timing/history remain canonical Story placement/runtime semantics.
+	 */
+	communication?: StoryCommunicationDefinition;
 	/** Optional A42 runtime execution policy; authored definition, not live state. */
 	runtimePolicy?: StoryRuntimePolicyDefinition;
 }
