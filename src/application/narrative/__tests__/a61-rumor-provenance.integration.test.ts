@@ -10,6 +10,7 @@ import {
 } from '../player-runtime';
 import {executeNarrativePlayerStoryWork} from '../player-story-work';
 import {executeNarrativePlayerWait} from '../player-wait';
+import {deriveNarrativePlayerPresentation} from '../player-presentation';
 import {
 	createNarrativeReactionDecisionOpportunity,
 	evaluateNarrativeNpcDecision,
@@ -215,6 +216,7 @@ function expectedAssessment(branch: 'met' | 'missed' | 'declined') {
 			believeMoveId: rumorSocialEchoIds.moves.believeKept,
 			reserveMoveId: rumorSocialEchoIds.moves.reserveKept,
 			echoStoryNodeId: rumorSocialEchoIds.story.warmEcho,
+			echoMoveId: rumorSocialEchoIds.moves.warmEcho,
 			goodwillDelta: 0.12
 		};
 	}
@@ -223,6 +225,7 @@ function expectedAssessment(branch: 'met' | 'missed' | 'declined') {
 			believeMoveId: rumorSocialEchoIds.moves.believeMissed,
 			reserveMoveId: rumorSocialEchoIds.moves.reserveMissed,
 			echoStoryNodeId: rumorSocialEchoIds.story.guardedEcho,
+			echoMoveId: rumorSocialEchoIds.moves.guardedEcho,
 			goodwillDelta: -0.12
 		};
 	}
@@ -230,7 +233,46 @@ function expectedAssessment(branch: 'met' | 'missed' | 'declined') {
 		believeMoveId: rumorSocialEchoIds.moves.believeDeclined,
 		reserveMoveId: rumorSocialEchoIds.moves.reserveDeclined,
 		echoStoryNodeId: rumorSocialEchoIds.story.neutralEcho,
+		echoMoveId: rumorSocialEchoIds.moves.neutralEcho,
 		goodwillDelta: 0.02
+	};
+}
+
+function withRelationshipValue(
+	project: NarrativePlayerSession['currentProject'],
+	fromCharacterId: string,
+	toCharacterId: string,
+	axis: string,
+	value: number
+): NarrativePlayerSession['currentProject'] {
+	const index = project.relationships.findIndex(
+		relationship =>
+			relationship.fromCharacterId === fromCharacterId &&
+			relationship.toCharacterId === toCharacterId
+	);
+	if (index < 0) {
+		return {
+			...project,
+			relationships: [
+				...project.relationships,
+				{
+					fromCharacterId,
+					toCharacterId,
+					values: {[axis]: value}
+				}
+			]
+		};
+	}
+	return {
+		...project,
+		relationships: project.relationships.map((relationship, candidateIndex) =>
+			candidateIndex === index
+				? {
+						...relationship,
+						values: {...relationship.values, [axis]: value}
+					}
+				: relationship
+		)
 	};
 }
 
@@ -355,13 +397,20 @@ describe('A61-S2 source-trust reaction', () => {
 			expect(reported.resolution.status).toBe('resolved');
 
 			const expected = expectedAssessment(branch);
-			const opportunity = createNarrativeReactionDecisionOpportunity(
+			const trustedProject = withRelationshipValue(
 				reported.project,
+				dormDutyId,
+				contactId,
+				'trust',
+				0.65
+			);
+			const opportunity = createNarrativeReactionDecisionOpportunity(
+				trustedProject,
 				rumorSocialEchoIds.reactionSets.dormDutyAssessesReport,
 				'a61-opportunity:dorm-duty-assesses-report',
 				0
 			);
-			const evaluated = evaluateNarrativeNpcDecision(reported.project, [
+			const evaluated = evaluateNarrativeNpcDecision(trustedProject, [
 				opportunity
 			]);
 			expect(evaluated.selection.selectedMoveId).toBe(expected.believeMoveId);
@@ -383,12 +432,12 @@ describe('A61-S2 source-trust reaction', () => {
 			);
 
 			const goodwillBefore = relationshipValue(
-				reported.project,
+				trustedProject,
 				dormDutyId,
 				playerId,
 				'goodwill'
 			);
-			const executed = executeNarrativeNpcDecision(reported.project, [
+			const executed = executeNarrativeNpcDecision(trustedProject, [
 				opportunity
 			]);
 			expect(executed.trace.status).toBe('executed');
@@ -405,18 +454,13 @@ describe('A61-S2 source-trust reaction', () => {
 				)
 			).toBeCloseTo(goodwillBefore + expected.goodwillDelta);
 
-			const lowTrust = {
-				...reported.project,
-				relationships: reported.project.relationships.map(relationship =>
-					relationship.fromCharacterId === dormDutyId &&
-					relationship.toCharacterId === contactId
-						? {
-								...relationship,
-								values: {...relationship.values, trust: 0.3}
-							}
-						: relationship
-				)
-			};
+			const lowTrust = withRelationshipValue(
+				reported.project,
+				dormDutyId,
+				contactId,
+				'trust',
+				0.3
+			);
 			const lowTrustOpportunity = createNarrativeReactionDecisionOpportunity(
 				lowTrust,
 				rumorSocialEchoIds.reactionSets.dormDutyAssessesReport,
@@ -445,6 +489,78 @@ describe('A61-S2 source-trust reaction', () => {
 					appliedWeight: 0
 				})
 			);
+		}
+	);
+});
+
+
+describe('A61-S3 player-visible social echo', () => {
+	test.each(['met', 'missed', 'declined'] as const)(
+		'%s history exposes only its canonical Day Three echo action',
+		branch => {
+			let session = reachRumorMoment(branch);
+			const report = expectedReport(branch);
+			const reported = resolveAndApplyNarrativeProjectMove(
+				session.currentProject,
+				report.moveId
+			);
+			expect(reported.resolution.status).toBe('resolved');
+
+			const trustedProject = withRelationshipValue(
+				reported.project,
+				dormDutyId,
+				contactId,
+				'trust',
+				0.65
+			);
+			const expected = expectedAssessment(branch);
+			const opportunity = createNarrativeReactionDecisionOpportunity(
+				trustedProject,
+				rumorSocialEchoIds.reactionSets.dormDutyAssessesReport,
+				'a61-opportunity:player-visible-echo',
+				0
+			);
+			const assessed = executeNarrativeNpcDecision(trustedProject, [opportunity]);
+			expect(assessed.trace.status).toBe('executed');
+			expect(assessed.trace.selectedMoveId).toBe(expected.believeMoveId);
+
+			session = replaceProject(session, assessed.project);
+			session = setLocation(
+				session,
+				playerId,
+				arrivalCorridorIds.locations.studentDormitory
+			);
+			const view = deriveNarrativePlayerPresentation(session.currentProject);
+			const echoMoveIds = new Set([
+				rumorSocialEchoIds.moves.warmEcho,
+				rumorSocialEchoIds.moves.guardedEcho,
+				rumorSocialEchoIds.moves.neutralEcho,
+				rumorSocialEchoIds.moves.cautiousEcho
+			]);
+			const echoActions = view.actions.filter(candidate =>
+				echoMoveIds.has(candidate.id as typeof rumorSocialEchoIds.moves.warmEcho)
+			);
+			expect(echoActions).toEqual([
+				expect.objectContaining({
+					id: expected.echoMoveId,
+					storyNodeId: expected.echoStoryNodeId,
+					state: 'ready',
+					dialogue: true
+				})
+			]);
+			expect(JSON.stringify(echoActions).toLowerCase()).not.toContain('rumor score');
+
+			session = action(session, expected.echoMoveId);
+			expect(
+				session.currentProject.storyNodeStateOverrides[expected.echoStoryNodeId]
+			).toBe('completed');
+			expect(
+				session.currentProject.memories.some(
+					memory =>
+						memory.characterId === playerId &&
+						memory.tags.includes('rumor-echo')
+				)
+			).toBe(true);
 		}
 	);
 });
