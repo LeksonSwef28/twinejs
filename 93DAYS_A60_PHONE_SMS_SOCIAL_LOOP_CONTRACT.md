@@ -214,8 +214,8 @@ The loop must connect:
 - E4 S1 implementation: **PASS — #588 GREEN**
 - E5 S2 metadata/presentation: **PASS — #597 GREEN**
 - E6 S3/S4 Player/social loop: **PASS — #608 GREEN**
-- E7 Self-review / PR CI: **PASS for closure — #610 GREEN; final status-only exact-head CI pending**
-- E8 Merge: **PENDING — explicit authorization required at merge time**
+- E7 Self-review / PR CI: **PASS — final exact-head #612 GREEN**
+- E8 Merge: **AUTHORIZED — user granted merge permission on 2026-09-22; fresh merge gate still required immediately before merge**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS**
 
@@ -290,4 +290,4 @@ Closure documentation head:
 
 A60 has no unresolved BLOCKER/HIGH item.
 
-This status-only documentation update requires one final exact-head Branch Check before PR #33 is marked Ready for review.
+Final status-only exact-head verification is complete: `d06f87723543e6ca10fbdc24007252bf13792fc9` passed 93 Days Branch Check **#612 GREEN** (373/373 Jest suites, 2192 passed, Chromium 10/10, Vite/Electron PASS). PR #33 is Ready for review.
