@@ -33,7 +33,11 @@ export const rumorSocialEchoIds = {
 		believeMissed: 'a61-assess:believe-missed',
 		reserveMissed: 'a61-assess:reserve-missed',
 		believeDeclined: 'a61-assess:believe-declined',
-		reserveDeclined: 'a61-assess:reserve-declined'
+		reserveDeclined: 'a61-assess:reserve-declined',
+		warmEcho: 'a61-echo:warm',
+		guardedEcho: 'a61-echo:guarded',
+		neutralEcho: 'a61-echo:neutral',
+		cautiousEcho: 'a61-echo:cautious'
 	}
 } as const;
 
@@ -325,6 +329,93 @@ function assessmentMoves(): NarrativeMoveDefinition[] {
 	];
 }
 
+function playerEchoMove(
+	id: string,
+	storyNodeId: string,
+	label: string,
+	outcomeLabel: string,
+	memorySummary: string
+): NarrativeMoveDefinition {
+	const outcomeId = `${id}:outcome`;
+	return {
+		id,
+		storyNodeId,
+		kind: 'observe',
+		label,
+		actorCharacterId: playerId,
+		targetCharacterIds: [dormDutyId],
+		guards: [
+			{
+				id: `${id}:same-place`,
+				condition: {
+					type: 'characters-share-location',
+					characterIds: [playerId, dormDutyId]
+				}
+			}
+		],
+		resolution: {type: 'automatic', outcomeId},
+		outcomes: [
+			{
+				id: outcomeId,
+				key: 'continue',
+				label: outcomeLabel,
+				effectStoryNodeIds: [],
+				effects: [
+					{
+						id: `${id}:memory`,
+						type: 'character-remembers',
+						character: {type: 'move-actor'},
+						summary: memorySummary,
+						importance: 0.4,
+						baseStrength: 0.5,
+						tags: ['day-three', 'rumor-echo'],
+						source: {type: 'current-move'}
+					},
+					{
+						id: `${id}:complete-echo`,
+						type: 'story-node-set-state',
+						storyNodeId,
+						state: 'completed'
+					}
+				]
+			}
+		]
+	};
+}
+
+function socialEchoMoves(): NarrativeMoveDefinition[] {
+	return [
+		playerEchoMove(
+			rumorSocialEchoIds.moves.warmEcho,
+			rumorSocialEchoIds.story.warmEcho,
+			'Ответить на тёплое приветствие дежурной',
+			'Дежурная уже слышала хороший отзыв и встречает новенького заметно теплее.',
+			'У вахты дежурная встретила меня так, будто заранее слышала обо мне что-то хорошее.'
+		),
+		playerEchoMove(
+			rumorSocialEchoIds.moves.guardedEcho,
+			rumorSocialEchoIds.story.guardedEcho,
+			'Ответить на сдержанное приветствие дежурной',
+			'Дежурная отвечает корректно, но заметно осторожнее обычного.',
+			'У вахты дежурная держалась сдержанно, словно уже слышала про пропущенную договорённость.'
+		),
+		playerEchoMove(
+			rumorSocialEchoIds.moves.neutralEcho,
+			rumorSocialEchoIds.story.neutralEcho,
+			'Поздороваться с дежурной',
+			'Дежурная воспринимает заранее отменённую встречу спокойно, без заметного упрёка.',
+			'У вахты разговор остался ровным: заранее сказанный отказ не выглядел нарушенным обещанием.'
+		),
+		playerEchoMove(
+			rumorSocialEchoIds.moves.cautiousEcho,
+			rumorSocialEchoIds.story.cautiousEcho,
+			'Ответить на осторожное приветствие дежурной',
+			'Дежурная слышала чужой рассказ, но пока не делает из него окончательных выводов.',
+			'Дежурная явно что-то слышала обо мне, но решила сначала составить своё мнение.'
+		)
+	];
+}
+
 function trustCandidate(
 	id: string,
 	moveId: string,
@@ -427,7 +518,8 @@ export function create93DaysRumorSocialEchoProject(): NarrativeProject {
 	project.narrativeMoves = [
 		...project.narrativeMoves,
 		...reportMoves(),
-		...assessmentMoves()
+		...assessmentMoves(),
+		...socialEchoMoves()
 	];
 
 	project.reactionCandidateSets = [
