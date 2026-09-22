@@ -19,7 +19,6 @@ import {rumorSocialEchoIds} from '../../../domain/narrative/content/93-days-rumo
 
 const playerId = arrivalCorridorIds.characters.player;
 const smsWorkId = 'story-node:' + phoneSocialLoopIds.story.incomingSms;
-const meetingWorkId = 'story-node:' + phoneSocialLoopIds.story.meeting;
 const rumorWorkId = 'story-node:' + rumorSocialEchoIds.story.contactReportsToDormDuty;
 
 function compileFixture(): NarrativeRuntimeArtifactV1 {
