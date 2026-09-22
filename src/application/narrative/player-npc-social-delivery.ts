@@ -5,7 +5,8 @@ import {
 } from './npc-decision';
 import {
 	resolveAndApplyNarrativeProjectMove,
-	resolveNarrativeProjectMove
+	resolveNarrativeProjectMove,
+	setNarrativeCharacterActualLocation
 } from './living-simulation';
 import {
 	effectiveStoryNodeActivationState
@@ -16,7 +17,8 @@ import {consumeNarrativeStoryWork} from './story-execution';
 import {arrivalCorridorIds} from '../../domain/narrative/content/93-days-arrival-corridor';
 import {dayOneNarrativeIds} from '../../domain/narrative/content/93-days-day-one-day-two';
 import {
-	playerNpcSocialDeliveryProjectId
+	playerNpcSocialDeliveryProjectId,
+	a63ContactArrivalStoryId
 } from '../../domain/narrative/content/93-days-player-npc-social-delivery';
 import {
 	rumorSocialEchoIds
@@ -24,6 +26,7 @@ import {
 import {NarrativePlayerTimeDueWorkHandlingResult} from './player-time';
 
 const reportStoryId = rumorSocialEchoIds.story.contactReportsToDormDuty;
+const arrivalWorkId = 'story-node:' + a63ContactArrivalStoryId;
 const reportWorkId = 'story-node:' + reportStoryId;
 const reportMoves: string[] = [
 	rumorSocialEchoIds.moves.reportKept,
@@ -47,6 +50,37 @@ export function deliverA63NpcSocialDueWork(
 	const handledWorkIds: string[] = [];
 
 	for (const work of dueWork) {
+		if (work.id === arrivalWorkId) {
+			const arrival = current.storyNodes.find(node => node.id === a63ContactArrivalStoryId);
+			if (!arrival ||
+				arrival.participantIds.length !== 1 ||
+				arrival.participantIds[0] !== dayOneNarrativeIds.characters.localContact ||
+				arrival.placement?.day !== current.simulation.day ||
+				arrival.placement.minuteOfDay !== current.simulation.minuteOfDay ||
+				work.moment.day !== current.simulation.day ||
+				work.moment.minuteOfDay !== current.simulation.minuteOfDay ||
+				arrival.runtimePolicy?.durationMinutes !== 15
+			) {
+				throw new Error('A63 contact departure requires an exact 15-minute authored NPC Story.');
+			}
+			if (effectiveStoryNodeActivationState(arrival, current.storyNodeStateOverrides) !== 'available' ||
+				storyWorkWasConsumed(current.runtimeOccurrences, arrivalWorkId)) {
+				continue;
+			}
+			const atOrigin = Boolean(arrival.placement.locationId) &&
+				current.simulation.actualLocationByCharacter[
+					dayOneNarrativeIds.characters.localContact
+				] === arrival.placement.locationId;
+			const departure = consumeNarrativeStoryWork(current, arrivalWorkId, {
+				decision: atOrigin ? 'execute' : 'miss'
+			});
+			if (departure.trace.status !== (atOrigin ? 'started' : 'missed')) {
+				throw new Error('A63 contact departure could not be recorded canonically.');
+			}
+			current = departure.project;
+			handledWorkIds.push(work.id);
+			continue;
+		}
 		if (work.id !== reportWorkId) {
 			continue;
 		}
@@ -70,6 +104,28 @@ export function deliverA63NpcSocialDueWork(
 			continue;
 		}
 
+		// Only a completed 15-minute Story that began at the real courtyard
+		// can place the contact at the authored report destination. A schedule
+		// alone never writes Actual Presence, and an external relocation wins.
+		const arrival = current.storyNodes.find(item => item.id === a63ContactArrivalStoryId);
+		const arrivedNow = current.runtimeOccurrences.some(occurrence =>
+			occurrence.type === 'story-work' &&
+			occurrence.workId === arrivalWorkId &&
+			occurrence.result === 'executed' &&
+			occurrence.moment.day === current.simulation.day &&
+			occurrence.moment.minuteOfDay === current.simulation.minuteOfDay &&
+			occurrence.elapsedMinutes === 15
+		);
+		if (arrivedNow && arrival?.placement?.locationId && node.placement.locationId &&
+			current.simulation.actualLocationByCharacter[
+				dayOneNarrativeIds.characters.localContact
+			] === arrival.placement.locationId) {
+			current = setNarrativeCharacterActualLocation(
+				current,
+				dayOneNarrativeIds.characters.localContact,
+				node.placement.locationId
+			);
+		}
 		const contactPlace =
 			current.simulation.actualLocationByCharacter[
 				dayOneNarrativeIds.characters.localContact
