@@ -16,12 +16,23 @@ export interface NarrativePlayerTimeSegmentTrace {
 	dueWorkIds: string[];
 }
 
+export interface NarrativePlayerTimeDueWorkHandlingResult {
+	project: NarrativeProject;
+	handledWorkIds: string[];
+}
+
+export type NarrativePlayerTimeDueWorkHandler = (
+	project: NarrativeProject,
+	dueWork: SimulationScheduledWork[]
+) => NarrativePlayerTimeDueWorkHandlingResult;
+
 export interface NarrativePlayerTimeAdvanceResult {
 	project: NarrativeProject;
 	dueWork: SimulationScheduledWork[];
 	segments: NarrativePlayerTimeSegmentTrace[];
 	appliedMinutes: number;
 	clampedAtProjectEnd: boolean;
+	handledWorkIds: string[];
 }
 
 function uniqueDueWork(work: SimulationScheduledWork[]) {
@@ -67,7 +78,8 @@ function nextScheduledAbsoluteMinute(
  */
 export function advanceNarrativePlayerTimeSegmented(
 	project: NarrativeProject,
-	deltaMinutes: number
+	deltaMinutes: number,
+	dueWorkHandler?: NarrativePlayerTimeDueWorkHandler
 ): NarrativePlayerTimeAdvanceResult {
 	if (!Number.isInteger(deltaMinutes) || deltaMinutes < 0) {
 		throw new RangeError('deltaMinutes must be a non-negative integer.');
@@ -79,6 +91,7 @@ export function advanceNarrativePlayerTimeSegmented(
 	let clampedAtProjectEnd = false;
 	const dueWork: SimulationScheduledWork[] = [];
 	const segments: NarrativePlayerTimeSegmentTrace[] = [];
+	const handledWorkIds: string[] = [];
 
 	while (remaining > 0) {
 		const currentAbsolute = simulationKernelAbsoluteMinute(
@@ -107,6 +120,11 @@ export function advanceNarrativePlayerTimeSegmented(
 			dueWorkIds: advanced.dueWork.map(item => item.id)
 		});
 		currentProject = advanced.project;
+		if (dueWorkHandler && advanced.dueWork.length > 0) {
+			const handled = dueWorkHandler(currentProject, advanced.dueWork);
+			currentProject = handled.project;
+			handledWorkIds.push(...handled.handledWorkIds);
+		}
 		appliedMinutes += applied;
 		remaining -= applied;
 		clampedAtProjectEnd ||= advanced.trace.clampedAtProjectEnd;
@@ -121,6 +139,7 @@ export function advanceNarrativePlayerTimeSegmented(
 		dueWork: uniqueDueWork(dueWork),
 		segments,
 		appliedMinutes,
-		clampedAtProjectEnd
+		clampedAtProjectEnd,
+		handledWorkIds
 	};
 }
