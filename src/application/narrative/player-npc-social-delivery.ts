@@ -18,7 +18,8 @@ import {arrivalCorridorIds} from '../../domain/narrative/content/93-days-arrival
 import {dayOneNarrativeIds} from '../../domain/narrative/content/93-days-day-one-day-two';
 import {
 	playerNpcSocialDeliveryProjectId,
-	a63ContactArrivalStoryId
+	a63ContactArrivalStoryId,
+	a63ContactTravelLocationId
 } from '../../domain/narrative/content/93-days-player-npc-social-delivery';
 import {
 	rumorSocialEchoIds
@@ -77,7 +78,13 @@ export function deliverA63NpcSocialDueWork(
 			if (departure.trace.status !== (atOrigin ? 'started' : 'missed')) {
 				throw new Error('A63 contact departure could not be recorded canonically.');
 			}
-			current = departure.project;
+			current = atOrigin
+				? setNarrativeCharacterActualLocation(
+					departure.project,
+					dayOneNarrativeIds.characters.localContact,
+					a63ContactTravelLocationId
+				)
+				: departure.project;
 			handledWorkIds.push(work.id);
 			continue;
 		}
@@ -119,7 +126,7 @@ export function deliverA63NpcSocialDueWork(
 		if (arrivedNow && arrival?.placement?.locationId && node.placement.locationId &&
 			current.simulation.actualLocationByCharacter[
 				dayOneNarrativeIds.characters.localContact
-			] === arrival.placement.locationId) {
+			] === a63ContactTravelLocationId) {
 			current = setNarrativeCharacterActualLocation(
 				current,
 				dayOneNarrativeIds.characters.localContact,
