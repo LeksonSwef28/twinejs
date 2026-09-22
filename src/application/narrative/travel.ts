@@ -11,6 +11,10 @@ import {
 } from '../../domain/narrative/travel';
 import {setNarrativeCharacterActualLocation} from './living-simulation';
 import {
+	advanceNarrativePlayerTimeAsSimulation,
+	NarrativePlayerTimeDueWorkHandler
+} from './player-time';
+import {
 	evaluateNarrativePhysicalAction,
 	NarrativePhysicalActionEvaluation
 } from './physical';
@@ -68,7 +72,9 @@ function physicalEvaluation(
 export function executeNarrativeTravel(
 	project: NarrativeProject,
 	routeId: string,
-	characterId: string
+	characterId: string,
+	/** A63 Player-only opt-in; legacy project travel remains unchanged. */
+	dueWorkHandler?: NarrativePlayerTimeDueWorkHandler
 ): NarrativeTravelExecutionResult {
 	const route = (project.travelRoutes ?? []).find(
 		candidate => candidate.id === routeId
@@ -153,10 +159,9 @@ export function executeNarrativeTravel(
 		};
 	}
 
-	const simulation = advanceNarrativeProjectSimulation(
-		project,
-		route.durationMinutes
-	);
+	const simulation = dueWorkHandler
+		? advanceNarrativePlayerTimeAsSimulation(project, route.durationMinutes, dueWorkHandler)
+		: advanceNarrativeProjectSimulation(project, route.durationMinutes);
 	if (simulation.trace.appliedMinutes !== route.durationMinutes) {
 		return {
 			status: 'rejected',
