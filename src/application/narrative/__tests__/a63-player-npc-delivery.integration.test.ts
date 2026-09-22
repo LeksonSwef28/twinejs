@@ -20,7 +20,8 @@ import {arrivalCorridorIds} from '../../../domain/narrative/content/93-days-arri
 import {dayOneNarrativeIds} from '../../../domain/narrative/content/93-days-day-one-day-two';
 import {firsthandSocialRepairIds} from '../../../domain/narrative/content/93-days-firsthand-social-repair';
 import {
-	create93DaysPlayerNpcSocialDeliveryProject
+	create93DaysPlayerNpcSocialDeliveryProject,
+	a63ContactArrivalStoryId
 } from '../../../domain/narrative/content/93-days-player-npc-social-delivery';
 import {phoneSocialLoopIds} from '../../../domain/narrative/content/93-days-phone-social-loop';
 import {rumorSocialEchoIds} from '../../../domain/narrative/content/93-days-rumor-social-echo';
@@ -182,11 +183,12 @@ function beforeReport(history: History, sourceTrust: number, contactArrives: boo
 			session = story(session, meetingWorkId, 'miss');
 		}
 	}
-	session = waitUntil(session, 3, 8 * 60);
-	session = trust(session, sourceTrust);
-	if (contactArrives) {
-		session = place(session, contactId, dormId);
+	// An absent contact cannot start the authored 08:00 courtyard walk.
+	if (!contactArrives) {
+		session = place(session, contactId, arrivalCorridorIds.locations.busStation);
 	}
+	session = trust(session, sourceTrust);
+	session = waitUntil(session, 3, 8 * 60);
 	return {session, artifact};
 }
 
@@ -214,6 +216,15 @@ describe('A63 S2 automatic delivery through ordinary Player wait', () => {
 				day: 3, minuteOfDay: 8 * 60 + 15
 			});
 			expect(occurrences(session, branch.report)).toHaveLength(1);
+			expect(session.currentProject.runtimeOccurrences.filter(
+				item => item.type === 'story-work' &&
+					item.storyNodeId === a63ContactArrivalStoryId &&
+					item.result === 'executed' &&
+					item.moment.day === 3 &&
+					item.moment.minuteOfDay === 8 * 60 + 15
+			)).toHaveLength(1);
+			expect(session.currentProject.simulation.actualLocationByCharacter[contactId])
+				.toBe(dormId);
 			expect(occurrences(
 				session,
 				sourceTrust >= 0.5 ? branch.assess : branch.reserve
@@ -389,7 +400,6 @@ describe('A63 S4 shared Player-time integration', () => {
 		session = move(session, phoneSocialLoopIds.moves.decline);
 		session = waitUntil(session, 2, 22 * 60 + 30);
 		session = place(session, playerId, dormId);
-		session = place(session, contactId, dormId);
 		session = trust(session, 0.65);
 		const result = executeNarrativePlayerSleep(session, 'a63-test-late-wake', playerId);
 		expect(result.status).toBe('applied');
