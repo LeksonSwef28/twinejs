@@ -1,6 +1,9 @@
 import {NarrativeProject} from '../project';
 import {create93DaysFirsthandSocialRepairProject} from './93-days-firsthand-social-repair';
 import {rumorSocialEchoIds} from './93-days-rumor-social-echo';
+import {arrivalCorridorIds} from './93-days-arrival-corridor';
+import {dayOneNarrativeIds} from './93-days-day-one-day-two';
+import {phoneSocialLoopIds} from './93-days-phone-social-loop';
 
 /**
  * A63 explicitly opts the existing A61 report into Player-time NPC delivery.
@@ -12,12 +15,24 @@ import {rumorSocialEchoIds} from './93-days-rumor-social-echo';
 export const playerNpcSocialDeliveryProjectId =
 	'93-days-player-npc-social-delivery-v1';
 
+/** Explicit A63-only authored movement: courtyard at 08:00 -> dorm after 15 min. */
+export const a63ContactArrivalStoryId = 'a63-day3-contact-walks-to-dorm';
+
 export function create93DaysPlayerNpcSocialDeliveryProject(): NarrativeProject {
 	const project = create93DaysFirsthandSocialRepairProject();
 	project.projectId = playerNpcSocialDeliveryProjectId;
 	project.name = '93 дня до конца нашего лета — встречи, слухи и последствия';
+	project.playerStart = {
+		...project.playerStart!,
+		initialActualPresenceByCharacter: {
+			...project.playerStart?.initialActualPresenceByCharacter,
+			[dayOneNarrativeIds.characters.localContact]:
+				phoneSocialLoopIds.locations.dormCourtyard
+		}
+	};
 
-	project.storyNodes = project.storyNodes.map(node =>
+	project.storyNodes = [
+		...project.storyNodes.map(node =>
 		node.id === rumorSocialEchoIds.story.contactReportsToDormDuty
 			? {
 					...node,
@@ -28,7 +43,27 @@ export function create93DaysPlayerNpcSocialDeliveryProject(): NarrativeProject {
 					}
 				}
 			: node
-	);
+		),
+		{
+			id: a63ContactArrivalStoryId,
+			kind: 'event',
+			title: 'Знакомый идёт от двора к вахте',
+			description: 'В 08:00 знакомый отправляется из двора общежития к вахте. Его путь занимает 15 минут; прибытие возможно только если он действительно вышел из двора.',
+			primaryCharacterId: dayOneNarrativeIds.characters.localContact,
+			participantIds: [dayOneNarrativeIds.characters.localContact],
+			placement: {
+				day: 3,
+				minuteOfDay: 8 * 60,
+				locationId: phoneSocialLoopIds.locations.dormCourtyard
+			},
+			activationState: 'available',
+			runtimePolicy: {
+				occurrenceMode: 'one-shot',
+				durationMinutes: 15,
+				missAfterMinutes: 0
+			}
+		}
+	];
 
 	const reportMoves = new Set<string>([
 		rumorSocialEchoIds.moves.reportKept,
