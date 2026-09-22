@@ -1,6 +1,6 @@
 # A62 Contract — Firsthand Social Repair
 
-Status: **IN PROGRESS — S1 content and regression implementation**
+Status: **IMPLEMENTATION VERIFIED — PR #35 closure CI pending**
 Risk: **MEDIUM** (canonical authored content + Player integration only)
 Stable source: `93-days-editor` @ `44ade5dcbcb53e814cac131db383daeddb18b01f`
 Feature branch: `feature/a62-firsthand-social-repair`
@@ -69,9 +69,25 @@ Content is additive in a new module and tests. Revert the A62 content/test/doc c
 - E1 Ownership: **PASS**
 - E2 Contract: **PASS**
 - E3 Test design: **PASS**
-- E4 Implementation: **IN PROGRESS**
-- E5 Exact-head CI: **PENDING**
-- E6 Self-review: **PENDING**
-- E7 PR/review: **PENDING**
+- E4 Implementation: **PASS — authored A62 branch, six direct-answer paths, one-shot Story guards, Day Four exclusive follow-ups**
+- E5 Exact-head CI: **PASS for implementation — #632 / #634 GREEN; final documentation head pending**
+- E6 Self-review: **PASS — blocked Move replay against completed echo, completed answer and completed follow-up; aligned Day Four placement with day-level Player presentation**
+- E7 PR/review: **DRAFT — exact documentation closure CI pending**
 - E8 Merge: **NOT AUTHORIZED**
 - E9 Post-merge: **PENDING**
+
+
+## Implementation and verification evidence (2026-09-22)
+
+- Initial development established six Day Two history/source-trust paths plus save/restore and real Actual Presence checks in `src/application/narrative/__tests__/a62-firsthand-social-repair.integration.test.ts`.
+- **#629 FAILED** on first draft for three `prefer-const` lint issues; corrected without suppressing rules.
+- **#630 FAILED** because the initial A62 direct-response Move did not guard the owning response Story state. The raw Player action boundary could apply `walkAway` even after a direct explanation. The extra initial-presence assertion also incorrectly assumed world start places only the player, when A57 intentionally seeds several concrete NPCs.
+- **#632 GREEN** after adding canonical response Story-state guards and correcting the authored NPC world-start assertion: 375/375 Jest suites, 2217 passed, 23 skipped, 42 todo, 2282 total; Chromium 10/10; production audit 0; all builds and Vite/Electron smoke PASS.
+- Self-review confirmed the raw action boundary does not independently enforce owning Story state. To avoid another replay path, A62 decorates its four inherited A61 echo Moves with their authored `available` Story guard, and adds an `available` guard to each Day Four follow-up Move. This changes only the A62-derived content, not the A61 base builder or runtime.
+- The new negative regression confirms an echo cannot be replayed to reopen the response Story, the other answer is blocked after the first choice, and the completed Day Four follow-up is not repeatable. Day Four authored placement uses minute 0 to match current day-level Player action presentation; actual conversation still requires co-location.
+- **#634 GREEN** on exact implementation head `4702b211692a52575fc5a0e69a6ab84ca64d7520`: 375/375 Jest suites, 2217 passed, 23 skipped, 42 todo, 2282 total; Chromium 10/10; production audit 0; lint, web/Player/Electron builds and Vite/Electron smoke PASS.
+- The exact final PR head must still pass CI after the documentation closure. Previous GREEN runs are evidence, not authorization to merge a changed head.
+
+## Remaining boundary
+
+A62 is a content extension activated after the explicit A61 NPC report/assessment and Player echo. It does not introduce background orchestration of those NPC decisions. The existing Player presentation filters authored Day Four Story by day and location; the raw Move API assumes a valid action id from that presentation and has no generic time-of-day guard. A later stage may address automatic NPC opportunity delivery / stronger action-session admission with its own risk review; A62 does not retrofit another runtime resolver.
