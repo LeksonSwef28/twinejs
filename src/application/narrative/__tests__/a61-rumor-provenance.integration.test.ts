@@ -10,6 +10,11 @@ import {
 } from '../player-runtime';
 import {executeNarrativePlayerStoryWork} from '../player-story-work';
 import {executeNarrativePlayerWait} from '../player-wait';
+import {
+	createNarrativeReactionDecisionOpportunity,
+	evaluateNarrativeNpcDecision,
+	executeNarrativeNpcDecision
+} from '../npc-decision';
 import {bootstrapNarrativePlayerWorldStart} from '../player-world-start';
 import {
 	resolveAndApplyNarrativeProjectMove,
@@ -204,6 +209,46 @@ function expectedReport(branch: 'met' | 'missed' | 'declined') {
 	};
 }
 
+function expectedAssessment(branch: 'met' | 'missed' | 'declined') {
+	if (branch === 'met') {
+		return {
+			believeMoveId: rumorSocialEchoIds.moves.believeKept,
+			reserveMoveId: rumorSocialEchoIds.moves.reserveKept,
+			echoStoryNodeId: rumorSocialEchoIds.story.warmEcho,
+			goodwillDelta: 0.12
+		};
+	}
+	if (branch === 'missed') {
+		return {
+			believeMoveId: rumorSocialEchoIds.moves.believeMissed,
+			reserveMoveId: rumorSocialEchoIds.moves.reserveMissed,
+			echoStoryNodeId: rumorSocialEchoIds.story.guardedEcho,
+			goodwillDelta: -0.12
+		};
+	}
+	return {
+		believeMoveId: rumorSocialEchoIds.moves.believeDeclined,
+		reserveMoveId: rumorSocialEchoIds.moves.reserveDeclined,
+		echoStoryNodeId: rumorSocialEchoIds.story.neutralEcho,
+		goodwillDelta: 0.02
+	};
+}
+
+function relationshipValue(
+	project: NarrativePlayerSession['currentProject'],
+	fromCharacterId: string,
+	toCharacterId: string,
+	axis: string
+) {
+	return (
+		project.relationships.find(
+			relationship =>
+				relationship.fromCharacterId === fromCharacterId &&
+				relationship.toCharacterId === toCharacterId
+		)?.values[axis] ?? 0
+	);
+}
+
 describe('A61-S1 rumor provenance', () => {
 	test.each(['met', 'missed', 'declined'] as const)(
 		'%s A60 history becomes one concrete NPC-to-NPC told Claim',
@@ -292,6 +337,114 @@ describe('A61-S1 rumor provenance', () => {
 					narrativeMoves: applied.project.narrativeMoves
 				})
 			).toBe(authoredBefore);
+		}
+	);
+});
+
+
+describe('A61-S2 source-trust reaction', () => {
+	test.each(['met', 'missed', 'declined'] as const)(
+		'%s report uses explicit source trust to choose believe vs reserve',
+		branch => {
+			const session = reachRumorMoment(branch);
+			const report = expectedReport(branch);
+			const reported = resolveAndApplyNarrativeProjectMove(
+				session.currentProject,
+				report.moveId
+			);
+			expect(reported.resolution.status).toBe('resolved');
+
+			const expected = expectedAssessment(branch);
+			const opportunity = createNarrativeReactionDecisionOpportunity(
+				reported.project,
+				rumorSocialEchoIds.reactionSets.dormDutyAssessesReport,
+				'a61-opportunity:dorm-duty-assesses-report',
+				0
+			);
+			const evaluated = evaluateNarrativeNpcDecision(reported.project, [
+				opportunity
+			]);
+			expect(evaluated.selection.selectedMoveId).toBe(expected.believeMoveId);
+			expect(evaluated.selection.randomnessUsed).toBe(false);
+
+			const believed = evaluated.evaluations[0].reactionEvaluation.candidates.find(
+				candidate => candidate.moveId === expected.believeMoveId
+			);
+			expect(
+				believed?.considerationTraces.find(trace =>
+					trace.considerationId.endsWith(':source-trust')
+				)
+			).toEqual(
+				expect.objectContaining({
+					status: 'met',
+					weight: 3,
+					appliedWeight: 3
+				})
+			);
+
+			const goodwillBefore = relationshipValue(
+				reported.project,
+				dormDutyId,
+				playerId,
+				'goodwill'
+			);
+			const executed = executeNarrativeNpcDecision(reported.project, [
+				opportunity
+			]);
+			expect(executed.trace.status).toBe('executed');
+			expect(executed.trace.selectedMoveId).toBe(expected.believeMoveId);
+			expect(
+				executed.project.storyNodeStateOverrides[expected.echoStoryNodeId]
+			).toBe('available');
+			expect(
+				relationshipValue(
+					executed.project,
+					dormDutyId,
+					playerId,
+					'goodwill'
+				)
+			).toBeCloseTo(goodwillBefore + expected.goodwillDelta);
+
+			const lowTrust = {
+				...reported.project,
+				relationships: reported.project.relationships.map(relationship =>
+					relationship.fromCharacterId === dormDutyId &&
+					relationship.toCharacterId === contactId
+						? {
+								...relationship,
+								values: {...relationship.values, trust: 0.3}
+							}
+						: relationship
+				)
+			};
+			const lowTrustOpportunity = createNarrativeReactionDecisionOpportunity(
+				lowTrust,
+				rumorSocialEchoIds.reactionSets.dormDutyAssessesReport,
+				'a61-opportunity:dorm-duty-assesses-low-trust',
+				0
+			);
+			const lowTrustEvaluation = evaluateNarrativeNpcDecision(lowTrust, [
+				lowTrustOpportunity
+			]);
+			expect(lowTrustEvaluation.selection.selectedMoveId).toBe(
+				expected.reserveMoveId
+			);
+			expect(lowTrustEvaluation.selection.randomnessUsed).toBe(false);
+			const lowTrustBelieved =
+				lowTrustEvaluation.evaluations[0].reactionEvaluation.candidates.find(
+					candidate => candidate.moveId === expected.believeMoveId
+				);
+			expect(
+				lowTrustBelieved?.considerationTraces.find(trace =>
+					trace.considerationId.endsWith(':source-trust')
+				)
+			).toEqual(
+				expect.objectContaining({
+					status: 'unmet',
+					weight: 3,
+					appliedWeight: 0
+				})
+			);
 		}
 	);
 });
