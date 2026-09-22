@@ -9,6 +9,10 @@ import {
 	replaceNarrativePlayerSessionProject
 } from '../player-runtime';
 import {executeNarrativePlayerStoryWork} from '../player-story-work';
+import {
+	createNarrativePlayerSave,
+	restoreNarrativePlayerSave
+} from '../player-save';
 import {executeNarrativePlayerWait} from '../player-wait';
 import {deriveNarrativePlayerPresentation} from '../player-presentation';
 import {
@@ -138,17 +142,18 @@ function setLocation(
 	);
 }
 
-function reachSms() {
-	let session = startSession(compileFixture());
+function reachSms(artifact: NarrativeRuntimeArtifactV1 = compileFixture()) {
+	let session = startSession(artifact);
 	session = waitUntil(session, 2, 10 * 60 + 30);
 	session = storyWork(session, smsWorkId, 'execute');
 	return session;
 }
 
 function reachRumorMoment(
-	branch: 'met' | 'missed' | 'declined'
+	branch: 'met' | 'missed' | 'declined',
+	artifact: NarrativeRuntimeArtifactV1 = compileFixture()
 ): NarrativePlayerSession {
-	let session = reachSms();
+	let session = reachSms(artifact);
 
 	if (branch === 'declined') {
 		session = action(session, phoneSocialLoopIds.moves.decline);
@@ -561,6 +566,94 @@ describe('A61-S3 player-visible social echo', () => {
 						memory.tags.includes('rumor-echo')
 				)
 			).toBe(true);
+		}
+	);
+});
+
+
+describe('A61 runtime persistence', () => {
+	test.each(['met', 'missed', 'declined'] as const)(
+		'%s rumor provenance and selected echo survive save/restore',
+		branch => {
+			const artifact = compileFixture();
+			let session = reachRumorMoment(branch, artifact);
+			const report = expectedReport(branch);
+			const reported = resolveAndApplyNarrativeProjectMove(
+				session.currentProject,
+				report.moveId
+			);
+			expect(reported.resolution.status).toBe('resolved');
+
+			const trustedProject = withRelationshipValue(
+				reported.project,
+				dormDutyId,
+				contactId,
+				'trust',
+				0.65
+			);
+			const expected = expectedAssessment(branch);
+			const opportunity = createNarrativeReactionDecisionOpportunity(
+				trustedProject,
+				rumorSocialEchoIds.reactionSets.dormDutyAssessesReport,
+				'a61-opportunity:persistence',
+				0
+			);
+			const assessed = executeNarrativeNpcDecision(trustedProject, [opportunity]);
+			expect(assessed.trace.status).toBe('executed');
+
+			session = replaceProject(session, assessed.project);
+			session = setLocation(
+				session,
+				playerId,
+				arrivalCorridorIds.locations.studentDormitory
+			);
+			const save = createNarrativePlayerSave(session);
+			const fresh = startSession(artifact);
+			const restored = restoreNarrativePlayerSave(fresh, save);
+			expect(restored.status).toBe('restored');
+			if (restored.status !== 'restored') {
+				throw new Error('Expected A61 player save to restore.');
+			}
+
+			const project = restored.session.currentProject;
+			expect(
+				project.simulation.characterKnowledge.find(
+					state =>
+						state.characterId === dormDutyId &&
+						state.claimId === report.claimId
+				)
+			).toEqual(
+				expect.objectContaining({
+					claimId: report.claimId,
+					source: expect.objectContaining({
+						type: 'told',
+						sourceCharacterId: contactId
+					})
+				})
+			);
+			expect(
+				relationshipValue(project, dormDutyId, contactId, 'trust')
+			).toBe(0.65);
+			expect(
+				project.storyNodeStateOverrides[expected.echoStoryNodeId]
+			).toBe('available');
+			expect(
+				project.runtimeOccurrences.some(
+					occurrence =>
+						occurrence.type === 'move-outcome' &&
+						occurrence.moveId === expected.believeMoveId
+				)
+			).toBe(true);
+
+			const view = deriveNarrativePlayerPresentation(project);
+			expect(view.actions).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						id: expected.echoMoveId,
+						state: 'ready'
+					})
+				])
+			);
 		}
 	);
 });
