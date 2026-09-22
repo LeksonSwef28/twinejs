@@ -1,0 +1,240 @@
+# A61 Contract — Rumor & Social Echo
+
+Status: **ACTIVE / CONTRACT LOCKED**  
+Stage: **A61 — Rumor & Social Echo**  
+Risk: **MEDIUM** with explicit HIGH re-scope triggers  
+Stable source: `93-days-editor` @ `9531bc4a9c1d919fe30e034060232b18cba2cb30`  
+Feature branch: `feature/a61-rumor-social-echo`  
+Decision date: **2026-09-22**
+
+## 1. Evidence boundary
+
+A60 is merged and post-merge verified on exact stable SHA `9531bc4a9c1d919fe30e034060232b18cba2cb30`.
+
+Post-merge evidence — **93 Days Branch Check #615 GREEN**:
+
+- production audit: 0 vulnerabilities;
+- 373/373 Jest suites;
+- 2192 passed, 23 skipped, 42 todo, 2257 total;
+- Chromium canonical Player smoke: 10/10;
+- Vite smoke: PASS;
+- Electron smoke: PASS;
+- separate Jest / Playwright / ESLint / Prettify workflows: GREEN.
+
+Repository evidence already supports the first rumor chain:
+
+- Narrative Moves can carry `communicatedClaimId`;
+- a Knowledge effect can learn the communicated Claim;
+- `source: {type: 'move-actor'}` records runtime Knowledge provenance as `told` with `sourceCharacterId`;
+- Knowledge already stores confidence, timesHeard and learned/reinforced moments;
+- memories can point to communicated Claims;
+- ReactionCandidateSet can score NPC responses using known Claims, relationships, memory tags and Story state;
+- explicit NPC decision selection/execution already exists and never invents hidden randomness.
+
+The first rumor loop therefore starts as authored content + existing cognition/NPC decision APIs, not as a new rumor engine.
+
+## 2. Project-source alignment
+
+Current project source says:
+
+- specific-person events update interpersonal state first;
+- social beliefs change more slowly;
+- rumor is a valid event family;
+- rumor credibility depends on source trust;
+- friendships/rivalries/rumors should accumulate over the 93-day summer;
+- social-space overlap is contextual and does not automatically imply friendship.
+
+A61 will prove this at small scale with concrete NPCs before any generalized social-network propagation system is considered.
+
+## 3. Goal
+
+Prove one explainable chain:
+
+`A60 meeting result -> NPC tells NPC -> listener stores provenance -> listener evaluates source trust -> later player-visible social reaction`
+
+The chain must distinguish at least:
+
+- player kept the agreed meeting;
+- player agreed but did not appear;
+- player declined in advance.
+
+The listener must not react identically to all three histories.
+
+## 4. Scope / risk rule
+
+A61 stays **MEDIUM** while it adds:
+
+- canonical Claims/Story/Moves/Outcomes;
+- explicit NPC-to-NPC communication;
+- authored relationships/memories;
+- ReactionCandidateSet content;
+- explicit NPC decision opportunities in tests/application orchestration;
+- Player-visible follow-up content;
+- Story Brain/Preview evidence and tests.
+
+Stop and reclassify affected work **HIGH** before adding:
+
+- automatic graph-wide rumor propagation;
+- background fan-out to arbitrary NPCs;
+- a global rumor queue;
+- new mutable social-belief stores;
+- new Knowledge persistence shape;
+- new save/artifact/schema version;
+- hidden stochastic spread;
+- direct use of demographic/social-group priors to mutate interpersonal meters.
+
+## 5. A61-S1 — Content-only rumor provenance
+
+Layer content on `create93DaysPhoneSocialLoopProject()`.
+
+Required first chain:
+
+1. one existing A60 local contact is the source;
+2. one existing dorm NPC is the listener;
+3. three authored Claims distinguish met / missed / declined histories;
+4. NPC-to-NPC Story becomes relevant on Day Three;
+5. source Move communicates exactly one authored Claim;
+6. listener learns via `claim: communicated-claim`;
+7. Knowledge source is `move-actor`, yielding runtime `told(sourceCharacterId)`;
+8. confidence is authored for the concrete communication;
+9. memory records that the listener heard the report;
+10. authored definitions remain unchanged during runtime.
+
+No generic rumor subsystem is added.
+
+## 6. A61-S2 — Source-trust reaction proof
+
+Use existing ReactionCandidateSet + NPC decision selection.
+
+The listener has an authored directional trust relationship toward the source NPC.
+
+Candidate reactions should be authored, not hardcoded:
+
+- trust the report;
+- reserve judgment;
+- optionally dismiss it if a reproduced content need appears.
+
+Scoring may use:
+
+- knows-claim;
+- relationship-at-least on a trust axis;
+- memory-tag;
+- relevant Story state.
+
+The selected NPC Move may update:
+
+- listener -> player relationship;
+- listener memory/mood;
+- later Story state.
+
+No hidden randomness. Exact ties may use only explicit supplied random input, though the first A61 proof should prefer deterministic scores.
+
+## 7. A61-S3 — Player-visible social echo
+
+After the NPC-to-NPC chain, the player encounters the listener in an existing social location.
+
+The Player should see different authored reaction/actions based on the actual chain.
+
+Minimum proof:
+
+- met history can produce warmer recognition;
+- missed-after-acceptance can produce guarded/cooler recognition;
+- declined-in-advance is distinct from breaking the accepted plan;
+- the Player never sees a generic debug label such as “rumor score”.
+
+The response remains a canonical Story/Move interaction.
+
+## 8. Rumor provenance rule
+
+A rumor is not a free-floating string.
+
+For A61:
+
+- content is a canonical Claim;
+- teller is the Move actor;
+- listener is the target/recipient;
+- runtime source uses existing `KnowledgeSource.told`;
+- Story/runtime occurrence supplies event/time provenance;
+- memory may reference the communicated Claim.
+
+If this cannot explain a future multi-hop case, record that case before extending the data model.
+
+## 9. Confidence and trust rule
+
+A61 must not pretend that confidence and source trust are the same value.
+
+- Claim confidence remains subjective Knowledge confidence.
+- Source trust remains an interpersonal relationship axis.
+- ReactionCandidateSet combines evidence declaratively for one NPC choice.
+- A61 does not introduce a universal mathematical truth-propagation formula.
+
+A later stage may require a generalized credibility model only after multiple authored arcs demonstrate repeated duplication.
+
+## 10. Social-belief safeguard
+
+A61 concerns concrete interpersonal/social knowledge about the player's actions.
+
+It must not:
+
+- infer group attitudes from one meeting;
+- apply culture/group priors directly to friendship/trust;
+- transform research statistics into interpersonal deltas;
+- create generalized prejudice/opinion changes from a single rumor.
+
+## 11. Invariants
+
+- **A61-I01** — Narrative Project remains authored truth.
+- **A61-I02** — rumor content is a canonical Claim.
+- **A61-I03** — teller/listener provenance uses existing Move + KnowledgeSource.
+- **A61-I04** — no automatic graph-wide spread.
+- **A61-I05** — source trust and Claim confidence stay separate.
+- **A61-I06** — NPC reaction selection remains explicit and deterministic unless an explicit draw is supplied.
+- **A61-I07** — schedules never mutate Actual Presence automatically.
+- **A61-I08** — player-visible consequences remain canonical Story/Moves.
+- **A61-I09** — no second cognition/runtime/save engine.
+- **A61-I10** — no hidden RNG.
+- **A61-I11** — interpersonal events do not directly mutate group-level beliefs.
+- **A61-I12** — any new mutable rumor store requires explicit HIGH-risk re-scope.
+
+## 12. Verification ladder
+
+### Per content batch
+
+- project/reference validation;
+- focused Story Brain WHY/Impact;
+- Preview branch comparison;
+- focused cognition/NPC decision tests.
+
+### Runtime proof
+
+- exact communicated Claim;
+- listener Knowledge source character;
+- confidence/timesHeard/moment;
+- deterministic ReactionCandidate ranking;
+- selected NPC Move and relationship/memory effect;
+- later Player-visible branch;
+- save/restore preservation;
+- authored source immutability.
+
+### Before merge
+
+- self-review;
+- exact-head full Branch Check GREEN;
+- truthful change record/roadmap;
+- fresh merge gate;
+- merge authorization;
+- post-merge exact stable verification.
+
+## 13. Gate state
+
+- E0 Evidence: **PASS**
+- E1 Scope / ownership: **PASS**
+- E2 Contract / invariants: **PASS**
+- E3 Verification design: **PASS**
+- E4 S1 rumor provenance: **PENDING**
+- E5 S2 source-trust NPC reaction: **PENDING**
+- E6 S3 Player-visible echo: **PENDING**
+- E7 Self-review / PR CI: **PENDING**
+- E8 Merge: **AUTHORIZED by user; fresh merge gate required**
+- E9 Post-merge: **PENDING**
+- E10 Recovery: **PASS**
