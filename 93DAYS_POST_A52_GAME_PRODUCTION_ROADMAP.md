@@ -219,7 +219,7 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 
 ### A60 — Phone / SMS & Flexible Social Contact Loop
 
-**Status:** **DONE / MERGE REVIEW READY** — S1 #588 GREEN, S2 #597 GREEN, S3/S4 #608 GREEN; closure head `cf468e4c3e1922c27e4503459db5f6503e89bf5d` verified by **#610 GREEN** (373/373 Jest suites, 2192 passed, Chromium 10/10, Vite/Electron PASS). One final status-only exact-head CI remains before PR #33 leaves draft; merge remains separately authorized.
+**Status:** **DONE / MERGE READY** — S1 #588 GREEN, S2 #597 GREEN, S3/S4 #608 GREEN; closure #610 GREEN; final status-only head `d06f87723543e6ca10fbdc24007252bf13792fc9` verified by **#612 GREEN** (373/373 Jest suites, 2192 passed, Chromium 10/10, Vite/Electron PASS). Merge is authorized subject to a fresh exact-head/base gate.
 
 **Goal:** prove the first scalable early-2000s social loop through canonical Story/Moves/Knowledge/relationships before adding any new mutable communication subsystem.
 
