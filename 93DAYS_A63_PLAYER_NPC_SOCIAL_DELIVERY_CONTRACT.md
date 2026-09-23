@@ -1,6 +1,6 @@
 # A63 Contract — Player-Time NPC Social Delivery
 
-Status: **IMPLEMENTATION IN PROGRESS — exact-head verification pending**
+Status: **IMPLEMENTATION COMPLETE / EXACT DOCUMENTATION-HEAD CI PENDING**
 Risk: **HIGH**
 Stacked source: `feature/a62-firsthand-social-repair` @ `fbff032730199e46fd5ff69737ac71ea321190be`
 Stable integration target after A62: `93-days-editor`
@@ -182,10 +182,10 @@ Before implementation:
 - E1 Scope / ownership: **PASS — application Player-time orchestration over existing canonical executors**
 - E2 Contract / invariants: **PASS**
 - E3 Regression design: **PASS**
-- E4 Implementation: **IN PROGRESS — exact-time wait/travel/sleep delivery implemented; authored contact arrival and full host proof outstanding**
-- E5 Verification ladder: **IN PROGRESS — #641 GREEN on test-only SHA 8a88cd29; later travel/sleep commits require new exact-head CI**
-- E6 Self-review: **PENDING**
-- E7 PR/CI: **PENDING**
+- E4 Implementation: **PASS — opt-in wait/travel/sleep delivery plus authored 15-minute NPC transit and exact-time report**
+- E5 Verification ladder: **IN PROGRESS — #644 GREEN on 673df776 with 378/378 Jest suites and 11/11 Chromium; later missing-history regression/docs require new exact-head CI**
+- E6 Self-review: **PASS — distinguished genuine absence from co-located NPCs with unresolved meeting history; new negative regression awaits CI**
+- E7 PR/CI: **DRAFT — stacked base correct; exact documentation-head CI pending**
 - E8 Merge: **NOT AUTHORIZED**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS — stacked branch can be dropped without touching A62**
@@ -197,11 +197,19 @@ A63 currently depends on unmerged A62 PR #35. It must not be merged directly int
 After A62 is explicitly authorized, merged, and post-merge verified, A63 must be rebased/rebased-equivalent onto the resulting exact stable SHA and re-run full CI. No prior A62 merge permission can authorize A63.
 
 
-## 15. Implementation evidence (2026-09-22)
+## 15. Implementation evidence (2026-09-23)
 
 - `player-time.ts` segments canonical simulation advances at authored due moments; the compatibility adapter preserves the project-level simulation result contract for travel.
 - `player-wait.ts`, `player-travel.ts` and `player-sleep.ts` use A63 delivery when explicitly opted into the A63 project identity. Legacy project-level travel and ordinary earlier-project sleep retain their original paths.
 - `player-npc-social-delivery.ts` preflights exact time, NPC-only ownership, Story state, source history and real Actual Presence. It composes existing canonical Move, Story-work and NPC-decision executors.
 - `a63-player-npc-delivery.integration.test.ts` covers six history × trust paths, source provenance, A61 echo / A62 response, absence, replay, save/restore, long/split wait and new travel/sleep crossings.
 - **#641 GREEN** on `8a88cd29b4ed692593914c1c60e35f2fa9bd5e06`, including newly added positive wait tests. This is not CI proof for subsequent travel/sleep commits.
-- **Outstanding:** authored arrival for the contact before the Day Three report, exact-head full CI for travel/sleep, a dedicated A63 standalone Player browser smoke and final self-review. No merge authorization.
+- The A63-only authored contact origin is the dorm courtyard. At Day Three 08:00 the canonical 15-minute Story execution starts only from Actual Presence at that origin; the NPC is placed in an explicit transit location and arrives at the dorm only after the execution completes at 08:15. External relocation prevents automatic arrival.
+- **#643 FAILED** on aa985099 due to a single unused import. **#644 GREEN** on exact 673df776: production audit 0; lint, web/Player/Electron builds, 378/378 Jest suites, 2233 passed, Chromium 11/11, Vite/Electron smoke PASS. It includes the newly added real standalone A63 UI smoke. Link: https://github.com/LeksonSwef28/twinejs/actions/runs/35807154379
+- The self-review correction after #644 distinguishes absent NPCs (truthfully missed) from co-located NPCs with no unique report history (unresolved); the new negative test is not yet proven on a full exact-head CI.
+- The full change record is `93DAYS_A63_CHANGE_RECORD.md`. Outstanding: exact docs-closure CI, PR metadata review and separate A62 integration gate. No merge authorization.
+
+
+## 16. Concrete scope closure
+
+The generic segmented clock is reusable, but this A63 release opts in only the authored contact walk plus the existing A61 report / assessment chain. It does **not** make every scheduled Story or every independently time-consuming NPC API autonomous. Explicit Player wait, travel and sleep use the common segmented adapter. A63's 15-minute authored NPC walk is not a general navigation planner and cannot be inferred from an NPC routine. Older A61/A62 artifacts remain declarative and unchanged.
