@@ -310,6 +310,32 @@ describe('A63 S2 automatic delivery through ordinary Player wait', () => {
 		expect(occurrences(wait(after, 60), branches.declined.report)).toHaveLength(0);
 	});
 
+	test('co-located NPCs with no established meeting history remain unresolved, not missed', () => {
+		let session = start(compileFixture());
+		session = waitUntil(session, 3, 8 * 60 + 15);
+		expect(session.currentProject.simulation.actualLocationByCharacter[contactId])
+			.toBe(dormId);
+		expect(session.currentProject.runtimeOccurrences.filter(
+			item => item.type === 'story-work' &&
+				item.storyNodeId === a63ContactArrivalStoryId &&
+				item.result === 'executed'
+		)).toHaveLength(1);
+		expect(session.currentProject.runtimeOccurrences.filter(
+			item => item.type === 'story-work' && item.workId === reportWorkId
+		)).toHaveLength(0);
+		expect(session.currentProject.runtimeOccurrences.filter(
+			item => item.type === 'move-outcome' &&
+				item.storyNodeId === reportId
+		)).toHaveLength(0);
+		expect(session.currentProject.storyNodeStateOverrides[reportId]).toBeUndefined();
+		expect(session.currentProject.simulation.characterKnowledge.some(
+			item => item.characterId === listenerId &&
+				Object.values(rumorSocialEchoIds.claims).includes(
+					item.claimId as typeof rumorSocialEchoIds.claims.keptMeeting
+				)
+		)).toBe(false);
+	});
+
 	test('one long wait and split waits yield the same social runtime', () => {
 		const {session} = beforeReport('kept', 0.3, true);
 		const long = wait(session, 120);
