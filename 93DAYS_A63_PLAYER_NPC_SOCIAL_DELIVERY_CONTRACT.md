@@ -1,6 +1,6 @@
 # A63 Contract — Player-Time NPC Social Delivery
 
-Status: **IMPLEMENTATION COMPLETE / EXACT DOCUMENTATION-HEAD CI PENDING**
+Status: **IMPLEMENTATION COMPLETE / #645 EXACT-HEAD CI GREEN; DOC-SYNC CHECK PENDING**
 Risk: **HIGH**
 Stacked source: `feature/a62-firsthand-social-repair` @ `fbff032730199e46fd5ff69737ac71ea321190be`
 Stable integration target after A62: `93-days-editor`
@@ -183,9 +183,9 @@ Before implementation:
 - E2 Contract / invariants: **PASS**
 - E3 Regression design: **PASS**
 - E4 Implementation: **PASS — opt-in wait/travel/sleep delivery plus authored 15-minute NPC transit and exact-time report**
-- E5 Verification ladder: **IN PROGRESS — #644 GREEN on 673df776 with 378/378 Jest suites and 11/11 Chromium; later missing-history regression/docs require new exact-head CI**
-- E6 Self-review: **PASS — distinguished genuine absence from co-located NPCs with unresolved meeting history; new negative regression awaits CI**
-- E7 PR/CI: **DRAFT — stacked base correct; exact documentation-head CI pending**
+- E5 Verification ladder: **PASS at 4e4b3505 — full exact-head #645 GREEN, including missing-history regression and canonical Player browser smoke. Docs-only record sync requires one final exact-head check.**
+- E6 Self-review: **PASS — genuine absence and co-located unresolved meeting history are distinct; both have passed exact-head regression evidence in #645**
+- E7 PR/CI: **DRAFT — stacked base correct, #645 implementation-head GREEN; record-sync head must pass CI before Ready for Review**
 - E8 Merge: **NOT AUTHORIZED**
 - E9 Post-merge: **PENDING**
 - E10 Recovery: **PASS — stacked branch can be dropped without touching A62**
@@ -206,8 +206,9 @@ After A62 is explicitly authorized, merged, and post-merge verified, A63 must be
 - **#641 GREEN** on `8a88cd29b4ed692593914c1c60e35f2fa9bd5e06`, including newly added positive wait tests. This is not CI proof for subsequent travel/sleep commits.
 - The A63-only authored contact origin is the dorm courtyard. At Day Three 08:00 the canonical 15-minute Story execution starts only from Actual Presence at that origin; the NPC is placed in an explicit transit location and arrives at the dorm only after the execution completes at 08:15. External relocation prevents automatic arrival.
 - **#643 FAILED** on aa985099 due to a single unused import. **#644 GREEN** on exact 673df776: production audit 0; lint, web/Player/Electron builds, 378/378 Jest suites, 2233 passed, Chromium 11/11, Vite/Electron smoke PASS. It includes the newly added real standalone A63 UI smoke. Link: https://github.com/LeksonSwef28/twinejs/actions/runs/35807154379
-- The self-review correction after #644 distinguishes absent NPCs (truthfully missed) from co-located NPCs with no unique report history (unresolved); the new negative test is not yet proven on a full exact-head CI.
-- The full change record is `93DAYS_A63_CHANGE_RECORD.md`. Outstanding: exact docs-closure CI, PR metadata review and separate A62 integration gate. No merge authorization.
+- The self-review correction after #644 distinguishes absent NPCs (truthfully missed) from co-located NPCs with no unique report history (unresolved); the new negative test is proven by full exact-head #645 GREEN (`4e4b35055daa2c41b414945f6dbd6ddd07665da4`).
+- **#645 GREEN** on exact head `4e4b35055daa2c41b414945f6dbd6ddd07665da4`: audit, lint, web/Player/Electron builds, full Jest, canonical Player Chromium smoke and Vite/Electron startup smoke all PASS. Run: https://github.com/LeksonSwef28/twinejs/actions/runs/35807592037
+- The full change record is `93DAYS_A63_CHANGE_RECORD.md`. Outstanding: docs-only record-sync CI, PR readiness and separate A62 integration gate. No merge authorization.
 
 
 ## 16. Concrete scope closure
