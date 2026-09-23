@@ -1,7 +1,6 @@
 import {NarrativeProject} from '../project';
 import {create93DaysFirsthandSocialRepairProject} from './93-days-firsthand-social-repair';
 import {rumorSocialEchoIds} from './93-days-rumor-social-echo';
-import {arrivalCorridorIds} from './93-days-arrival-corridor';
 import {dayOneNarrativeIds} from './93-days-day-one-day-two';
 import {phoneSocialLoopIds} from './93-days-phone-social-loop';
 
