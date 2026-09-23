@@ -51,6 +51,13 @@ A60–A62 already model the Day Two phone invitation and meeting, a Day Three NP
 4. **PENDING:** Re-run the complete Branch Check on the new **A63 integration head**: production audit, lint, web/standalone Player/Electron builds, Jest, canonical Player Chromium smoke, and Vite/Electron startup smoke. Prior #646 does not certify the integrated head.
 5. **PENDING:** Verify exact new head, PR #36 stable base, no conflicts and full CI GREEN before requesting a **fresh separate A63 `мердж`**. Do not merge A63 using A62's authorization. Then verify the exact post-merge stable SHA.
 
+## Stable-baseline diff audit
+
+- Stable A62 base: `45367571e7208457d3278b43b26043b282957b92` with full post-merge #647 GREEN.
+- Integration commit: `f86c481ee620ee195b69bc138357003334e3b4e9` with **first parent = exact A62 stable** and second parent = old standalone A63 head `33880d4c759f07b7b8c7d05e0b14882e02e79484`. The feature ref advanced without force.
+- PR #36 retargeted to `93-days-editor`; GitHub compare after retarget: **ahead 34 / behind 0, 14 changed files**, all within A63 application, authored content, tests and A63/roadmap docs. The verified A62 tree is inherited, not replayed as a duplicate change.
+- This audit note is a documentation-only commit made *after* the stable-base PR retarget, intentionally triggering a fresh full Branch Check on the exact final integration head. This is **not A63 merge permission**.
+
 ## Recovery
 
 Drop/revert additive A63 content, time adapter, Player integrations, tests and docs; A62 artifact v1/schema v3 and older save formats remain unchanged. A62 is stable; A63 still requires its own fresh merge authorization and exact-head CI.
