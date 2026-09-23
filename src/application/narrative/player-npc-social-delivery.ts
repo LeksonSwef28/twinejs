@@ -154,7 +154,7 @@ export function deliverA63NpcSocialDueWork(
 		if (choices.length > 1) {
 			throw new Error('A63 report must select exactly one history-consistent Move.');
 		}
-		if (choices.length === 0) {
+		if (!everyoneAtAuthoredLocation) {
 			const missed = consumeNarrativeStoryWork(current, reportWorkId, {
 				decision: 'miss'
 			});
@@ -163,6 +163,12 @@ export function deliverA63NpcSocialDueWork(
 			}
 			current = missed.project;
 			handledWorkIds.push(work.id);
+			continue;
+		}
+		// Present NPCs without a uniquely eligible history Move do not imply a
+		// missed physical encounter. Leave the due work unhandled for explicit
+		// resolution instead of fabricating a Story-work miss.
+		if (choices.length === 0) {
 			continue;
 		}
 
