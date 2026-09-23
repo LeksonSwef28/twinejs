@@ -6,7 +6,9 @@ Risk: **MEDIUM**
 Stable source SHA: `9531bc4a9c1d919fe30e034060232b18cba2cb30`  
 Feature branch: `feature/a61-rumor-social-echo`  
 PR: **#34**  
-Implementation evidence head: `930be316fca8622d22b790393fba4de0db059171`
+Implementation evidence head: `930be316fca8622d22b790393fba4de0db059171`  
+Closure PR head: `e59f40ecde52bcada54e2b75fc6429d195a0dee6` — Branch Check #627 GREEN  
+Merged stable SHA: `44ade5dcbcb53e814cac131db383daeddb18b01f`
 
 ## Problem / requirement
 
@@ -206,13 +208,13 @@ A future need for authored initial interpersonal relationships is a separate con
 - E4 S1 rumor provenance: **PASS — #620 / #626 GREEN**
 - E5 S2 source trust: **PASS — #624 / #626 GREEN**
 - E6 S3 Player echo + persistence: **PASS — #624 / #625 / #626 GREEN**
-- E7 Self-review / implementation CI: **PASS — #626 GREEN**
-- E8 Merge: **PENDING — requires a new explicit user message “мердж” immediately before merge**
-- E9 Post-merge: **PENDING**
+- E7 Self-review / implementation CI: **PASS — #626 implementation; #627 exact final closure GREEN**
+- E8 Merge: **PASS — separate explicit “мердж”, SHA-locked PR #34 merge**
+- E9 Post-merge: **PASS — exact stable merge SHA verified and Jest / Playwright / ESLint / Prettify on merged commit GREEN**
 - E10 Recovery: **PASS**
 
 ## Current conclusion
 
 A61 proves a concrete, provenance-preserving social echo with explainable source-trust scoring and a later Player-visible consequence while keeping runtime ownership singular.
 
-Implementation is verified. The remaining pre-review step is docs-only closure exact-head CI. Merge is not authorized by prior messages and remains separately gated by a new explicit user “мердж”.
+A61 is DONE / STABLE. #627 passed on its exact final PR head; PR #34 merged as `44ade5dcbcb53e814cac131db383daeddb18b01f` after fresh explicit authorization. The merge commit matched the stable branch head exactly, and all four separate post-merge Jest / Playwright / ESLint / Prettify workflows passed. No second cognition engine or save/artifact/schema changes were introduced. A62 continues in a separately gated feature branch; the A61 merge authorization does not apply to A62.
