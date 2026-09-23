@@ -41,6 +41,14 @@ A60–A62 already model the Day Two phone invitation and meeting, a Day Three NP
 - The A62 raw Move API's independent day/time admission limitation is unchanged; the normal Player presentation handles day/location gating.
 - Exact implementation-head #645 passed and stacked-base review is clean. Sync PR #36 description and mark ready for review only after the subsequent docs-only exact-head check. **Merge is not authorized** without a separate immediate user instruction for each PR. Post-merge stable verification remains pending.
 
+## Post-A62 integration acceptance checklist
+
+1. Obtain a fresh, separate A62 merge authorization; verify PR #35 exact-head CI, mergeability and unchanged stable base immediately before merging it.
+2. Verify the resulting stable SHA and its post-merge workflow checks. Do not infer post-merge CI from the PR branch checks.
+3. Move A63 onto that **exact** stable SHA using rebase/rebase-equivalent integration without carrying duplicated A62 changes. Verify PR #36's base, mergeability and its new head independently.
+4. Re-run the complete Branch Check on the **post-A62 A63 integration head** (not merely the previous stacked head): production audit, lint, web/standalone Player/Electron builds, Jest, canonical Player Chromium smoke, Vite and Electron startup smoke.
+5. Confirm the six contact-history/trust paths, true physical absence versus unknown meeting history, 08:00–08:15 authored transit, wait/travel/sleep boundaries and one-shot save/restore remain green. Only then request a **fresh separate A63 merge authorization**, followed by stable post-merge verification.
+
 ## Recovery
 
 Drop/revert additive A63 content, time adapter, Player integrations, tests and docs; A62 artifact v1/schema v3 and older save formats remain unchanged. Do not merge A63 directly into stable before A62's separately authorized merge and post-merge verification.
