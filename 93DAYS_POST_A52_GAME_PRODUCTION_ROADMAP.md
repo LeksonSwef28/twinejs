@@ -250,7 +250,7 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 
 ### A62 — Firsthand Social Repair & Day Four Follow-up
 
-**Status:** **IMPLEMENTATION VERIFIED / PR #35 DRAFT** — exact implementation `4702b211692a52575fc5a0e69a6ab84ca64d7520` passed **Branch Check #634 GREEN** (375/375 Jest suites; 2217 passed; Chromium 10/10; audit 0; builds and Vite/Electron smoke PASS). Feature `feature/a62-firsthand-social-repair`, based on A61 stable `44ade5dcbcb53e814cac131db383daeddb18b01f`. Contract: `93DAYS_A62_FIRSTHAND_SOCIAL_REPAIR_CONTRACT.md`. Change record: `93DAYS_A62_CHANGE_RECORD.md`. Docs-closure exact-head CI still required before review; no merge authorization is implied.
+**Status:** **DONE / STABLE** — PR #35 merged on 2026-09-23 as exact stable `45367571e7208457d3278b43b26043b282957b92` after **#639 GREEN** on feature head `fbff032730199e46fd5ff69737ac71ea321190be` (375/375 Jest suites, 2217 passed, Chromium 10/10). Post-merge **Branch Check #647 GREEN** on exact stable `45367571e7208457d3278b43b26043b282957b92`; the stable tree matches the original A62 head. Contract: `93DAYS_A62_FIRSTHAND_SOCIAL_REPAIR_CONTRACT.md`; change record: `93DAYS_A62_CHANGE_RECORD.md`.
 
 **Goal:** extend A61 so the player's social story is not settled solely by another person's report. Let the player meet the listener in person, make one version-consistent direct statement or decline to discuss the report, then experience a different follow-up on Day Four.
 
@@ -261,3 +261,21 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 - S3 — separate location/day-scoped Day Four follow-ups for having spoken or walked away, with Player save/restore and exact-head integration/CI proof.
 
 **Exit proof:** at least three Day Two histories plus a cautious A61 source-trust variant yield a deterministic direct-answer choice; the original source stays identifiable; one Day Four consequence survives runtime-only save/restore. New A62 content extends the A61 builder without modifying older A61 artifacts or requiring any schema or save-format changes.
+
+
+### A63 — Player-Time NPC Social Delivery
+
+**Status:** **READY FOR REVIEW / POST-A62 INTEGRATION CI PENDING** — PR #36 `feature/a63-player-npc-social-delivery` is being integrated onto stable `45367571e7208457d3278b43b26043b282957b92` after A62 post-merge **#647 GREEN**. The old stacked A63 exact head `33880d4c759f07b7b8c7d05e0b14882e02e79484` passed **#646 GREEN** (full audit, lint, Jest, web/Player/Electron builds, Chromium 11/11, Vite/Electron smoke). Integration-head full CI must pass anew before any separately authorized A63 merge. Contract: `93DAYS_A63_PLAYER_NPC_SOCIAL_DELIVERY_CONTRACT.md`; change record: `93DAYS_A63_CHANGE_RECORD.md`.
+
+**Original gap / opt-in closure:** non-A63 Player wait/travel/sleep keep their original declarative behavior. The A63 project adds one 08:00 authored NPC courtyard walk, explicit 15-minute transit and an 08:15 report at genuine dormitory Actual Presence. A63 Player wait/travel/sleep deliver this chain at the exact due moments through canonical Story/Move/NPC APIs; the old-project E0 negative regression remains intact.
+
+**Goal:** introduce one exact-time, deterministic, reusable application orchestration path for explicitly authored NPC-only scheduled Story work. It must segment long Player time actions at due moments, compose existing Story/Move/NPC decision APIs, preserve real Actual Presence and source provenance, and reach the A61/A62 Player-visible social consequence without a second clock, rumor queue or hidden RNG.
+
+**Verification slices:**
+
+- S1 — exact due-moment segmented Player time orchestration and trace contract;
+- S2 — concrete A61 report delivery only when contact + listener share real Actual Presence;
+- S3 — trust-sensitive assessment through the existing ReactionCandidateSet, no duplicated cognition logic;
+- S4 — wait / travel / sleep equivalence, save/restore no-replay and standalone Player smoke.
+
+**Scope boundary:** no new persistence queue, schema/artifact bump, schedule→presence projection or broad autonomous ReactionCandidate execution. A63's contact walk is explicitly authored and opt-in, not a general NPC pathfinder. Self-review also distinguishes a genuinely missed physical encounter from a co-located encounter with unresolved meeting history. A62 is now stable; post-integration exact-head A63 CI and independent A63 merge authorization remain outstanding.

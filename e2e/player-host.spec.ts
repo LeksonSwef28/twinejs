@@ -14,7 +14,16 @@ import {
 } from '../src/domain/narrative/content/93-days-arrival-corridor';
 import {create93DaysDayOneDayTwoProject} from '../src/domain/narrative/content/93-days-day-one-day-two';
 import {create93DaysEverydaySystemsProject} from '../src/domain/narrative/content/93-days-everyday-systems';
-import {create93DaysPhoneSocialLoopProject} from '../src/domain/narrative/content/93-days-phone-social-loop';
+import {create93DaysPhoneSocialLoopProject, phoneSocialLoopIds} from '../src/domain/narrative/content/93-days-phone-social-loop';
+import {create93DaysPlayerNpcSocialDeliveryProject} from '../src/domain/narrative/content/93-days-player-npc-social-delivery';
+import {dayOneNarrativeIds} from '../src/domain/narrative/content/93-days-day-one-day-two';
+import {materializeNarrativePlayerSession, replaceNarrativePlayerSessionProject} from '../src/application/narrative/player-runtime';
+import {bootstrapNarrativePlayerWorldStart} from '../src/application/narrative/player-world-start';
+import {executeNarrativePlayerWait} from '../src/application/narrative/player-wait';
+import {executeNarrativePlayerStoryWork} from '../src/application/narrative/player-story-work';
+import {executeNarrativePlayerAction} from '../src/application/narrative/player-action';
+import {createNarrativePlayerSave} from '../src/application/narrative/player-save';
+import {setNarrativeCharacterActualLocation} from '../src/application/narrative/living-simulation';
 import {createNarrativeProject} from '../src/domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../src/domain/narrative/templates/93-days';
 import {narrativePlayerDevelopmentHandoffKey} from '../src/player/artifact-source';
@@ -803,4 +812,120 @@ test('renders Actual Presence and applies a canonical Move in the standalone pla
 	await expect(page.getByRole('status')).toContainText('Катя отвечает');
 	await expect(greeting).toHaveCount(0);
 	await expect(page.getByRole('heading', {name: 'Автовокзал'})).toBeVisible();
+});
+
+
+test('A63 standalone Player delivers authored NPC arrival, rumor and firsthand reply', async ({page}) => {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysPlayerNpcSocialDeliveryProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error('A63 standalone fixture must compile: ' +
+			JSON.stringify(compiled.diagnostics));
+	}
+	const materialized = materializeNarrativePlayerSession(compiled.artifact);
+	if (materialized.status !== 'ready') {
+		throw new Error(materialized.summary);
+	}
+	const worldStart = bootstrapNarrativePlayerWorldStart(materialized.session);
+	if (worldStart.status === 'rejected') {
+		throw new Error(worldStart.summary);
+	}
+	// Construct a Day Three browser fixture through canonical Player actions,
+	// retaining the runtime-only save projection and compiled authored truth.
+	let session = worldStart.session;
+	const smsAbsolute = 1440 + 10 * 60 + 30;
+	const currentAbsolute = (session.currentProject.simulation.day - 1) * 1440 +
+		session.currentProject.simulation.minuteOfDay;
+	const smsTime = executeNarrativePlayerWait(session, smsAbsolute - currentAbsolute);
+	if (smsTime.status !== 'applied') {
+		throw new Error('A63 browser fixture could not reach the Day Two SMS.');
+	}
+	const sms = executeNarrativePlayerStoryWork(
+		smsTime.session,
+		'story-node:' + phoneSocialLoopIds.story.incomingSms,
+		'execute',
+		arrivalCorridorIds.characters.player
+	);
+	if (sms.status !== 'applied') {
+		throw new Error('A63 browser fixture could not open SMS.');
+	}
+	const decline = executeNarrativePlayerAction(
+		sms.session,
+		phoneSocialLoopIds.moves.decline,
+		arrivalCorridorIds.characters.player
+	);
+	if (decline.status !== 'applied') {
+		throw new Error('A63 browser fixture could not decline the meeting.');
+	}
+	session = decline.session;
+	const listenerId = arrivalCorridorIds.characters.dormDuty;
+	const contactId = dayOneNarrativeIds.characters.localContact;
+	const linked = replaceNarrativePlayerSessionProject(session, {
+		...session.currentProject,
+		relationships: [
+			...session.currentProject.relationships.filter(item =>
+				item.fromCharacterId !== listenerId || item.toCharacterId !== contactId
+			),
+			{
+				fromCharacterId: listenerId,
+				toCharacterId: contactId,
+				values: {trust: 0.65}
+			}
+		]
+	});
+	if (linked.status !== 'updated') {
+		throw new Error('A63 browser fixture could not set source trust.');
+	}
+	const playerAtDorm = replaceNarrativePlayerSessionProject(
+		linked.session,
+		setNarrativeCharacterActualLocation(
+			linked.session.currentProject,
+			arrivalCorridorIds.characters.player,
+			arrivalCorridorIds.locations.studentDormitory
+		)
+	);
+	if (playerAtDorm.status !== 'updated') {
+		throw new Error('A63 browser fixture could not locate the Player.');
+	}
+	const beforeArrivalAbsolute = 2 * 1440 + 7 * 60 + 59;
+	const fromAbsolute = (playerAtDorm.session.currentProject.simulation.day - 1) *
+		1440 + playerAtDorm.session.currentProject.simulation.minuteOfDay;
+	const advanced = executeNarrativePlayerWait(
+		playerAtDorm.session, beforeArrivalAbsolute - fromAbsolute
+	);
+	if (advanced.status !== 'applied') {
+		throw new Error('A63 browser fixture could not reach Day Three 07:59.');
+	}
+	compiled.artifact.initialRuntime = createNarrativePlayerSave(advanced.session).runtime;
+	await page.route('**/player.html', async route => {
+		const response = await route.fetch();
+		const template = await response.text();
+		await route.fulfill({
+			response,
+			body: embedNarrativeRuntimeArtifactInPlayerHtml(
+				template, compiled.artifact
+			)
+		});
+	});
+	await page.goto('http://localhost:5173/player.html');
+	await expect(page.locator('[data-player-status="ready"]')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 3');
+	await expect(page.locator('.narrative-player__clock')).toContainText('07:59');
+	const echo = page.getByRole('button', {name: /^Поздороваться с дежурной/});
+	await expect(echo).toHaveCount(0);
+	await page.getByRole('button', {name: 'Подождать 15 минут'}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('08:14');
+	await expect(echo).toHaveCount(0);
+	await page.getByRole('button', {name: 'Подождать 5 минут'}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('08:19');
+	await expect(echo).toBeEnabled();
+	await echo.click();
+	const answer = page.getByRole('button', {
+		name: /Подтвердить, что предупредил об отказе заранее/
+	});
+	await expect(answer).toBeEnabled();
+	await answer.click();
+	await expect(answer).toHaveCount(0);
+	await expect(page.locator('[data-player-status="ready"]')).toBeVisible();
 });

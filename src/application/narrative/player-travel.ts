@@ -3,6 +3,8 @@ import {
 	replaceNarrativePlayerSessionProject
 } from './player-runtime';
 import {executeNarrativeTravel, NarrativeTravelRejectionReason} from './travel';
+import {deliverA63NpcSocialDueWork} from './player-npc-social-delivery';
+import {playerNpcSocialDeliveryProjectId} from '../../domain/narrative/content/93-days-player-npc-social-delivery';
 
 export type NarrativePlayerTravelExecutionResult =
 	| {
@@ -36,7 +38,10 @@ export function executeNarrativePlayerTravel(
 	const travelled = executeNarrativeTravel(
 		session.currentProject,
 		routeId,
-		playerCharacterId
+		playerCharacterId,
+		session.currentProject.projectId === playerNpcSocialDeliveryProjectId
+			? deliverA63NpcSocialDueWork
+			: undefined
 	);
 	if (travelled.status === 'rejected') {
 		return {
