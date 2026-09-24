@@ -1,0 +1,79 @@
+name: 93 Days Branch Check
+
+on:
+  push:
+    branches: [93-days-editor]
+  pull_request:
+    branches: [93-days-editor]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          cache: npm
+          node-version: 22.12.0
+      - name: Install dependencies
+        run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=moderate
+      - name: Lint
+        run: npm run lint
+      - name: Build web application
+        run: npm run build:web
+      - name: Build standalone player host
+        run: npm run build:player
+      - name: Build Electron main process
+        run: npm run build:electron-main
+      - name: Run test suite
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:coverage -- --maxWorkers=2 2>&1 | tee jest-ci.log
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 93-days-test-diagnostics
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            jest-ci.log
+            coverage/
+      - name: Install canonical player smoke browser
+        run: npx playwright install --with-deps chromium
+      - name: Smoke canonical player host
+        run: npx playwright test e2e/player-host.spec.ts --project=chromium --reporter=line
+      - name: Smoke-start Vite
+        shell: bash
+        run: |
+          npm run start -- --host 127.0.0.1 > /tmp/93-days-vite.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:5173/ > /tmp/93-days-home.html; then
+              echo "Vite responded successfully."
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/93-days-vite.log
+          exit 1
+      - name: Smoke-start Electron
+        shell: bash
+        run: |
+          xvfb-run -a npm run start:electron:boot -- --no-sandbox > /tmp/93-days-electron.log 2>&1 &
+          ELECTRON_PID=$!
+          sleep 12
+          if kill -0 "$ELECTRON_PID" 2>/dev/null; then
+            echo "Electron stayed alive for the smoke window."
+            kill "$ELECTRON_PID" || true
+            wait "$ELECTRON_PID" || true
+            exit 0
+          fi
+          echo "Electron exited before the smoke window finished."
+          cat /tmp/93-days-electron.log
+          exit 1
