@@ -8,6 +8,9 @@ PR: **#36** — `feature/a63-player-npc-social-delivery`
 Integration base: `93-days-editor` @ `45367571e7208457d3278b43b26043b282957b92` — A62 post-merge Branch Check #647 GREEN  
 Date: **2026-09-23**
 
+> **FINAL STATUS (2026-09-28): DONE / STABLE.** This section supersedes all pending merge/CI statements retained below as a historical pre-integration record. The final integration head `b297bda66ab585fc5701cc57640da19747c0673c` passed [#648 GREEN](https://github.com/LeksonSwef28/twinejs/actions/runs/35809211155). [PR #36](https://github.com/LeksonSwef28/twinejs/pull/36) merged with the separately authorized expected head into `93-days-editor` as `8967fdf8ea327b5355a29175171cc7b233065645`; full post-merge [#649 GREEN](https://github.com/LeksonSwef28/twinejs/actions/runs/35943776363), as did separate Jest/Playwright/ESLint/Prettify workflows. The merged tree exactly matches the tested feature head. A63 has no remaining merge gate. Follow-up authoring/export and cold-start Day 1–4 Player verification belong to the **proposed** post-A63 gate, not to unfinished A63.
+
+
 ## Requirement
 
 A60–A62 already model the Day Two phone invitation and meeting, a Day Three NPC report with source provenance, trust-sensitive assessment, Player-visible A61 social echo and optional A62 firsthand response. Formerly the NPC report and assessment required direct test-only invocation. A63 must deliver this explicit social work through ordinary canonical Player time actions without a second simulation clock, an unbounded rumor scheduler or schedule-derived Actual Presence.
