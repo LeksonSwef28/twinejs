@@ -41,16 +41,19 @@ Existing code already owns:
 - isolated Preview laboratory with fork / resolve;
 - A52 compile and canonical Player handoff.
 
-### Reproduced tooling gaps
+### Rejected audit hypothesis
 
-**A65-GAP-01 — canonical entity editor is implemented but not mounted.**
+**A65-H01 — canonical entity editor is implemented but not mounted — REJECTED.**
 
-`CanonicalEntityPanel` and `character/update` already exist, but `NarrativeWorkspace` does not render the panel. An author can create an NPC but cannot reach the existing edit UI from the normal workspace.
+The first shallow audit saw `CanonicalEntityPanel` as a reusable component but missed its transitive mount. Browser evidence then exposed two copies after an attempted direct mount. A deeper call-site check proved that `ProjectIdentityPanel` already renders `CanonicalEntityPanel` on the normal Story route.
 
-Owner: **tooling/presentation**.  
-Fix: mount the existing panel in STORY; no new entity model.
+Evidence FOR the original hypothesis: direct `NarrativeWorkspace` JSX had no `CanonicalEntityPanel`.  
+Evidence AGAINST / decisive: `NarrativeWorkspace -> ProjectIdentityPanel -> CanonicalEntityPanel` already exists on stable.  
+Action: the duplicate mount and its temporary accessibility workaround were reverted exactly to stable. The pilot now reuses the existing editor through its real owner.
 
-**A65-GAP-02 — a new Story node cannot be promoted from draft through UI.**
+### Reproduced tooling gap
+
+**A65-GAP-01 — a new Story node cannot be promoted from draft through UI.**
 
 `story/addDraftNode` correctly creates `activationState: draft`. Canonical Player actions only expose Story nodes whose effective state is `available` or `active`. `StoryMetadataPanel` edits title/type/participants/runtime policy but currently has no authored activation-state field.
 
@@ -80,7 +83,7 @@ No pilot test data is committed into the A63 content builder.
 
 A65 is done when:
 
-- the two reproduced authoring gaps are closed at their existing owners;
+- the one reproduced authoring gap is closed at its existing owner and the rejected mount hypothesis is documented;
 - one browser pilot creates and edits the NPC and scene through normal UI;
 - two alternative Moves are authored without direct runtime/session mutation;
 - Story Brain explains the pilot Moves;
@@ -94,3 +97,12 @@ A65 is done when:
 ## Deferred to A66
 
 Usability observations that do not block this pilot, especially fast arbitrary day/time navigation, layout/search polish and Windows-machine-specific workflow friction, belong to A66 after A65 evidence is complete.
+
+
+## Verification trail in progress
+
+- **#660 FAIL**: builds/lint passed; one axe failure exposed duplicate landmark semantics after the mistaken direct canonical-editor mount.
+- **#661 FAIL**: builds/lint passed; the attempted role-only accessibility workaround did not remove the native `section` landmark.
+- **#662 FAIL**: Jest became GREEN after changing the temporary container semantics, then Chromium reached the pilot and failed on an intentionally over-broad NPC text locator.
+- **#663 FAIL**: Jest remained GREEN; Chromium progressed to the canonical editor and proved there were two editor instances. This evidence rejected A65-H01 and identified the pre-existing `ProjectIdentityPanel -> CanonicalEntityPanel` mount.
+- Duplicate mount and temporary canonical-panel semantic changes are reverted to exact stable. Final pilot verification is pending on the corrected ownership path.
