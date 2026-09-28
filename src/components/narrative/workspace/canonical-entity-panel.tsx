@@ -121,7 +121,7 @@ export const CanonicalEntityPanel: React.FC = () => {
 	}
 
 	return (
-		<section
+		<div
 			className="narrative-workspace__move-editor"
 			role="group"
 			aria-label="Canonical entity metadata"
@@ -189,6 +189,6 @@ export const CanonicalEntityPanel: React.FC = () => {
 					<button type="submit">Сохранить metadata</button>
 				</form>
 			)}
-		</section>
+		</div>
 	);
 };
