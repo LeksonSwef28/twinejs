@@ -1,6 +1,6 @@
 # 93 Days — A64 Use Case Gatebook
 
-Status: **Gate 1 evidence in progress**
+Status: **Gate 1 implementation verified; final exact-head CI pending**
 Base: `93-days-editor@8967fdf8ea327b5355a29175171cc7b233065645`
 Date: **2026-09-28**
 
@@ -46,7 +46,7 @@ This gatebook separates authoring/tooling acceptance from gameplay acceptance. A
 - compiler/export/handoff ownership: PASS;
 - fresh editor project selection of A63 content: GAP CONFIRMED on stable base.
 
-**A64 status:** BLOCKED until S3 proves the desired cold artifact independently and S4 assigns the minimal bootstrap/content-selection owner.
+**A64 status:** PASS in implementation. S3 proved the existing A63 artifact is cold-playable; S4 adds an explicit safe production starter in the real Editor/Export path. Existing authored projects are never auto-replaced.
 
 ## TW-UC-004 — Player reaches Day Two from a cold Day One start
 
@@ -60,7 +60,7 @@ This gatebook separates authoring/tooling acceptance from gameplay acceptance. A
 
 **Expected result:** canonical, distinguishable Story/runtime histories with no direct test-only executor calls after browser boot.
 
-**A64 status:** NEEDS COLD BROWSER ACCEPTANCE.
+**A64 status:** PASS — #651 cold Chromium path starts at Day One and reaches Day Two through only rendered Player controls.
 
 ## TW-UC-005 — NPC executes the A63 08:00/08:15 social work
 
@@ -74,7 +74,7 @@ This gatebook separates authoring/tooling acceptance from gameplay acceptance. A
 
 **Expected result:** one explainable occurrence; no fabricated Knowledge; no duplicate on repeated wait or save/restore.
 
-**A64 status:** PASS at A63 narrow integration/browser level; MUST remain green inside cold acceptance.
+**A64 status:** PASS — narrow A63 regressions remain covered and #651 crossed the real 08:00/08:15 delivery inside the cold continuous browser path.
 
 ## TW-UC-006 — Player answers personally or leaves the rumor unanswered
 
@@ -88,7 +88,7 @@ This gatebook separates authoring/tooling acceptance from gameplay acceptance. A
 
 **Expected result:** observable Day Four difference caused by the actual Day Three Player choice.
 
-**A64 status:** A62/A63 lower-level evidence exists; cold browser Day Four proof PENDING.
+**A64 status:** PASS for the direct-answer branch — #651 reaches and consumes the answered Day Four follow-up. The silence alternative remains covered by the existing narrower A62 integration regression.
 
 ## TW-UC-007 — Save / close / continue inside the four-day path
 
@@ -98,7 +98,7 @@ This gatebook separates authoring/tooling acceptance from gameplay acceptance. A
 
 **Expected result:** same authored artifact identity, restored runtime only, no duplicated report/Move/Story-work effect.
 
-**A64 status:** generic Player Save/Continue PASS from A59; four-day acceptance PENDING.
+**A64 status:** PASS — #651 saves the progressed Day Three session, reloads the immutable cold artifact, continues from runtime save state, then reaches Day Four without replaying the social work.
 
 ## Gate 1 decision table
 
@@ -107,12 +107,12 @@ This gatebook separates authoring/tooling acceptance from gameplay acceptance. A
 | One canonical authored Narrative Project | PASS |
 | Compiler compiles the selected project, not a hidden builder | PASS |
 | Player consumes the compiled artifact | PASS |
-| Fresh Editor automatically contains A63 production content | **FAIL / reproduced architectural gap** |
-| Cold Day One -> Day Four canonical Player branch | PENDING S3 |
-| A63 exact-time NPC delivery | PASS narrow / regression required |
-| Day Four direct-answer vs silence consequence | PENDING cold browser proof |
-| Save/Continue through the continuous branch | PENDING cold browser proof |
-| New runtime semantics justified | **NO — prohibited until a runtime defect is reproduced** |
+| Fresh Editor can explicitly select A63 production content without overwriting authored work | **PASS — S4 production starter** |
+| Cold Day One -> Day Four canonical Player branch | **PASS — #651 Chromium** |
+| A63 exact-time NPC delivery | **PASS — narrow regressions + #651 cold path** |
+| Day Four direct-answer vs silence consequence | **PASS — direct branch cold; silence narrow integration** |
+| Save/Continue through the continuous branch | **PASS — #651** |
+| New runtime semantics justified | **NO — S3 proved none are needed** |
 
 ## Gate rule
 
@@ -120,3 +120,9 @@ S3 starts from the A63 builder directly to answer one question first: **can the 
 
 - If YES, the S4 change is tooling/bootstrap/content selection only.
 - If NO, the failing step is reduced to the smallest reproduction and assigned to its actual owner before implementation.
+
+## Gate 1 verification trail
+
+- #651 GREEN on `005a4fbb6c221d8797e23fa2e554efa96fbdd620`: untouched cold A63 artifact, 378/378 Jest suites, 2234 passed, Chromium 12/12, Vite/Electron smoke PASS.
+- #656 FAIL on `70896cc7397baa04ae965af51b4ccef0f9892d08`: exactly one component-test mock omitted the new starter context method; real route bootstrap regression passed and production build/lint were green.
+- Mock corrected without production changes. Final exact-head Branch Check is required before Ready for Review.
