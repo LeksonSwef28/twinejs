@@ -2,12 +2,17 @@ import * as React from 'react';
 import {
 	serializeNarrativeRuntimeArtifact
 } from '../../../application/narrative/export-compiler';
+import {
+	create93DaysProductionProjectForCurrentHost,
+	narrativeProjectCanLoad93DaysProductionStarter
+} from '../../../application/narrative/production-project-bootstrap';
 import {storyBrainNavigationForFinding} from '../../../application/narrative/story-brain-diagnostic-navigation';
 import {
 	NarrativePreparedExportDiagnostic,
 	prepareNarrativeStoryExport
 } from '../../../application/narrative/export-story-adapter';
 import {storyCanvasViewportForNode} from '../../../domain/narrative/workspace-navigation';
+import {playerNpcSocialDeliveryProjectId} from '../../../domain/narrative/content/93-days-player-npc-social-delivery';
 import {narrativeRuntimeProofFilenameExtension} from '../../../application/narrative/runtime-proof';
 import {storyFileName} from '../../../electron/shared';
 import {launchNarrativePlayerDevelopment} from '../../../player/development-handoff';
@@ -49,7 +54,12 @@ function diagnosticKind(diagnostic: NarrativePreparedExportDiagnostic) {
 }
 
 export const NarrativeExportPanel: React.FC = () => {
-	const {project, execute} = useNarrativeProject();
+	const {
+		project,
+		execute,
+		replaceProjectFromStarter,
+		recovery
+	} = useNarrativeProject();
 	const {stories} = useUndoableStoriesContext();
 	const {publishNarrativeProject, publishNarrativeProof} = useNarrativePublishing();
 	const [operationError, setOperationError] = React.useState<string>();
@@ -71,6 +81,11 @@ export const NarrativeExportPanel: React.FC = () => {
 	const advisoryCount = diagnostics.filter(
 		diagnostic => diagnostic.disposition === 'advisory'
 	).length;
+	const isA63ProductionProject =
+		project.projectId === playerNpcSocialDeliveryProjectId;
+	const canLoadA63ProductionStarter =
+		!recovery &&
+		narrativeProjectCanLoad93DaysProductionStarter(project);
 
 	function resetOperationFeedback() {
 		setOperationError(undefined);
@@ -126,6 +141,27 @@ export const NarrativeExportPanel: React.FC = () => {
 				project.editor.storyCanvas?.viewport.zoom
 			)
 		});
+	}
+
+	function loadA63ProductionStarter() {
+		if (!canLoadA63ProductionStarter) {
+			return;
+		}
+		resetOperationFeedback();
+		try {
+			replaceProjectFromStarter(
+				create93DaysProductionProjectForCurrentHost(project)
+			);
+			setOperationStatus(
+				'A63 production project загружен в текущий host Story.'
+			);
+		} catch (error) {
+			setOperationError(
+				error instanceof Error
+					? error.message
+					: 'Не удалось загрузить A63 production project.'
+			);
+		}
 	}
 
 	function launchPlayer() {
@@ -255,6 +291,35 @@ export const NarrativeExportPanel: React.FC = () => {
 				 runtime. Обычный HTML ниже остаётся legacy Story Format export. Compiler
 				 proof остаётся validation-only shell A52 и не исполняет mechanics.
 			</p>
+
+			<p className="narrative-workspace__export-note">
+				Production target:{' '}
+				<strong>
+					{isA63ProductionProject
+						? `A63 · ${playerNpcSocialDeliveryProjectId}`
+						: `текущий projectId · ${project.projectId}`}
+				</strong>
+			</p>
+			{!isA63ProductionProject && (
+				<div className="narrative-workspace__export-actions">
+					{canLoadA63ProductionStarter ? (
+						<div className="narrative-workspace__export-action-buttons">
+							<button
+								type="button"
+								onClick={loadA63ProductionStarter}
+							>
+								Загрузить A63 production project
+							</button>
+						</div>
+					) : (
+						<small>
+							Автозагрузка A63 отключена: текущий проект уже содержит
+							 authored data или требует recovery. Данные автора не
+							 перезаписываются автоматически.
+						</small>
+					)}
+				</div>
+			)}
 
 			{!hostStory && (
 				<p className="narrative-workspace__export-error" role="alert">

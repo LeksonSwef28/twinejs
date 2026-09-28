@@ -11,12 +11,14 @@ import {prepareNarrativeRuntimeProof} from '../../../../application/narrative/ru
 import {fakeAppInfo} from '../../../../test-util';
 import {createNarrativeProject} from '../../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../../domain/narrative/templates/93-days';
+import {playerNpcSocialDeliveryProjectId} from '../../../../domain/narrative/content/93-days-player-npc-social-delivery';
 import {launchNarrativePlayerDevelopment} from '../../../../player/development-handoff';
 import {Story} from '../../../../store/stories';
 import {saveHtml, saveJson} from '../../../../util/save-file';
 import {NarrativeExportPanel} from '../narrative-export-panel';
 
 const mockExecute = jest.fn();
+const mockReplaceProjectFromStarter = jest.fn();
 const mockPublishNarrativeProject = jest.fn();
 const mockPublishNarrativeProof = jest.fn();
 let mockProject = createProject();
@@ -25,7 +27,9 @@ let mockHostStory = hostStory();
 jest.mock('../../../../store/narrative-project', () => ({
 	useNarrativeProject: () => ({
 		project: mockProject,
-		execute: mockExecute
+		execute: mockExecute,
+		replaceProjectFromStarter: mockReplaceProjectFromStarter,
+		recovery: undefined
 	})
 }));
 
@@ -117,6 +121,7 @@ describe('<NarrativeExportPanel>', () => {
 		mockProject = createProject();
 		mockHostStory = hostStory();
 		mockExecute.mockClear();
+		mockReplaceProjectFromStarter.mockReset();
 		mockPublishNarrativeProject.mockReset();
 		mockPublishNarrativeProof.mockReset();
 		launchPlayerMock.mockReset();
@@ -164,6 +169,37 @@ describe('<NarrativeExportPanel>', () => {
 			'Файл подготовлен: Canonical Export Story.html'
 		);
 		expect(mockExecute).not.toHaveBeenCalled();
+	});
+
+	test('loads the explicit A63 production starter into a blank host project', () => {
+		render(<NarrativeExportPanel />);
+
+		fireEvent.click(
+			screen.getByRole('button', {name: 'Загрузить A63 production project'})
+		);
+
+		expect(mockReplaceProjectFromStarter).toHaveBeenCalledTimes(1);
+		const [production] = mockReplaceProjectFromStarter.mock.calls[0];
+		expect(production.projectId).toBe(playerNpcSocialDeliveryProjectId);
+		expect(production.hostStoryId).toBe(mockProject.hostStoryId);
+		expect(production.name).toBe(mockProject.name);
+		expect(production.storyNodes.length).toBeGreaterThan(0);
+		expect(screen.getByRole('status')).toHaveTextContent(
+			'A63 production project загружен'
+		);
+		expect(mockExecute).not.toHaveBeenCalled();
+	});
+
+	test('never offers automatic A63 replacement over authored content', () => {
+		mockProject.locations = [{id: 'author-location', name: 'Авторская локация'}];
+		render(<NarrativeExportPanel />);
+
+		expect(
+			screen.queryByRole('button', {name: 'Загрузить A63 production project'})
+		).not.toBeInTheDocument();
+		expect(screen.getByText(/Данные автора не перезаписываются автоматически/))
+			.toBeInTheDocument();
+		expect(mockReplaceProjectFromStarter).not.toHaveBeenCalled();
 	});
 
 	test('launches the canonical player from the compiled artifact without editor commands', () => {

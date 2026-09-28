@@ -26,6 +26,11 @@ export interface NarrativeProjectContextValue {
 	project: NarrativeProject;
 	execute(command: EditorAuthoringCommand): void;
 	/**
+	 * Replaces the entire project from an explicit starter/import boundary and
+	 * clears authoring history. Callers must guard against destructive replacement.
+	 */
+	replaceProjectFromStarter(project: NarrativeProject): void;
+	/**
 	 * Replaces only the current runtime aggregate from an explicit simulation
 	 * operation. Runtime updates are persisted, but never become authoring undo
 	 * entries and never update authored `updatedAt` by themselves.
@@ -119,6 +124,22 @@ export const NarrativeProjectProvider: React.FC<
 			editorAuthoringReducer(current, {type: 'execute', command})
 		);
 	}, []);
+	const replaceProjectFromStarter = React.useCallback(
+		(project: NarrativeProject) => {
+			if (recovery) {
+				throw new Error(
+					'Cannot replace the Narrative Project while recovery is unresolved.'
+				);
+			}
+			if (project.hostStoryId !== props.hostStoryId) {
+				throw new Error(
+					'Starter Narrative Project must target the current host Story.'
+				);
+			}
+			setState({past: [], present: project, future: []});
+		},
+		[props.hostStoryId, recovery]
+	);
 	const replaceRuntimeProject = React.useCallback((project: NarrativeProject) => {
 		setState(current => replaceRuntimeProjectInHistory(current, project));
 	}, []);
@@ -153,6 +174,7 @@ export const NarrativeProjectProvider: React.FC<
 		() => ({
 			project: state.present,
 			execute,
+			replaceProjectFromStarter,
 			replaceRuntimeProject,
 			undo,
 			redo,
@@ -166,6 +188,7 @@ export const NarrativeProjectProvider: React.FC<
 		[
 			state,
 			execute,
+			replaceProjectFromStarter,
 			replaceRuntimeProject,
 			undo,
 			redo,
