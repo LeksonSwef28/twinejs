@@ -929,3 +929,125 @@ test('A63 standalone Player delivers authored NPC arrival, rumor and firsthand r
 	await expect(answer).toHaveCount(0);
 	await expect(page.locator('[data-player-status="ready"]')).toBeVisible();
 });
+
+test('A64 cold A63 artifact reaches Day Four through only Player UI', async ({page}) => {
+	const compiled = compileNarrativeRuntimeArtifact(
+		create93DaysPlayerNpcSocialDeliveryProject()
+	);
+	if (compiled.status !== 'compiled') {
+		throw new Error(
+			'A64 cold A63 fixture must compile: ' +
+				JSON.stringify(compiled.diagnostics)
+		);
+	}
+	expect(
+		compiled.artifact.initialRuntime.simulation.actualLocationByCharacter
+	).toEqual({});
+	await page.setViewportSize({width: 390, height: 844});
+
+	await page.route('**/player.html', async route => {
+		const response = await route.fetch();
+		const template = await response.text();
+		await route.fulfill({
+			response,
+			body: embedNarrativeRuntimeArtifactInPlayerHtml(
+				template,
+				compiled.artifact
+			)
+		});
+	});
+	await page.goto('http://localhost:5173/player.html');
+
+	// Cold Day One: use only rendered Player controls and authored routes.
+	await expect(page.locator('[data-player-status="ready"]')).toBeVisible();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 1');
+	await expect(page.locator('.narrative-player__clock')).toContainText('06:00');
+	await expect(
+		page.getByRole('heading', {name: 'Междугородний автовокзал'})
+	).toBeVisible();
+
+	await page
+		.getByRole('button', {name: /Выйти на транспортную площадь/})
+		.click();
+	await page.getByRole('button', {name: /Дойти до остановки/}).click();
+	await page
+		.getByRole('button', {name: /Ехать автобусом в сторону общежития/})
+		.click();
+	await expect(
+		page.getByRole('heading', {name: 'Студенческое общежитие'})
+	).toBeVisible();
+
+	await page.getByRole('button', {name: 'Подождать до 22:30'}).click();
+	await page.getByRole('button', {name: /Лечь спать до утра/}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 2');
+	await expect(page.locator('.narrative-player__clock')).toContainText('07:30');
+
+	// Reach the authored Day Two SMS without mutating the runtime fixture.
+	for (let index = 0; index < 12; index += 1) {
+		await page.getByRole('button', {name: 'Подождать 15 минут'}).click();
+	}
+	await expect(page.locator('.narrative-player__clock')).toContainText('10:30');
+	const phone = page
+		.getByRole('heading', {name: 'Телефон'})
+		.locator('xpath=ancestor::section[1]');
+	await phone.getByRole('button', {name: 'Открыть SMS'}).click();
+	await phone
+		.getByRole('button', {name: /Ответить, что сегодня не получится/})
+		.click();
+	await expect(page.getByRole('status')).toContainText('Отказаться без конфликта');
+
+	await page.getByRole('button', {name: 'Подождать до 22:30'}).click();
+	await page.getByRole('button', {name: /Лечь спать до утра/}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 3');
+	await expect(page.locator('.narrative-player__clock')).toContainText('07:30');
+
+	// A63 must autonomously deliver the authored 08:00 walk and 08:15 report.
+	const cautiousEcho = page.getByRole('button', {
+		name: /Ответить на осторожное приветствие дежурной/
+	});
+	await expect(cautiousEcho).toHaveCount(0);
+	for (let index = 0; index < 3; index += 1) {
+		await page.getByRole('button', {name: 'Подождать 15 минут'}).click();
+	}
+	await expect(page.locator('.narrative-player__clock')).toContainText('08:15');
+	await expect(cautiousEcho).toBeEnabled();
+	await cautiousEcho.click();
+
+	const directAnswer = page.getByRole('button', {
+		name: /Объяснить, что заранее отменил встречу/
+	});
+	await expect(directAnswer).toBeEnabled();
+	await directAnswer.click();
+	await expect(page.getByRole('status')).toContainText(
+		'заранее отменённой встрече'
+	);
+	await expect(directAnswer).toHaveCount(0);
+
+	// Save the progressed Day Three session, reload the immutable artifact,
+	// then restore only runtime state through the normal Continue control.
+	await page.getByRole('button', {name: 'Сохранить'}).click();
+	await expect(page.getByRole('status')).toContainText('Игра сохранена');
+	await page.reload();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 1');
+	await page.getByRole('button', {name: 'Продолжить'}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 3');
+	await expect(page.locator('.narrative-player__clock')).toContainText('08:15');
+	await expect(cautiousEcho).toHaveCount(0);
+	await expect(directAnswer).toHaveCount(0);
+
+	await page.getByRole('button', {name: 'Подождать до 22:30'}).click();
+	await page.getByRole('button', {name: /Лечь спать до утра/}).click();
+	await expect(page.locator('.narrative-player__clock')).toContainText('День 4');
+	await expect(page.locator('.narrative-player__clock')).toContainText('07:30');
+
+	const dayFour = page.getByRole('button', {
+		name: /Заметить, как дежурная встречает тебя после разговора/
+	});
+	await expect(dayFour).toBeEnabled();
+	await dayFour.click();
+	await expect(page.getByRole('status')).toContainText(
+		'помнит ваш личный разговор'
+	);
+	await expect(dayFour).toHaveCount(0);
+});
+
