@@ -1123,8 +1123,10 @@ test('A65 authoring pilot creates, previews, exports and plays one branching sce
 		storyLibrary.getByText(npcDraftName, {exact: true})
 	).toBeVisible();
 
-	const canonical = page.getByLabel('Canonical entity metadata');
-	await canonical.getByLabel('Canonical entity').selectOption({label: npcDraftName});
+	const canonical = page.getByLabel('Canonical entity metadata', {exact: true});
+	await canonical
+		.getByLabel('Canonical entity', {exact: true})
+		.selectOption({label: npcDraftName});
 	await canonical.getByLabel('Основное имя canonical entity').fill(npcName);
 	await canonical
 		.getByLabel('Cognition tier canonical character')
