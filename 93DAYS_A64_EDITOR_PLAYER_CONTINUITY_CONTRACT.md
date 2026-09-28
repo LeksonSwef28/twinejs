@@ -45,7 +45,7 @@ The exact owners above are identified. No code change is required to establish t
 
 ### A64-S2 — Use Case Gate
 
-Status: **IN PROGRESS**
+Status: **PASS**
 
 The use cases and expected observable outcomes live in `93DAYS_A64_USE_CASE_GATEBOOK.md`.
 
@@ -53,7 +53,9 @@ No new core code is allowed in this slice.
 
 ### A64-S3 — cold Player acceptance
 
-Add a real browser regression that:
+Status: **PASS — Branch Check #651 GREEN on exact cold-proof head `005a4fbb6c221d8797e23fa2e554efa96fbdd620`.**
+
+The real browser regression:
 
 1. compiles the exact A63 builder from authored Day One state;
 2. boots the normal standalone Player without replacing `initialRuntime` with a later save;
@@ -64,13 +66,24 @@ Add a real browser regression that:
 7. proves Save/Continue in the continuous path;
 8. adds narrow negative/alternative tests where a single full browser branch would be wasteful.
 
-A failure must be classified before any fix: **content / presentation / tooling-bootstrap / runtime**.
+Result: the untouched A63 artifact completed the cold Day One → Day Four path through rendered Player UI, including A63 08:00/08:15 delivery, direct Day Three answer, Save/Reload/Continue and the answered Day Four follow-up. #651 passed 378/378 Jest suites (2234 passed, 23 skipped, 42 todo) and Chromium 12/12. Therefore no compiler/runtime/Player semantic fix is justified.
 
 ### A64-S4 — minimal reproduced-gap fix
 
-Only a failure reproduced by S3 may authorize implementation.
+Status: **IMPLEMENTED / FINAL EXACT-HEAD CI PENDING**
 
-If the failure is editor bootstrap/content selection, the fix belongs at that boundary. If the A63 builder already plays cold Day One → Day Four in the Player, no Player/runtime rewrite is allowed.
+S3 proved the A63 builder already plays cold Day One → Day Four. The remaining reproduced gap is therefore editor/tooling bootstrap only.
+
+Implemented boundary:
+
+- an explicit A63 production starter derived from the existing `create93DaysPlayerNpcSocialDeliveryProject()`;
+- current Twine host Story id is rebound while A63 project identity is preserved;
+- starter replacement is available only for a genuinely blank authored project and never silently overwrites existing author data or recovery state;
+- full-project starter replacement is explicit and clears incompatible authoring history rather than abusing runtime replacement;
+- Export UI shows the current production target and exposes the starter action only when safe;
+- route-level regression proves the real `NarrativeProjectProvider -> Export panel` path.
+
+Branch Check #656 on `70896cc7397baa04ae965af51b4ccef0f9892d08` passed audit, lint and all builds, but failed one isolated component test because its mocked `useNarrativeProject()` omitted the newly added `replaceProjectFromStarter` method. The real route-level bootstrap test passed. The mock was corrected in test code only; no production semantics changed.
 
 ## 5. Acceptance branches
 
@@ -115,3 +128,9 @@ A64 is DONE only when:
 ## 8. Recovery
 
 A64 acceptance tests/docs are additive. Any bootstrap/UI adapter introduced by S4 must be independently revertible without migrating authored persistence, changing artifact v1, or removing the stable A63 runtime.
+
+## 9. Verification history
+
+- **#651 GREEN** — cold A63 Day One → Day Four proof before S4; full gate including Chromium 12/12.
+- **#656 FAIL (test harness only)** — one mocked Export-panel test omitted the new context method; audit/lint/builds and all other Jest suites passed.
+- **Final exact-head gate:** pending on the post-RCA/docs head. Merge remains unauthorized.
