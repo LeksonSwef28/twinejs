@@ -27,7 +27,9 @@ let mockHostStory = hostStory();
 jest.mock('../../../../store/narrative-project', () => ({
 	useNarrativeProject: () => ({
 		project: mockProject,
-		execute: mockExecute
+		execute: mockExecute,
+		replaceProjectFromStarter: mockReplaceProjectFromStarter,
+		recovery: undefined
 	})
 }));
 
