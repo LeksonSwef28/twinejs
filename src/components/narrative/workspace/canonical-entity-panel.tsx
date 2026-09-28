@@ -121,11 +121,7 @@ export const CanonicalEntityPanel: React.FC = () => {
 	}
 
 	return (
-		<div
-			className="narrative-workspace__move-editor"
-			role="group"
-			aria-label="Canonical entity metadata"
-		>
+		<section className="narrative-workspace__move-editor" aria-label="Canonical entity metadata">
 			<h2>Canonical Entity Metadata</h2>
 			<p>
 				Редактирует каноническую сущность, а не её canvas instance. ID остаётся прежним,
@@ -189,6 +185,6 @@ export const CanonicalEntityPanel: React.FC = () => {
 					<button type="submit">Сохранить metadata</button>
 				</form>
 			)}
-		</div>
+		</section>
 	);
 };
