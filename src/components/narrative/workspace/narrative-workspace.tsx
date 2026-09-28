@@ -12,7 +12,6 @@ import {
 import {NarrativeWorkspaceMode} from '../../../domain/narrative/project';
 import {workspacePanelsForMode} from '../../../domain/narrative/workspace-navigation';
 import {useNarrativeProject} from '../../../store/narrative-project';
-import {CanonicalEntityPanel} from './canonical-entity-panel';
 import {CrossWorkspaceNavigator} from './cross-workspace-navigator';
 import {InteractionTemplatePanel} from './interaction-template-panel';
 import {MemorySaliencePanel} from './memory-salience-panel';
@@ -330,7 +329,6 @@ export const NarrativeWorkspace: React.FC = () => {
 
 			{visiblePanels.showStory && (
 				<>
-					<CanonicalEntityPanel />
 					<StoryMetadataPanel />
 					<StoryBrainPanel />
 					<NarrativeMovePanel />
