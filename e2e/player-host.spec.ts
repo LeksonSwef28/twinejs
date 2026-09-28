@@ -1114,9 +1114,14 @@ test('A65 authoring pilot creates, previews, exports and plays one branching sce
 
 	// Create the NPC in Story Project Library, then use the already-existing
 	// canonical metadata editor that A65 makes reachable from the workspace.
+	const storyLibrary = page.getByRole('complementary', {
+		name: 'Project Library истории'
+	});
 	await page.getByLabel('Имя нового персонажа').fill(npcDraftName);
 	await page.getByRole('button', {name: '+ Персонаж'}).click();
-	await expect(page.getByText(npcDraftName, {exact: true})).toBeVisible();
+	await expect(
+		storyLibrary.getByText(npcDraftName, {exact: true})
+	).toBeVisible();
 
 	const canonical = page.getByLabel('Canonical entity metadata');
 	await canonical.getByLabel('Canonical entity').selectOption({label: npcDraftName});
@@ -1125,7 +1130,7 @@ test('A65 authoring pilot creates, previews, exports and plays one branching sce
 		.getByLabel('Cognition tier canonical character')
 		.selectOption('light');
 	await canonical.getByRole('button', {name: 'Сохранить metadata'}).click();
-	await expect(page.getByText(npcName, {exact: true})).toBeVisible();
+	await expect(storyLibrary.getByText(npcName, {exact: true})).toBeVisible();
 
 	// Author one new dialogue scene.
 	await page.getByLabel('Тип сюжетного блока').selectOption('dialogue');
