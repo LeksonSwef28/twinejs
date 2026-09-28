@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
 	StoryCommunicationChannel,
 	StoryInterruptionPolicy,
+	StoryNodeActivationState,
 	StoryNodeKind,
 	StoryOccurrenceMode
 } from '../../../domain/narrative/story';
@@ -16,6 +17,15 @@ const storyKindLabels: Record<StoryNodeKind, string> = {
 	effect: 'Последствие'
 };
 
+const activationStateLabels: Record<StoryNodeActivationState, string> = {
+	draft: 'Черновик',
+	dormant: 'Спит до authored-активации',
+	available: 'Доступно',
+	active: 'Активно',
+	blocked: 'Заблокировано',
+	completed: 'Завершено'
+};
+
 export const StoryMetadataPanel: React.FC = () => {
 	const {project, execute} = useNarrativeProject();
 	const [nodeId, setNodeId] = React.useState('');
@@ -27,6 +37,8 @@ export const StoryMetadataPanel: React.FC = () => {
 	const [title, setTitle] = React.useState('');
 	const [description, setDescription] = React.useState('');
 	const [kind, setKind] = React.useState<StoryNodeKind>('beat');
+	const [activationState, setActivationState] =
+		React.useState<StoryNodeActivationState>('draft');
 	const [primaryCharacterId, setPrimaryCharacterId] = React.useState('');
 	const [participantIds, setParticipantIds] = React.useState<string[]>([]);
 	const [communicationChannel, setCommunicationChannel] =
@@ -49,6 +61,7 @@ export const StoryMetadataPanel: React.FC = () => {
 		setTitle(node.title);
 		setDescription(node.description ?? '');
 		setKind(node.kind);
+		setActivationState(node.activationState);
 		setPrimaryCharacterId(node.primaryCharacterId ?? '');
 		setParticipantIds(node.participantIds);
 		setCommunicationChannel(node.communication?.channel ?? '');
@@ -85,6 +98,7 @@ export const StoryMetadataPanel: React.FC = () => {
 			type: 'story/updateAuthoring',
 			id: node.id,
 			kind,
+			activationState,
 			title,
 			description,
 			primaryCharacterId: primaryCharacterId || undefined,
@@ -107,6 +121,7 @@ export const StoryMetadataPanel: React.FC = () => {
 			type: 'story/updateAuthoring',
 			id: node.id,
 			kind,
+			activationState,
 			title,
 			description,
 			primaryCharacterId: primaryCharacterId || undefined,
@@ -161,6 +176,24 @@ export const StoryMetadataPanel: React.FC = () => {
 								onChange={event => setKind(event.target.value as StoryNodeKind)}
 							>
 								{Object.entries(storyKindLabels).map(([value, label]) => (
+									<option key={value} value={value}>
+										{label}
+									</option>
+								))}
+							</select>
+						</label>
+						<label>
+							Начальное состояние
+							<select
+								aria-label="Начальное состояние Story node"
+								value={activationState}
+								onChange={event =>
+									setActivationState(
+										event.target.value as StoryNodeActivationState
+									)
+								}
+							>
+								{Object.entries(activationStateLabels).map(([value, label]) => (
 									<option key={value} value={value}>
 										{label}
 									</option>
