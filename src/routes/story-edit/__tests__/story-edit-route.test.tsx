@@ -1,4 +1,4 @@
-import {act, fireEvent, render, screen} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {createMemoryHistory} from 'history';
 import {axe} from 'jest-axe';
 import * as React from 'react';
@@ -32,6 +32,8 @@ const TestStoryEditRoute: React.FC = () => {
 };
 
 describe('<StoryEditRoute>', () => {
+	beforeEach(() => window.localStorage.clear());
+
 	async function renderComponent(
 		story: Story,
 		contexts?: FakeStateProviderProps
@@ -97,6 +99,29 @@ describe('<StoryEditRoute>', () => {
 		expect(screen.getByRole('region', {name: 'Narrative export'})).toBeInTheDocument();
 		expect(screen.getByRole('tab', {name: 'История'})).toBeInTheDocument();
 		expect(screen.getByRole('tab', {name: 'Время и мир'})).toBeInTheDocument();
+	});
+
+	it('loads the A63 production project into a blank editor host', async () => {
+		const story = fakeStory();
+		await renderComponent(story);
+
+		fireEvent.click(screen.getByRole('button', {name: 'Экспорт'}));
+		fireEvent.click(
+			screen.getByRole('button', {name: 'Загрузить A63 production project'})
+		);
+
+		await waitFor(() =>
+			expect(
+				screen.getByText(
+					/A63 · 93-days-player-npc-social-delivery-v1/
+				)
+			).toBeInTheDocument()
+		);
+		expect(screen.getByText('Готово к сборке')).toBeInTheDocument();
+		expect(
+			screen.queryByRole('button', {name: 'Загрузить A63 production project'})
+		).not.toBeInTheDocument();
+		expect(screen.getByRole('button', {name: 'Открыть Player'})).toBeEnabled();
 	});
 
 	it('is accessible', async () => {
