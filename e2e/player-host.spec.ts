@@ -1215,8 +1215,13 @@ test('A65 authoring pilot creates, previews, exports and plays one branching sce
 		.click();
 	await expect(preview.getByText('Move доступен: authored resolver выбрал результат.')).toBeVisible();
 	await preview.getByRole('tab', {name: 'Analysis'}).click();
+	const sandboxChanges = preview
+		.getByRole('heading', {name: 'Sandbox time & changes'})
+		.locator('xpath=ancestor::section[1]');
 	await expect(
-		preview.getByText(/runtime\.storyNodeStateOverrides\.a62-day4-firsthand-followup/)
+		sandboxChanges.getByText(
+			/runtime\.storyNodeStateOverrides\.a62-day4-firsthand-followup/
+		)
 	).toBeVisible();
 
 	await preview.getByLabel('Active scenario').selectOption('preview-main');
@@ -1227,7 +1232,9 @@ test('A65 authoring pilot creates, previews, exports and plays one branching sce
 		.click();
 	await preview.getByRole('tab', {name: 'Analysis'}).click();
 	await expect(
-		preview.getByText(/runtime\.storyNodeStateOverrides\.a62-day4-unanswered-followup/)
+		sandboxChanges.getByText(
+			/runtime\.storyNodeStateOverrides\.a62-day4-unanswered-followup/
+		)
 	).toBeVisible();
 
 	await page.getByRole('button', {name: 'Закрыть Playtest'}).click();
