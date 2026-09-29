@@ -90,10 +90,11 @@ jobs:
         run: |
           $output = npm.cmd run start:electron -- --check 2>&1
           $exitCode = $LASTEXITCODE
-          $output | Write-Output
+          $outputText = $output -join "`n"
+          $outputText | Write-Output
           if ($exitCode -ne 0) {
             exit $exitCode
           }
-          if ($output -notmatch 'NODE_ENV=development') {
+          if ($outputText -notmatch 'NODE_ENV=development') {
             throw 'Portable Electron launcher did not report NODE_ENV=development.'
           }
