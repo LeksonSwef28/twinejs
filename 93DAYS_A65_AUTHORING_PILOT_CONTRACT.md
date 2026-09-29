@@ -99,10 +99,29 @@ A65 is done when:
 Usability observations that do not block this pilot, especially fast arbitrary day/time navigation, layout/search polish and Windows-machine-specific workflow friction, belong to A66 after A65 evidence is complete.
 
 
-## Verification trail in progress
+## Verification trail
 
 - **#660 FAIL**: builds/lint passed; one axe failure exposed duplicate landmark semantics after the mistaken direct canonical-editor mount.
 - **#661 FAIL**: builds/lint passed; the attempted role-only accessibility workaround did not remove the native `section` landmark.
 - **#662 FAIL**: Jest became GREEN after changing the temporary container semantics, then Chromium reached the pilot and failed on an intentionally over-broad NPC text locator.
 - **#663 FAIL**: Jest remained GREEN; Chromium progressed to the canonical editor and proved there were two editor instances. This evidence rejected A65-H01 and identified the pre-existing `ProjectIdentityPanel -> CanonicalEntityPanel` mount.
-- Duplicate mount and temporary canonical-panel semantic changes are reverted to exact stable. Final pilot verification is pending on the corrected ownership path.
+- Duplicate mount and temporary canonical-panel semantic changes were reverted to exact stable before final verification.
+- **#667–#671 FAIL**: each run advanced the same UI pilot to the next concrete blocker; fixes were limited to test-harness scoping, direct persistence verification, Story Brain WHY scoping, Preview change-set verification, and unambiguous Playtest closure. No runtime semantics were added.
+- **#672 GREEN** on exact head `5fcc31287da9a64c2643d84196bc7228bcbc5377`:
+  - production audit: 0 vulnerabilities;
+  - lint: PASS;
+  - web / standalone Player / Electron builds: PASS;
+  - Jest: 379/379 suites, 2239 passed, 23 skipped, 42 todo;
+  - Chromium: 13/13, including the full A65 authoring pilot;
+  - Vite smoke: PASS;
+  - Electron smoke: PASS.
+
+## A65 result
+
+**PASS.** The adapted TwineJS now proves one complete writer-facing path from normal UI authoring to canonical Player execution.
+
+The only production capability added by A65 is explicit authored Story activation-state editing in the existing Story metadata owner. Runtime resolution, artifact schema, save format, Player action rules and A63 production content remain unchanged.
+
+One additional authoring safety correction was made during the pilot: Story runtime policy remains explicit opt-in rather than being silently attached by ordinary metadata editing.
+
+A65 is ready for final exact-head verification after this documentation synchronization, then Ready for Review. Merge remains separately gated by a fresh user message `мердж`.
