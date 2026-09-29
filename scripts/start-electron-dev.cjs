@@ -1,11 +1,19 @@
 'use strict';
 
+const path = require('path');
+
 const checkOnly = process.argv.slice(2).includes('--check');
 
 process.env.NODE_ENV = 'development';
+process.env.TWINE_DEV_PROFILE_ROOT = path.resolve(
+	__dirname,
+	'..',
+	'.twine-dev-profile'
+);
 
 if (checkOnly) {
 	console.log(`NODE_ENV=${process.env.NODE_ENV}`);
+	console.log(`TWINE_DEV_PROFILE_ROOT=${process.env.TWINE_DEV_PROFILE_ROOT}`);
 	process.exit(0);
 }
 
