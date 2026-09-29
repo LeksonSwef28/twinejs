@@ -39,7 +39,7 @@ describe('Electron development launch', () => {
 			}
 		);
 		const profileLine = result.stdout
-			.split(/\\r?\\n/)
+			.split(/\r?\n/)
 			.find(line => line.startsWith('TWINE_DEV_PROFILE_ROOT='));
 		const profileRoot = profileLine?.slice('TWINE_DEV_PROFILE_ROOT='.length);
 
