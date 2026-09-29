@@ -1094,6 +1094,25 @@ async function addA65StoryStateEffect(
 	);
 }
 
+test('A66-S1 direct moment navigation moves only the View Cursor in Story UI', async ({
+	page
+}) => {
+	await createA65AuthoringStory(page);
+
+	const navigator = page.getByLabel('Точный навигатор истории');
+	const viewMoment = page.locator('.narrative-workspace__view-moment');
+	const simulationPlayhead = page.locator('.narrative-workspace__playhead');
+	const initialSimulation = await simulationPlayhead.textContent();
+
+	await navigator.getByLabel('День просмотра').fill('37');
+	await navigator.getByLabel('Время просмотра').fill('18:40');
+	await navigator.getByRole('button', {name: 'Перейти'}).click();
+
+	await expect(viewMoment).toContainText('День 37');
+	await expect(viewMoment).toContainText('18:40');
+	expect(await simulationPlayhead.textContent()).toBe(initialSimulation);
+});
+
 test('A65 authoring pilot creates, previews, exports and plays one branching scene through UI', async ({
 	page
 }) => {
