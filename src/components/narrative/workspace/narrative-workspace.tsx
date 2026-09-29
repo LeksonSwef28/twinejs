@@ -268,6 +268,7 @@ export const NarrativeWorkspace: React.FC = () => {
 						<form
 							className="narrative-workspace__clock-actions"
 							aria-label="Точный навигатор истории"
+							noValidate
 							onSubmit={jumpToMoment}
 						>
 							<label>
