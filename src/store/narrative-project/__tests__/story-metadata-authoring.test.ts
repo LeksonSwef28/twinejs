@@ -58,6 +58,7 @@ describe('story metadata authoring', () => {
 				type: 'story/updateAuthoring',
 				id: 'story-a',
 				kind: 'event',
+				activationState: 'available',
 				title: 'Встреча у библиотеки',
 				description: 'Авторское описание сцены',
 				primaryCharacterId: 'mila',
@@ -75,6 +76,7 @@ describe('story metadata authoring', () => {
 		expect(next.present.storyNodes[0]).toEqual(
 			expect.objectContaining({
 				kind: 'event',
+				activationState: 'available',
 				title: 'Встреча у библиотеки',
 				description: 'Авторское описание сцены',
 				primaryCharacterId: 'mila',
@@ -88,6 +90,7 @@ describe('story metadata authoring', () => {
 				}
 			})
 		);
+		expect(next.present.storyNodes[0].activationState).toBe('available');
 		expect(next.present.storyNodeStateOverrides).toEqual({});
 		expect(next.present.activeStoryExecutions).toEqual([]);
 		expect(next.present.runtimeOccurrences).toEqual([]);
@@ -102,6 +105,7 @@ describe('story metadata authoring', () => {
 				type: 'story/updateAuthoring',
 				id: 'story-a',
 				kind: 'event',
+				activationState: 'available',
 				title: 'Невалидный блок',
 				participantIds: ['missing-character'],
 				runtimePolicy: {durationMinutes: -1}
@@ -115,6 +119,7 @@ describe('story metadata authoring', () => {
 				type: 'story/updateAuthoring',
 				id: 'story-a',
 				kind: 'event',
+				activationState: 'available',
 				title: 'Невалидный канал',
 				participantIds: ['mila'],
 				communication: {channel: 'email'} as never
@@ -128,6 +133,7 @@ describe('story metadata authoring', () => {
 				type: 'story/updateAuthoring',
 				id: 'story-a',
 				kind: 'dialogue',
+				activationState: 'dormant',
 				title: 'Разговор',
 				participantIds: ['mila']
 			}
@@ -135,5 +141,6 @@ describe('story metadata authoring', () => {
 		const undone = narrativeProjectAuthoringReducer(updated, {type: 'undo'});
 		expect(undone.present.storyNodes[0].title).toBe('Черновой блок');
 		expect(undone.present.storyNodes[0].kind).toBe('beat');
+		expect(undone.present.storyNodes[0].activationState).toBe('draft');
 	});
 });

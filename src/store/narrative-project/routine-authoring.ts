@@ -10,6 +10,7 @@ import {RoutineRule} from '../../domain/narrative/schedule';
 import {
 	StoryCommunicationDefinition,
 	storyCommunicationIsValid,
+	StoryNodeActivationState,
 	StoryNodeKind,
 	StoryRuntimePolicyDefinition
 } from '../../domain/narrative/story';
@@ -27,6 +28,7 @@ export interface StoryMetadataAuthoringCommand {
 	type: 'story/updateAuthoring';
 	id: string;
 	kind: StoryNodeKind;
+	activationState: StoryNodeActivationState;
 	title: string;
 	description?: string;
 	primaryCharacterId?: string;
@@ -282,6 +284,7 @@ function applyStoryMetadataCommand(
 				? {
 						...node,
 						kind: command.kind,
+						activationState: command.activationState,
 						title: command.title.trim(),
 						description: command.description?.trim() || undefined,
 						primaryCharacterId: command.primaryCharacterId || undefined,

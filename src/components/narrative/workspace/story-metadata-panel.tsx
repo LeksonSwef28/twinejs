@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
 	StoryCommunicationChannel,
 	StoryInterruptionPolicy,
+	StoryNodeActivationState,
 	StoryNodeKind,
 	StoryOccurrenceMode
 } from '../../../domain/narrative/story';
@@ -16,6 +17,15 @@ const storyKindLabels: Record<StoryNodeKind, string> = {
 	effect: 'Последствие'
 };
 
+const activationStateLabels: Record<StoryNodeActivationState, string> = {
+	draft: 'Черновик',
+	dormant: 'Спит до authored-активации',
+	available: 'Доступно',
+	active: 'Активно',
+	blocked: 'Заблокировано',
+	completed: 'Завершено'
+};
+
 export const StoryMetadataPanel: React.FC = () => {
 	const {project, execute} = useNarrativeProject();
 	const [nodeId, setNodeId] = React.useState('');
@@ -27,10 +37,13 @@ export const StoryMetadataPanel: React.FC = () => {
 	const [title, setTitle] = React.useState('');
 	const [description, setDescription] = React.useState('');
 	const [kind, setKind] = React.useState<StoryNodeKind>('beat');
+	const [activationState, setActivationState] =
+		React.useState<StoryNodeActivationState>('draft');
 	const [primaryCharacterId, setPrimaryCharacterId] = React.useState('');
 	const [participantIds, setParticipantIds] = React.useState<string[]>([]);
 	const [communicationChannel, setCommunicationChannel] =
 		React.useState<'' | StoryCommunicationChannel>('');
+	const [runtimePolicyEnabled, setRuntimePolicyEnabled] = React.useState(false);
 	const [occurrenceMode, setOccurrenceMode] =
 		React.useState<StoryOccurrenceMode>('one-shot');
 	const [durationMinutes, setDurationMinutes] = React.useState('0');
@@ -49,9 +62,11 @@ export const StoryMetadataPanel: React.FC = () => {
 		setTitle(node.title);
 		setDescription(node.description ?? '');
 		setKind(node.kind);
+		setActivationState(node.activationState);
 		setPrimaryCharacterId(node.primaryCharacterId ?? '');
 		setParticipantIds(node.participantIds);
 		setCommunicationChannel(node.communication?.channel ?? '');
+		setRuntimePolicyEnabled(node.runtimePolicy !== undefined);
 		setOccurrenceMode(node.runtimePolicy?.occurrenceMode ?? 'one-shot');
 		setDurationMinutes(String(node.runtimePolicy?.durationMinutes ?? 0));
 		setExpiryEnabled(node.runtimePolicy?.missAfterMinutes !== undefined);
@@ -85,17 +100,20 @@ export const StoryMetadataPanel: React.FC = () => {
 			type: 'story/updateAuthoring',
 			id: node.id,
 			kind,
+			activationState,
 			title,
 			description,
 			primaryCharacterId: primaryCharacterId || undefined,
 			participantIds,
 			communication: communicationChannel ? {channel: communicationChannel} : undefined,
-			runtimePolicy: {
-				occurrenceMode,
-				durationMinutes: duration,
-				missAfterMinutes: expiryEnabled ? missAfter : undefined,
-				interruption
-			}
+			runtimePolicy: runtimePolicyEnabled
+				? {
+						occurrenceMode,
+						durationMinutes: duration,
+						missAfterMinutes: expiryEnabled ? missAfter : undefined,
+						interruption
+					}
+				: undefined
 		});
 	}
 
@@ -103,10 +121,12 @@ export const StoryMetadataPanel: React.FC = () => {
 		if (!node) {
 			return;
 		}
+		setRuntimePolicyEnabled(false);
 		execute({
 			type: 'story/updateAuthoring',
 			id: node.id,
 			kind,
+			activationState,
 			title,
 			description,
 			primaryCharacterId: primaryCharacterId || undefined,
@@ -161,6 +181,24 @@ export const StoryMetadataPanel: React.FC = () => {
 								onChange={event => setKind(event.target.value as StoryNodeKind)}
 							>
 								{Object.entries(storyKindLabels).map(([value, label]) => (
+									<option key={value} value={value}>
+										{label}
+									</option>
+								))}
+							</select>
+						</label>
+						<label>
+							Начальное состояние
+							<select
+								aria-label="Начальное состояние Story node"
+								value={activationState}
+								onChange={event =>
+									setActivationState(
+										event.target.value as StoryNodeActivationState
+									)
+								}
+							>
+								{Object.entries(activationStateLabels).map(([value, label]) => (
 									<option key={value} value={value}>
 										{label}
 									</option>
@@ -233,9 +271,25 @@ export const StoryMetadataPanel: React.FC = () => {
 						<fieldset>
 							<legend>Execution policy</legend>
 							<label>
+								<input
+									type="checkbox"
+									aria-label="Использовать execution policy Story node"
+									checked={runtimePolicyEnabled}
+									onChange={event =>
+										setRuntimePolicyEnabled(event.target.checked)
+									}
+								/>
+								Использовать execution policy
+							</label>
+							<small>
+								Без policy Story остаётся обычным authored choice. Policy нужна
+								 только для точного времени / длительности / lifecycle.
+							</small>
+							<label>
 								Повторяемость
 								<select
 									aria-label="Повторяемость Story node"
+									disabled={!runtimePolicyEnabled}
 									value={occurrenceMode}
 									onChange={event =>
 										setOccurrenceMode(event.target.value as StoryOccurrenceMode)
@@ -249,6 +303,7 @@ export const StoryMetadataPanel: React.FC = () => {
 								Длительность, минут
 								<input
 									aria-label="Длительность Story node"
+									disabled={!runtimePolicyEnabled}
 									type="number"
 									min={0}
 									step={1}
@@ -259,6 +314,7 @@ export const StoryMetadataPanel: React.FC = () => {
 							<label>
 								<input
 									type="checkbox"
+									disabled={!runtimePolicyEnabled}
 									checked={expiryEnabled}
 									onChange={event => setExpiryEnabled(event.target.checked)}
 								/>
@@ -269,6 +325,7 @@ export const StoryMetadataPanel: React.FC = () => {
 									Окно пропуска, минут
 									<input
 										aria-label="Окно пропуска Story node"
+										disabled={!runtimePolicyEnabled}
 										type="number"
 										min={0}
 										step={1}
@@ -281,6 +338,7 @@ export const StoryMetadataPanel: React.FC = () => {
 								Прерывание
 								<select
 									aria-label="Политика прерывания Story node"
+									disabled={!runtimePolicyEnabled}
 									value={interruption}
 									onChange={event =>
 										setInterruption(event.target.value as StoryInterruptionPolicy)
@@ -290,8 +348,12 @@ export const StoryMetadataPanel: React.FC = () => {
 									<option value="locked">Нельзя прервать</option>
 								</select>
 							</label>
-							<button type="button" onClick={resetRuntimePolicy}>
-								Сбросить execution policy к defaults
+							<button
+								type="button"
+								disabled={!runtimePolicyEnabled}
+								onClick={resetRuntimePolicy}
+							>
+								Отключить execution policy
 							</button>
 						</fieldset>
 						<button type="submit">Сохранить Story metadata</button>

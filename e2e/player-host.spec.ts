@@ -1,4 +1,4 @@
-import {expect, test} from '@playwright/test';
+import {expect, Page, test} from '@playwright/test';
 import {
 	compileNarrativeRuntimeArtifact,
 	NarrativeRuntimeArtifactV1,
@@ -1049,5 +1049,216 @@ test('A64 cold A63 artifact reaches Day Four through only Player UI', async ({pa
 		'помнит ваш личный разговор'
 	);
 	await expect(dayFour).toHaveCount(0);
+});
+
+async function createA65AuthoringStory(page: Page) {
+	await page.goto('http://localhost:5173');
+	await page.getByRole('button', {name: 'Skip'}).click();
+	await page.reload();
+	await page.getByRole('tab', {name: 'Story'}).click();
+	await page.getByRole('button', {name: 'New'}).click();
+	await page
+		.getByRole('textbox', {
+			name: 'What should your story be named? You can change this later.'
+		})
+		.fill('A65 Authoring Pilot');
+	await page.getByRole('button', {name: 'Create'}).click();
+	await expect(page.getByText('93 Days · Narrative Editor')).toBeVisible();
+}
+
+async function addA65StoryStateEffect(
+	page: Page,
+	moveLabel: string,
+	storyNodeTitle: string,
+	state: 'available' | 'completed'
+) {
+	const panel = page.getByLabel('Outcome Effects');
+	await panel
+		.getByLabel('Narrative Move для эффекта')
+		.selectOption({label: moveLabel});
+	await panel
+		.getByLabel('Тип Outcome effect')
+		.selectOption('story-node-set-state');
+	await panel
+		.getByLabel('Story node для state effect')
+		.selectOption({label: storyNodeTitle});
+	await panel.getByLabel('Новый Story state').selectOption(state);
+	const effectCount = panel.getByText(/Эффектов в Outcome:/);
+	const beforeText = await effectCount.textContent();
+	const beforeCount = Number(beforeText?.match(/(\d+)$/)?.[1] ?? Number.NaN);
+	expect(Number.isFinite(beforeCount)).toBe(true);
+
+	await panel.getByRole('button', {name: 'Добавить эффект'}).click();
+	await expect(effectCount).toHaveText(
+		`Эффектов в Outcome: ${beforeCount + 1}`
+	);
+}
+
+test('A65 authoring pilot creates, previews, exports and plays one branching scene through UI', async ({
+	page
+}) => {
+	const npcDraftName = 'A65 Пилот NPC';
+	const npcName = 'A65 Пилот NPC · отредактирован';
+	const sceneTitle = 'A65 Пилот · вечерний выбор';
+	const truthMove = 'Спокойно рассказать свою версию';
+	const silenceMove = 'Промолчать и уйти';
+	const answeredDayFour = 'На следующий день: после прямого разговора';
+	const silentDayFour = 'На следующий день: невысказанный ответ';
+
+	await createA65AuthoringStory(page);
+
+	// Start from the same production project that A64 proved in the Player.
+	await page.getByRole('button', {name: 'Экспорт'}).click();
+	await page
+		.getByRole('button', {name: 'Загрузить A63 production project'})
+		.click();
+	await expect(page.getByRole('status')).toContainText(
+		'A63 production project загружен'
+	);
+	await page.getByRole('button', {name: 'Закрыть экспорт'}).click();
+
+	// Create the NPC in Story Project Library, then use the already-existing
+	// canonical metadata editor that A65 makes reachable from the workspace.
+	const storyLibrary = page.getByRole('complementary', {
+		name: 'Project Library истории'
+	});
+	await page.getByLabel('Имя нового персонажа').fill(npcDraftName);
+	await page.getByRole('button', {name: '+ Персонаж'}).click();
+	await expect(
+		storyLibrary.getByText(npcDraftName, {exact: true})
+	).toBeVisible();
+
+	const canonical = page.getByLabel('Canonical entity metadata', {exact: true});
+	await canonical
+		.getByLabel('Canonical entity', {exact: true})
+		.selectOption({label: npcDraftName});
+	await canonical.getByLabel('Основное имя canonical entity').fill(npcName);
+	await canonical
+		.getByLabel('Cognition tier canonical character')
+		.selectOption('light');
+	await canonical.getByRole('button', {name: 'Сохранить metadata'}).click();
+	await expect(storyLibrary.getByText(npcName, {exact: true})).toBeVisible();
+
+	// Author one new dialogue scene.
+	await page.getByLabel('Тип сюжетного блока').selectOption('dialogue');
+	await page.getByLabel('Название сюжетного блока').fill(sceneTitle);
+	await page.getByRole('button', {name: '+ На доску'}).click();
+
+	const metadata = page.getByLabel('Story metadata authoring');
+	await metadata
+		.getByLabel('Сюжетный блок для Story metadata')
+		.selectOption({label: sceneTitle});
+	await expect(metadata.getByLabel('Название Story metadata')).toHaveValue(
+		sceneTitle
+	);
+	await metadata.getByLabel('Начальное состояние Story node').selectOption(
+		'available'
+	);
+	await metadata
+		.getByLabel('Главный персонаж Story metadata')
+		.selectOption({label: 'Неизвестный'});
+	const participants = metadata.getByRole('group', {name: 'Участники'});
+	await participants.getByLabel('Неизвестный').check();
+	await participants.getByLabel(npcName).check();
+	await metadata
+		.getByLabel('Описание Story metadata')
+		.fill(
+			'Небольшая авторская сцена A65: игрок выбирает объяснить ситуацию или уйти без разговора.'
+		);
+	await metadata.getByRole('button', {name: 'Сохранить Story metadata'}).click();
+
+	// Two authored alternatives share one Story node. Each completes the owner
+	// node so resolving either branch makes the sibling alternative disappear.
+	const moves = page.getByLabel('Narrative Moves');
+	await moves
+		.getByLabel('Сюжетный блок Narrative Move')
+		.selectOption({label: sceneTitle});
+	await moves.getByLabel('Актор narrative move').selectOption({label: 'Неизвестный'});
+	await moves.getByLabel('Цель narrative move').selectOption({label: npcName});
+	await moves.getByLabel('Тип narrative move').selectOption('inform');
+	await moves.getByLabel('Текст или смысл narrative move').fill(truthMove);
+	await moves.getByRole('button', {name: '+ Narrative Move'}).click();
+	await expect(moves.getByText(truthMove, {exact: true})).toBeVisible();
+
+	await moves.getByLabel('Тип narrative move').selectOption('leave');
+	await moves.getByLabel('Текст или смысл narrative move').fill(silenceMove);
+	await moves.getByRole('button', {name: '+ Narrative Move'}).click();
+	await expect(moves.getByText(silenceMove, {exact: true})).toBeVisible();
+
+	await addA65StoryStateEffect(page, truthMove, sceneTitle, 'completed');
+	await addA65StoryStateEffect(page, truthMove, answeredDayFour, 'available');
+	await addA65StoryStateEffect(page, silenceMove, sceneTitle, 'completed');
+	await addA65StoryStateEffect(page, silenceMove, silentDayFour, 'available');
+
+	// Story Brain must explain the two author-created Moves before Preview.
+	const brain = page.getByLabel('Story Brain');
+	await brain
+		.getByLabel('Анализировать')
+		.selectOption({label: sceneTitle});
+	const why = brain
+		.getByRole('heading', {name: 'WHY'})
+		.locator('xpath=ancestor::article[1]');
+	await expect(why.getByText(truthMove, {exact: true})).toBeVisible();
+	await expect(why.getByText(silenceMove, {exact: true})).toBeVisible();
+	await expect(
+		why.locator('[data-status="available"]').filter({hasText: 'Доступно'})
+	).toHaveCount(2);
+
+	// Preview both choices in isolated scenarios. The delayed consequence is
+	// visible as a typed Story-state change, while authored source remains intact.
+	await page.getByRole('button', {name: 'Playtest / Debug'}).click();
+	const preview = page.getByLabel('Preview authoring laboratory');
+	await preview.getByRole('button', {name: 'Fork current'}).click();
+	await preview.getByLabel('Move').selectOption({label: truthMove});
+	await preview
+		.getByRole('button', {name: 'Resolve + apply authored'})
+		.click();
+	await expect(preview.getByText('Move доступен: authored resolver выбрал результат.')).toBeVisible();
+	await preview.getByRole('tab', {name: 'Analysis'}).click();
+	const sandboxChanges = preview
+		.getByRole('heading', {name: 'Sandbox time & changes'})
+		.locator('xpath=ancestor::section[1]');
+	await expect(
+		sandboxChanges.getByText(
+			/runtime\.storyNodeStateOverrides\.a62-day4-firsthand-followup/
+		)
+	).toBeVisible();
+
+	await preview.getByLabel('Active scenario').selectOption('preview-main');
+	await preview.getByRole('tab', {name: 'Preview'}).click();
+	await preview.getByLabel('Move').selectOption({label: silenceMove});
+	await preview
+		.getByRole('button', {name: 'Resolve + apply authored'})
+		.click();
+	await preview.getByRole('tab', {name: 'Analysis'}).click();
+	await expect(
+		sandboxChanges.getByText(
+			/runtime\.storyNodeStateOverrides\.a62-day4-unanswered-followup/
+		)
+	).toBeVisible();
+
+	await page
+		.getByRole('button', {name: 'Закрыть Playtest', exact: true})
+		.click();
+	await expect(moves.getByText(truthMove, {exact: true})).toBeVisible();
+	await expect(moves.getByText(silenceMove, {exact: true})).toBeVisible();
+
+	// Compile the same authored project and hand it to the canonical Player.
+	await page.getByRole('button', {name: 'Экспорт'}).click();
+	await expect(page.getByText('Готово к сборке')).toBeVisible();
+	const popupPromise = page.waitForEvent('popup');
+	await page.getByRole('button', {name: 'Открыть Player'}).click();
+	const player = await popupPromise;
+	await player.waitForLoadState();
+	await expect(player.locator('[data-player-status="ready"]')).toBeVisible();
+
+	const truthAction = player.getByRole('button', {name: new RegExp(truthMove)});
+	const silenceAction = player.getByRole('button', {name: new RegExp(silenceMove)});
+	await expect(truthAction).toBeEnabled();
+	await expect(silenceAction).toBeEnabled();
+	await truthAction.click();
+
+	await expect(truthAction).toHaveCount(0);
+	await expect(silenceAction).toHaveCount(0);
 });
 
