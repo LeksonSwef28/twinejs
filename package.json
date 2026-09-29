@@ -125,7 +125,7 @@
 		"lint": "eslint src",
 		"start": "vite",
 		"start:docs": "cd docs/en && mdbook serve",
-		"start:electron": "NODE_ENV=development npm-run-all --serial clean --parallel build:web build:electron-main --serial start:electron:boot",
+		"start:electron": "node scripts/start-electron-dev.cjs",
 		"start:electron:boot": "electron electron-build/main/src/electron/main-process/index.js",
 		"test": "jest --watch",
 		"test:coverage": "jest --coverage",
