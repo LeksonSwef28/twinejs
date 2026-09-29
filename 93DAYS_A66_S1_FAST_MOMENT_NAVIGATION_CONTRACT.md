@@ -74,6 +74,48 @@ The first test commit is intentionally expected to be RED because these controls
 - Windows Electron launch repair;
 - save/artifact/schema changes.
 
-## Verification gate
+## Verification trail
 
-A66-S1 can move from RED to implementation only after the failing test is confirmed to fail for the missing direct-navigation UI rather than for unrelated infrastructure.
+- **#675 EXPECTED RED** on test-only head `34e8307749272e23de9e1c5261da07e4956ddd3a`:
+  - install / audit / lint / web / Player / Electron builds: PASS;
+  - Jest: 378 suites PASS, 1 suite FAIL;
+  - 2239 tests PASS, 2 new A66-S1 tests FAIL;
+  - exact failure: direct-navigation labels did not exist. This proved the RED belonged to the missing UI contract.
+- **#676 FAIL** on first production implementation:
+  - all pre-Jest gates PASS;
+  - both A66-S1 tests still failed;
+  - RCA split into fixture reality (View Cursor starts at 06:00, not 00:00) and native browser constraint validation preventing the product `role="alert"`.
+- **#678 FAIL** after fixing fixture assumptions and validation ownership:
+  - invalid-path test became GREEN;
+  - one valid-path test remained RED;
+  - exact product cause: the time parser regex incorrectly matched a literal backslash instead of digits.
+- **#679 GREEN** on exact production head `01f04c3b6b27b3e752751f7a31f60c334ef17ae4`:
+  - audit: 0 vulnerabilities;
+  - lint / web / Player / Electron builds: PASS;
+  - Jest: 379/379 suites, 2241 passed, 23 skipped, 42 todo;
+  - Chromium: 13/13;
+  - Vite smoke: PASS;
+  - Electron smoke: PASS.
+- **#680 GREEN** on browser-proof head `d06ca9b0a24ed4229f704c5d15ffcf50d7302595`:
+  - production code unchanged from #679;
+  - Jest remains 379/379 suites, 2241 passed;
+  - Chromium increases to **14/14**;
+  - browser proof `A66-S1 direct moment navigation moves only the View Cursor in Story UI`: PASS;
+  - Vite smoke: PASS;
+  - Electron smoke: PASS.
+
+## Result
+
+**PASS pending documentation-only exact-head recheck.**
+
+A66-S1 now provides direct writer navigation to a valid project moment through the existing Story timebar:
+
+`Day + HH:MM -> editor/selectMoment`
+
+The route-level and browser-level proofs both preserve the architectural invariant:
+
+`View Cursor != Simulation Playhead`
+
+No runtime fast-forward, simulation mutation, clock replacement, save/schema change, or second time system was introduced.
+
+A final exact-head Branch Check is required after this documentation synchronization. Merge remains separately gated.
