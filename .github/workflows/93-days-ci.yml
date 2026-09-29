@@ -77,3 +77,23 @@ jobs:
           echo "Electron exited before the smoke window finished."
           cat /tmp/93-days-electron.log
           exit 1
+
+  windows-electron-launch-contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.12.0
+      - name: Verify Windows Electron development launch contract
+        shell: pwsh
+        run: |
+          $output = npm.cmd run start:electron -- --check 2>&1
+          $exitCode = $LASTEXITCODE
+          $output | Write-Output
+          if ($exitCode -ne 0) {
+            exit $exitCode
+          }
+          if ($output -notmatch 'NODE_ENV=development') {
+            throw 'Portable Electron launcher did not report NODE_ENV=development.'
+          }
