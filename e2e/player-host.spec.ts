@@ -1083,10 +1083,15 @@ async function addA65StoryStateEffect(
 		.getByLabel('Story node для state effect')
 		.selectOption({label: storyNodeTitle});
 	await panel.getByLabel('Новый Story state').selectOption(state);
+	const effectCount = panel.getByText(/Эффектов в Outcome:/);
+	const beforeText = await effectCount.textContent();
+	const beforeCount = Number(beforeText?.match(/(\d+)$/)?.[1] ?? Number.NaN);
+	expect(Number.isFinite(beforeCount)).toBe(true);
+
 	await panel.getByRole('button', {name: 'Добавить эффект'}).click();
-	await expect(
-		panel.getByText(/Эффект добавлен к выбранному Outcome/)
-	).toBeVisible();
+	await expect(effectCount).toHaveText(
+		`Эффектов в Outcome: ${beforeCount + 1}`
+	);
 }
 
 test('A65 authoring pilot creates, previews, exports and plays one branching scene through UI', async ({
