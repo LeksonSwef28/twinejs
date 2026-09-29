@@ -1237,7 +1237,9 @@ test('A65 authoring pilot creates, previews, exports and plays one branching sce
 		)
 	).toBeVisible();
 
-	await page.getByRole('button', {name: 'Закрыть Playtest'}).click();
+	await page
+		.getByRole('button', {name: 'Закрыть Playtest', exact: true})
+		.click();
 	await expect(moves.getByText(truthMove, {exact: true})).toBeVisible();
 	await expect(moves.getByText(silenceMove, {exact: true})).toBeVisible();
 
