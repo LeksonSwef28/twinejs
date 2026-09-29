@@ -1195,9 +1195,14 @@ test('A65 authoring pilot creates, previews, exports and plays one branching sce
 	await brain
 		.getByLabel('Анализировать')
 		.selectOption({label: sceneTitle});
-	await expect(brain.getByText(truthMove, {exact: true})).toBeVisible();
-	await expect(brain.getByText(silenceMove, {exact: true})).toBeVisible();
-	await expect(brain.getByText('Доступно')).toHaveCount(2);
+	const why = brain
+		.getByRole('heading', {name: 'WHY'})
+		.locator('xpath=ancestor::article[1]');
+	await expect(why.getByText(truthMove, {exact: true})).toBeVisible();
+	await expect(why.getByText(silenceMove, {exact: true})).toBeVisible();
+	await expect(
+		why.locator('[data-status="available"]').filter({hasText: 'Доступно'})
+	).toHaveCount(2);
 
 	// Preview both choices in isolated scenarios. The delayed consequence is
 	// visible as a typed Story-state change, while authored source remains intact.
