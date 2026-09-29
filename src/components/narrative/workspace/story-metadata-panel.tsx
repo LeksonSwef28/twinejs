@@ -43,6 +43,7 @@ export const StoryMetadataPanel: React.FC = () => {
 	const [participantIds, setParticipantIds] = React.useState<string[]>([]);
 	const [communicationChannel, setCommunicationChannel] =
 		React.useState<'' | StoryCommunicationChannel>('');
+	const [runtimePolicyEnabled, setRuntimePolicyEnabled] = React.useState(false);
 	const [occurrenceMode, setOccurrenceMode] =
 		React.useState<StoryOccurrenceMode>('one-shot');
 	const [durationMinutes, setDurationMinutes] = React.useState('0');
@@ -65,6 +66,7 @@ export const StoryMetadataPanel: React.FC = () => {
 		setPrimaryCharacterId(node.primaryCharacterId ?? '');
 		setParticipantIds(node.participantIds);
 		setCommunicationChannel(node.communication?.channel ?? '');
+		setRuntimePolicyEnabled(node.runtimePolicy !== undefined);
 		setOccurrenceMode(node.runtimePolicy?.occurrenceMode ?? 'one-shot');
 		setDurationMinutes(String(node.runtimePolicy?.durationMinutes ?? 0));
 		setExpiryEnabled(node.runtimePolicy?.missAfterMinutes !== undefined);
@@ -104,12 +106,14 @@ export const StoryMetadataPanel: React.FC = () => {
 			primaryCharacterId: primaryCharacterId || undefined,
 			participantIds,
 			communication: communicationChannel ? {channel: communicationChannel} : undefined,
-			runtimePolicy: {
-				occurrenceMode,
-				durationMinutes: duration,
-				missAfterMinutes: expiryEnabled ? missAfter : undefined,
-				interruption
-			}
+			runtimePolicy: runtimePolicyEnabled
+				? {
+						occurrenceMode,
+						durationMinutes: duration,
+						missAfterMinutes: expiryEnabled ? missAfter : undefined,
+						interruption
+					}
+				: undefined
 		});
 	}
 
@@ -117,6 +121,7 @@ export const StoryMetadataPanel: React.FC = () => {
 		if (!node) {
 			return;
 		}
+		setRuntimePolicyEnabled(false);
 		execute({
 			type: 'story/updateAuthoring',
 			id: node.id,
@@ -266,9 +271,25 @@ export const StoryMetadataPanel: React.FC = () => {
 						<fieldset>
 							<legend>Execution policy</legend>
 							<label>
+								<input
+									type="checkbox"
+									aria-label="Использовать execution policy Story node"
+									checked={runtimePolicyEnabled}
+									onChange={event =>
+										setRuntimePolicyEnabled(event.target.checked)
+									}
+								/>
+								Использовать execution policy
+							</label>
+							<small>
+								Без policy Story остаётся обычным authored choice. Policy нужна
+								 только для точного времени / длительности / lifecycle.
+							</small>
+							<label>
 								Повторяемость
 								<select
 									aria-label="Повторяемость Story node"
+									disabled={!runtimePolicyEnabled}
 									value={occurrenceMode}
 									onChange={event =>
 										setOccurrenceMode(event.target.value as StoryOccurrenceMode)
@@ -282,6 +303,7 @@ export const StoryMetadataPanel: React.FC = () => {
 								Длительность, минут
 								<input
 									aria-label="Длительность Story node"
+									disabled={!runtimePolicyEnabled}
 									type="number"
 									min={0}
 									step={1}
@@ -292,6 +314,7 @@ export const StoryMetadataPanel: React.FC = () => {
 							<label>
 								<input
 									type="checkbox"
+									disabled={!runtimePolicyEnabled}
 									checked={expiryEnabled}
 									onChange={event => setExpiryEnabled(event.target.checked)}
 								/>
@@ -302,6 +325,7 @@ export const StoryMetadataPanel: React.FC = () => {
 									Окно пропуска, минут
 									<input
 										aria-label="Окно пропуска Story node"
+										disabled={!runtimePolicyEnabled}
 										type="number"
 										min={0}
 										step={1}
@@ -314,6 +338,7 @@ export const StoryMetadataPanel: React.FC = () => {
 								Прерывание
 								<select
 									aria-label="Политика прерывания Story node"
+									disabled={!runtimePolicyEnabled}
 									value={interruption}
 									onChange={event =>
 										setInterruption(event.target.value as StoryInterruptionPolicy)
@@ -323,8 +348,12 @@ export const StoryMetadataPanel: React.FC = () => {
 									<option value="locked">Нельзя прервать</option>
 								</select>
 							</label>
-							<button type="button" onClick={resetRuntimePolicy}>
-								Сбросить execution policy к defaults
+							<button
+								type="button"
+								disabled={!runtimePolicyEnabled}
+								onClick={resetRuntimePolicy}
+							>
+								Отключить execution policy
 							</button>
 						</fieldset>
 						<button type="submit">Сохранить Story metadata</button>
