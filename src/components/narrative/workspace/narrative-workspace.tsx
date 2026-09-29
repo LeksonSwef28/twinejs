@@ -107,7 +107,7 @@ export const NarrativeWorkspace: React.FC = () => {
 	function jumpToMoment(event: React.FormEvent) {
 		event.preventDefault();
 		const day = Number(directDay);
-		const timeMatch = /^(\\d{2}):(\\d{2})$/.exec(directTime);
+		const timeMatch = /^(\d{2}):(\d{2})$/.exec(directTime);
 		const hour = timeMatch ? Number(timeMatch[1]) : Number.NaN;
 		const minute = timeMatch ? Number(timeMatch[2]) : Number.NaN;
 
