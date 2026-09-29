@@ -70,13 +70,13 @@ The first test commit is expected to be RED because stable still contains the PO
 
 Extend the 93 Days Branch Check with a small `windows-electron-launch-contract` job on `windows-latest`.
 
-The Windows job must run the public command itself:
+The Windows job must run the public npm script through the Windows executable:
 
-`npm run start:electron -- --check`
+`npm.cmd run start:electron -- --check`
 
 and succeed without installing dependencies or launching Electron.
 
-This proves npm can parse and execute the documented command on Windows and that the wrapper sets the development environment.
+This proves ordinary PowerShell/cmd invocation can execute the documented script without POSIX environment syntax and that the wrapper sets the development environment.
 
 ## Safety
 
@@ -93,6 +93,40 @@ The `--check` mode must never launch Electron or touch story data.
 - Windows UI automation;
 - PowerShell execution-policy changes for `npm.ps1`.
 
-## Verification gate
+## Verification trail
 
-A66-S2 moves from RED to implementation only after the expected test failure is confirmed to come from the missing portable wrapper contract.
+- **#684 EXPECTED RED** on test-only head `67f653fcc75150ffa05c793649459ee14a19af58`:
+  - install / audit / lint / web / Player / Electron builds: PASS;
+  - Jest: 379 existing suites PASS, only the new A66-S2 suite FAIL;
+  - exact failures:
+    - `start:electron` still contained POSIX `NODE_ENV=development ...`;
+    - `scripts/start-electron-dev.cjs` did not exist.
+- Production implementation introduced:
+  - `scripts/start-electron-dev.cjs`;
+  - `start:electron -> node scripts/start-electron-dev.cjs`;
+  - development environment ownership inside Node;
+  - the original clean -> parallel builds -> Electron boot order;
+  - dependency-free, side-effect-free `--check` mode.
+- **#688 Windows job FAIL / harness RCA**:
+  - Windows itself successfully executed `npm.cmd run start:electron -- --check`;
+  - command exited successfully and printed `NODE_ENV=development`;
+  - only the PowerShell assertion failed because `$output` was an array and `-notmatch` was applied element-wise.
+  - product wrapper required no change.
+- **#689 GREEN** on exact head `0ca68b145359f0cae9405aaa4c6c6e588d0f6efa`:
+  - `windows-electron-launch-contract`: PASS on `windows-latest`;
+  - Windows proof executed `npm.cmd run start:electron -- --check` and observed `NODE_ENV=development`;
+  - Ubuntu verify: 0 vulnerabilities;
+  - Jest: 380/380 suites, 2243 passed, 23 skipped, 42 todo;
+  - Chromium: 14/14;
+  - Vite smoke: PASS;
+  - Electron smoke: PASS.
+
+## Result
+
+**PASS pending documentation-only exact-head recheck.**
+
+A66-S2 removes POSIX-only environment assignment from the public Electron development command without adding dependencies or changing Electron runtime behavior.
+
+Windows PowerShell users also have an explicit documented `npm.cmd` fallback when execution policy blocks `npm.ps1`.
+
+A final exact-head Branch Check is required after documentation synchronization. Merge remains separately gated.
