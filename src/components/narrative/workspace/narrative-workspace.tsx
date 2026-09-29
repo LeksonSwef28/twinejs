@@ -56,6 +56,13 @@ export const NarrativeWorkspace: React.FC = () => {
 	const [simulationDebugOpen, setSimulationDebugOpen] = React.useState(false);
 	const [previewFromHereRequest, setPreviewFromHereRequest] =
 		React.useState<PreviewFromHereRequest>();
+	const [directDay, setDirectDay] = React.useState(
+		String(project.editor.selectedDay)
+	);
+	const [directTime, setDirectTime] = React.useState(
+		formatMinuteOfDay(project.editor.selectedMinuteOfDay ?? 0)
+	);
+	const [directMomentError, setDirectMomentError] = React.useState('');
 	const previewRequestCounter = React.useRef(1);
 	const selectedPeriod =
 		project.template.periods.find(
@@ -77,6 +84,12 @@ export const NarrativeWorkspace: React.FC = () => {
 		project.simulation.day === project.editor.selectedDay &&
 		project.simulation.minuteOfDay === selectedMinuteOfDay;
 
+	React.useEffect(() => {
+		setDirectDay(String(project.editor.selectedDay));
+		setDirectTime(formatMinuteOfDay(selectedMinuteOfDay));
+		setDirectMomentError('');
+	}, [project.editor.selectedDay, selectedMinuteOfDay]);
+
 	function selectWorkspace(workspace: NarrativeWorkspaceMode) {
 		execute({type: 'editor/selectWorkspace', workspace});
 	}
@@ -89,6 +102,44 @@ export const NarrativeWorkspace: React.FC = () => {
 		const day = Math.floor(nextAbsoluteMinute / minutesPerDay) + 1;
 		const minuteOfDay = nextAbsoluteMinute % minutesPerDay;
 		execute({type: 'editor/selectMoment', day, minuteOfDay});
+	}
+
+	function jumpToMoment(event: React.FormEvent) {
+		event.preventDefault();
+		const day = Number(directDay);
+		const timeMatch = /^(\d{2}):(\d{2})$/.exec(directTime);
+		const hour = timeMatch ? Number(timeMatch[1]) : Number.NaN;
+		const minute = timeMatch ? Number(timeMatch[2]) : Number.NaN;
+
+		if (!Number.isInteger(day) || day < 1 || day > project.template.dayCount) {
+			setDirectMomentError(
+				`День должен быть от 1 до ${project.template.dayCount}.`
+			);
+			return;
+		}
+
+		if (
+			!timeMatch ||
+			!Number.isInteger(hour) ||
+			!Number.isInteger(minute) ||
+			hour < 0 ||
+			hour > 23 ||
+			minute < 0 ||
+			minute > 59 ||
+			minute % minuteStep !== 0
+		) {
+			setDirectMomentError(
+				`Время должно быть в формате HH:MM с шагом ${minuteStep} минут.`
+			);
+			return;
+		}
+
+		setDirectMomentError('');
+		execute({
+			type: 'editor/selectMoment',
+			day,
+			minuteOfDay: hour * 60 + minute
+		});
 	}
 
 	function openPreviewFromHere(focus: PreviewFromHereFocus) {
@@ -214,10 +265,34 @@ export const NarrativeWorkspace: React.FC = () => {
 				</div>
 				{workspaceMode === 'story' ? (
 					<>
-						<div
+						<form
 							className="narrative-workspace__clock-actions"
 							aria-label="Точный навигатор истории"
+							noValidate
+							onSubmit={jumpToMoment}
 						>
+							<label>
+								День
+								<input
+									aria-label="День просмотра"
+									type="number"
+									min={1}
+									max={project.template.dayCount}
+									value={directDay}
+									onChange={event => setDirectDay(event.target.value)}
+								/>
+							</label>
+							<label>
+								Время
+								<input
+									aria-label="Время просмотра"
+									type="time"
+									step={minuteStep * 60}
+									value={directTime}
+									onChange={event => setDirectTime(event.target.value)}
+								/>
+							</label>
+							<button type="submit">Перейти</button>
 							<button
 								type="button"
 								disabled={absoluteMinute <= 0}
@@ -232,7 +307,8 @@ export const NarrativeWorkspace: React.FC = () => {
 							>
 								+5 мин
 							</button>
-						</div>
+							{directMomentError && <small role="alert">{directMomentError}</small>}
+						</form>
 						<div
 							className="narrative-workspace__periods"
 							aria-label="Быстрый переход к периоду"

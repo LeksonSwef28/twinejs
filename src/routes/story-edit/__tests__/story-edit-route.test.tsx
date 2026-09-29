@@ -1,4 +1,4 @@
-import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {createMemoryHistory} from 'history';
 import {axe} from 'jest-axe';
 import * as React from 'react';
@@ -88,6 +88,52 @@ describe('<StoryEditRoute>', () => {
 		expect(screen.getByRole('button', {name: 'День'})).toBeInTheDocument();
 		expect(screen.getByRole('button', {name: 'Вечер'})).toBeInTheDocument();
 		expect(screen.getByRole('button', {name: 'Ночь'})).toBeInTheDocument();
+	});
+
+	it('jumps the View Cursor directly without moving the Simulation Playhead', async () => {
+		await renderComponent(fakeStory());
+
+		const navigator = screen.getByLabelText('Точный навигатор истории');
+		const viewMoment = screen.getByText('Просмотр').parentElement!;
+		const simulationPlayhead = screen.getByText('Симуляция').parentElement!;
+
+		const initialSimulation = simulationPlayhead.textContent;
+		expect(viewMoment).toHaveTextContent('День 1');
+		expect(viewMoment).toHaveTextContent('06:00');
+
+		fireEvent.change(within(navigator).getByLabelText('День просмотра'), {
+			target: {value: '37'}
+		});
+		fireEvent.change(within(navigator).getByLabelText('Время просмотра'), {
+			target: {value: '18:40'}
+		});
+		fireEvent.click(within(navigator).getByRole('button', {name: 'Перейти'}));
+
+		expect(viewMoment).toHaveTextContent('День 37');
+		expect(viewMoment).toHaveTextContent('18:40');
+		expect(simulationPlayhead.textContent).toBe(initialSimulation);
+	});
+
+	it('rejects an out-of-range direct moment without moving either cursor', async () => {
+		await renderComponent(fakeStory());
+
+		const navigator = screen.getByLabelText('Точный навигатор истории');
+		const viewMoment = screen.getByText('Просмотр').parentElement!;
+		const simulationPlayhead = screen.getByText('Симуляция').parentElement!;
+		const initialView = viewMoment.textContent;
+		const initialSimulation = simulationPlayhead.textContent;
+
+		fireEvent.change(within(navigator).getByLabelText('День просмотра'), {
+			target: {value: '94'}
+		});
+		fireEvent.change(within(navigator).getByLabelText('Время просмотра'), {
+			target: {value: '18:40'}
+		});
+		fireEvent.click(within(navigator).getByRole('button', {name: 'Перейти'}));
+
+		expect(within(navigator).getByRole('alert')).toHaveTextContent(/1.*93/);
+		expect(viewMoment.textContent).toBe(initialView);
+		expect(simulationPlayhead.textContent).toBe(initialSimulation);
 	});
 
 	it('opens Narrative export as a panel instead of another workspace', async () => {
