@@ -1,7 +1,5 @@
 'use strict';
 
-const runAll = require('npm-run-all');
-
 const checkOnly = process.argv.slice(2).includes('--check');
 
 process.env.NODE_ENV = 'development';
@@ -10,6 +8,8 @@ if (checkOnly) {
 	console.log(`NODE_ENV=${process.env.NODE_ENV}`);
 	process.exit(0);
 }
+
+const runAll = require('npm-run-all');
 
 const streams = {
 	stdin: process.stdin,
