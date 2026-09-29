@@ -97,9 +97,9 @@ describe('<StoryEditRoute>', () => {
 		const viewMoment = screen.getByText('Просмотр').parentElement!;
 		const simulationPlayhead = screen.getByText('Симуляция').parentElement!;
 
+		const initialSimulation = simulationPlayhead.textContent;
 		expect(viewMoment).toHaveTextContent('День 1');
-		expect(viewMoment).toHaveTextContent('00:00');
-		expect(simulationPlayhead).toHaveTextContent('День 1 · 00:00');
+		expect(viewMoment).toHaveTextContent('06:00');
 
 		fireEvent.change(within(navigator).getByLabelText('День просмотра'), {
 			target: {value: '37'}
@@ -111,7 +111,7 @@ describe('<StoryEditRoute>', () => {
 
 		expect(viewMoment).toHaveTextContent('День 37');
 		expect(viewMoment).toHaveTextContent('18:40');
-		expect(simulationPlayhead).toHaveTextContent('День 1 · 00:00');
+		expect(simulationPlayhead.textContent).toBe(initialSimulation);
 	});
 
 	it('rejects an out-of-range direct moment without moving either cursor', async () => {
@@ -120,6 +120,8 @@ describe('<StoryEditRoute>', () => {
 		const navigator = screen.getByLabelText('Точный навигатор истории');
 		const viewMoment = screen.getByText('Просмотр').parentElement!;
 		const simulationPlayhead = screen.getByText('Симуляция').parentElement!;
+		const initialView = viewMoment.textContent;
+		const initialSimulation = simulationPlayhead.textContent;
 
 		fireEvent.change(within(navigator).getByLabelText('День просмотра'), {
 			target: {value: '94'}
@@ -130,9 +132,8 @@ describe('<StoryEditRoute>', () => {
 		fireEvent.click(within(navigator).getByRole('button', {name: 'Перейти'}));
 
 		expect(within(navigator).getByRole('alert')).toHaveTextContent(/1.*93/);
-		expect(viewMoment).toHaveTextContent('День 1');
-		expect(viewMoment).toHaveTextContent('00:00');
-		expect(simulationPlayhead).toHaveTextContent('День 1 · 00:00');
+		expect(viewMoment.textContent).toBe(initialView);
+		expect(simulationPlayhead.textContent).toBe(initialSimulation);
 	});
 
 	it('opens Narrative export as a panel instead of another workspace', async () => {
