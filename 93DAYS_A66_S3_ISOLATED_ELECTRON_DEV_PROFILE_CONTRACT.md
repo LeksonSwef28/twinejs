@@ -118,7 +118,52 @@ A later green test must directly verify that development profile application:
 - choosing arbitrary external dev folders in UI;
 - installer/package changes.
 
-## Verification gate
+## Verification trail
 
-Implementation begins only after expected RED is confirmed to be caused by the
-missing isolated-profile contract rather than unrelated infrastructure.
+- **#693 EXPECTED RED** on test-only head `cbb5f0639216283ca24c9371964b9f2b81c23edc`:
+  - Windows A66-S2 launch contract: PASS;
+  - install / audit / lint / web / Player / Electron builds: PASS;
+  - Jest: 379 existing suites PASS, only the new A66-S3 suite FAIL;
+  - 2243 existing tests PASS, exactly 3 new A66-S3 assertions FAIL;
+  - exact missing contracts:
+    - launcher did not report `TWINE_DEV_PROFILE_ROOT`;
+    - main startup did not call `applyDevelopmentProfile()` before `loadAppPrefs()`;
+    - `/.twine-dev-profile/` was not ignored.
+- Production implementation introduced:
+  - launcher-owned absolute repository-local `.twine-dev-profile`;
+  - `TWINE_DEV_PROFILE_ROOT` propagation into Electron;
+  - `applyDevelopmentProfile()` before app preference loading;
+  - `userData -> <root>/user-data`;
+  - `documents -> <root>/documents`;
+  - Git ignore for `/.twine-dev-profile/`;
+  - direct helper tests for redirect, production/no-root no-op, and relative-root rejection.
+- **#697 FAIL / harness RCA**:
+  - Windows launch contract: PASS;
+  - production builds: PASS;
+  - product helper source remained unchanged after RCA;
+  - failures were limited to test infrastructure:
+    - launcher test split output using escaped literal `\\r/\\n` instead of real newlines;
+    - the shared manual `fs-extra` mock lacked `mkdirpSync`.
+- **#698 GREEN** on exact head `8b93f73380804ea51c167802d395e9f07e7078b1`:
+  - Windows launch contract: PASS;
+  - Windows `--check` output includes both `NODE_ENV=development` and an absolute `TWINE_DEV_PROFILE_ROOT` ending in `.twine-dev-profile`;
+  - audit: 0 vulnerabilities;
+  - Jest: 381/381 suites, 2250 passed, 23 skipped, 42 todo;
+  - Chromium: 14/14;
+  - Vite smoke: PASS;
+  - Electron smoke: PASS.
+
+## Result
+
+**PASS pending documentation-only exact-head recheck.**
+
+A66-S3 isolates development Electron from the normal user profile by redirecting
+Electron's existing `userData` and `documents` roots before preferences load.
+Existing Story, Backup, Scratch, user CSS and JSON preference path owners continue
+to derive from those roots; no parallel persistence system was added.
+
+Production/packaged behavior remains unchanged when the explicit development
+profile contract is absent.
+
+A final exact-head Branch Check is required after this documentation
+synchronization. Merge remains separately gated.
