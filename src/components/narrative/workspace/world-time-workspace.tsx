@@ -18,6 +18,8 @@ interface WorldPanState {
 	pixelsPerHour: number;
 }
 
+const minuteStep = 5;
+
 function absoluteMinuteLabel(absoluteMinute: number) {
 	const day = Math.floor(Math.max(0, absoluteMinute) / minutesPerDay) + 1;
 	const minuteOfDay = Math.floor(Math.max(0, absoluteMinute) % minutesPerDay);
@@ -27,6 +29,13 @@ function absoluteMinuteLabel(absoluteMinute: number) {
 export const WorldTimeWorkspace: React.FC = () => {
 	const {project, execute, createId} = useNarrativeProject();
 	const [locationName, setLocationName] = React.useState('');
+	const [directDay, setDirectDay] = React.useState(
+		String(project.editor.selectedDay)
+	);
+	const [directTime, setDirectTime] = React.useState(
+		formatMinuteOfDay(project.editor.selectedMinuteOfDay ?? 0)
+	);
+	const [directMomentError, setDirectMomentError] = React.useState('');
 	const [worldPanState, setWorldPanState] = React.useState<WorldPanState>();
 	const [worldViewportSize, setWorldViewportSize] = React.useState({
 		width: 900,
@@ -55,6 +64,12 @@ export const WorldTimeWorkspace: React.FC = () => {
 		() => new Map(project.locations.map(location => [location.id, location])),
 		[project.locations]
 	);
+
+	React.useEffect(() => {
+		setDirectDay(String(project.editor.selectedDay));
+		setDirectTime(formatMinuteOfDay(selectedMinuteOfDay));
+		setDirectMomentError('');
+	}, [project.editor.selectedDay, selectedMinuteOfDay]);
 
 	React.useEffect(() => {
 		function measureWorldViewport() {
@@ -111,6 +126,47 @@ export const WorldTimeWorkspace: React.FC = () => {
 		}
 		execute({type: 'location/add', id: createId('location'), name});
 		setLocationName('');
+	}
+
+	function jumpToMoment(event: React.FormEvent) {
+		event.preventDefault();
+		const day = Number(directDay);
+		const timeMatch = /^(\d{2}):(\d{2})$/.exec(directTime);
+		const hour = timeMatch ? Number(timeMatch[1]) : Number.NaN;
+		const minute = timeMatch ? Number(timeMatch[2]) : Number.NaN;
+
+		if (!Number.isInteger(day) || day < 1 || day > project.template.dayCount) {
+			setDirectMomentError(
+				`День должен быть от 1 до ${project.template.dayCount}.`
+			);
+			return;
+		}
+
+		if (
+			!timeMatch ||
+			!Number.isInteger(hour) ||
+			!Number.isInteger(minute) ||
+			hour < 0 ||
+			hour > 23 ||
+			minute < 0 ||
+			minute > 59 ||
+			minute % minuteStep !== 0
+		) {
+			setDirectMomentError(
+				`Время должно быть в формате HH:MM с шагом ${minuteStep} минут.`
+			);
+			return;
+		}
+
+		setDirectMomentError('');
+		execute({
+			type: 'editor/setWorldTimeViewport',
+			centerAbsoluteMinute:
+				(day - 1) * minutesPerDay + hour * 60 + minute,
+			pixelsPerHour: worldTimeViewport.pixelsPerHour,
+			viewportWidth: worldViewportSize.width,
+			viewportHeight: worldViewportSize.height
+		});
 	}
 
 	function jumpToSimulationPlayhead() {
@@ -317,6 +373,37 @@ export const WorldTimeWorkspace: React.FC = () => {
 					</button>
 				</div>
 			</header>
+
+			<form
+				className="narrative-workspace__compact-form"
+				aria-label="Точный навигатор времени"
+				noValidate
+				onSubmit={jumpToMoment}
+			>
+				<label>
+					День
+					<input
+						aria-label="День просмотра"
+						type="number"
+						min={1}
+						max={project.template.dayCount}
+						value={directDay}
+						onChange={event => setDirectDay(event.target.value)}
+					/>
+				</label>
+				<label>
+					Время
+					<input
+						aria-label="Время просмотра"
+						type="time"
+						step={minuteStep * 60}
+						value={directTime}
+						onChange={event => setDirectTime(event.target.value)}
+					/>
+				</label>
+				<button type="submit">Перейти</button>
+				{directMomentError && <small role="alert">{directMomentError}</small>}
+			</form>
 
 			<div className="narrative-workspace__world-time-layout">
 				<aside
