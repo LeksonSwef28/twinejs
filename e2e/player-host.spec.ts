@@ -1225,7 +1225,7 @@ test('A67 world authoring pilot builds a coherent authored world through normal 
 	await expect(inspector).toContainText('Привязано: День 12 · 17:30');
 
 	await page.getByRole('button', {name: 'Библиотека'}).click();
-	const library = page.getByLabel('Project Library');
+	const library = page.getByRole('dialog', {name: 'Project Library'});
 	await library
 		.getByLabel('Название объективного факта')
 		.fill('Мира пришла в кафе в 17:30');
