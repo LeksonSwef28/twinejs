@@ -8,7 +8,8 @@ export const app = {
 	},
 	on: jest.fn(),
 	quit: jest.fn(),
-	relaunch: jest.fn()
+	relaunch: jest.fn(),
+	setPath: jest.fn()
 };
 
 export class BrowserWindow {
