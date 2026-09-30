@@ -136,6 +136,101 @@ describe('<StoryEditRoute>', () => {
 		expect(simulationPlayhead.textContent).toBe(initialSimulation);
 	});
 
+	it('centers WORLD/TIME on a directly entered View Cursor moment without moving the Simulation Playhead', async () => {
+		await renderComponent(fakeStory());
+
+		fireEvent.click(screen.getByRole('tab', {name: 'Время и мир'}));
+		const worldTime = screen
+			.getByRole('heading', {name: '93 дня как единая карта'})
+			.closest('section');
+		if (!worldTime) {
+			throw new Error('Expected WORLD/TIME workspace');
+		}
+		const worldControls = worldTime.querySelector(
+			'.narrative-workspace__world-controls'
+		);
+		const viewportBanner = worldTime.querySelector(
+			'.narrative-workspace__viewport-banner'
+		);
+		if (!worldControls || !viewportBanner) {
+			throw new Error('Expected WORLD/TIME controls and viewport banner');
+		}
+
+		for (let index = 0; index < 8; index += 1) {
+			fireEvent.click(
+				within(worldControls as HTMLElement).getByRole('button', {name: '+'})
+			);
+		}
+
+		const navigator = within(worldTime as HTMLElement).getByLabelText(
+			'Точный навигатор времени'
+		);
+		const viewMoment = screen.getByText('Просмотр').parentElement!;
+		const simulationPlayhead = screen.getByText('Симуляция').parentElement!;
+		const initialSimulation = simulationPlayhead.textContent;
+		const initialBanner = viewportBanner.textContent;
+		const initialScale = within(viewportBanner as HTMLElement).getByText(
+			/масштаб/
+		).textContent;
+
+		fireEvent.change(within(navigator).getByLabelText('День просмотра'), {
+			target: {value: '37'}
+		});
+		fireEvent.change(within(navigator).getByLabelText('Время просмотра'), {
+			target: {value: '18:40'}
+		});
+		fireEvent.click(within(navigator).getByRole('button', {name: 'Перейти'}));
+
+		expect(viewMoment).toHaveTextContent('День 37');
+		expect(viewMoment).toHaveTextContent('18:40');
+		expect(simulationPlayhead.textContent).toBe(initialSimulation);
+		expect(
+			within(viewportBanner as HTMLElement).getByText(/масштаб/).textContent
+		).toBe(initialScale);
+		expect(viewportBanner.textContent).not.toBe(initialBanner);
+		expect(viewportBanner.textContent).toMatch(/Д3[5-8]/);
+	});
+
+	it('rejects an invalid direct WORLD/TIME moment without moving the view, viewport or Simulation Playhead', async () => {
+		await renderComponent(fakeStory());
+
+		fireEvent.click(screen.getByRole('tab', {name: 'Время и мир'}));
+		const worldTime = screen
+			.getByRole('heading', {name: '93 дня как единая карта'})
+			.closest('section');
+		if (!worldTime) {
+			throw new Error('Expected WORLD/TIME workspace');
+		}
+		const viewportBanner = worldTime.querySelector(
+			'.narrative-workspace__viewport-banner'
+		);
+		if (!viewportBanner) {
+			throw new Error('Expected WORLD/TIME viewport banner');
+		}
+
+		const navigator = within(worldTime as HTMLElement).getByLabelText(
+			'Точный навигатор времени'
+		);
+		const viewMoment = screen.getByText('Просмотр').parentElement!;
+		const simulationPlayhead = screen.getByText('Симуляция').parentElement!;
+		const initialView = viewMoment.textContent;
+		const initialSimulation = simulationPlayhead.textContent;
+		const initialBanner = viewportBanner.textContent;
+
+		fireEvent.change(within(navigator).getByLabelText('День просмотра'), {
+			target: {value: '94'}
+		});
+		fireEvent.change(within(navigator).getByLabelText('Время просмотра'), {
+			target: {value: '18:40'}
+		});
+		fireEvent.click(within(navigator).getByRole('button', {name: 'Перейти'}));
+
+		expect(within(navigator).getByRole('alert')).toHaveTextContent(/1.*93/);
+		expect(viewMoment.textContent).toBe(initialView);
+		expect(viewportBanner.textContent).toBe(initialBanner);
+		expect(simulationPlayhead.textContent).toBe(initialSimulation);
+	});
+
 	it('opens Narrative export as a panel instead of another workspace', async () => {
 		await renderComponent(fakeStory());
 		expect(screen.queryByRole('region', {name: 'Narrative export'})).not.toBeInTheDocument();
