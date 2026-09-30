@@ -1113,6 +1113,48 @@ test('A66-S1 direct moment navigation moves only the View Cursor in Story UI', a
 	expect(await simulationPlayhead.textContent()).toBe(initialSimulation);
 });
 
+test('A66-S4 direct WORLD/TIME moment navigation centers the view without moving Simulation Playhead', async ({
+	page
+}) => {
+	await createA65AuthoringStory(page);
+
+	await page.getByRole('tab', {name: 'Время и мир'}).click();
+	const worldTime = page.locator('.narrative-workspace__world-time');
+	const worldControls = worldTime.locator('.narrative-workspace__world-controls');
+	const viewportBanner = worldTime.locator('.narrative-workspace__viewport-banner');
+	const timelineViewport = worldTime.locator('.narrative-workspace__timeline-viewport');
+	const viewMoment = page.locator('.narrative-workspace__view-moment');
+	const simulationPlayhead = page.locator('.narrative-workspace__playhead');
+
+	for (let index = 0; index < 8; index += 1) {
+		await worldControls.getByRole('button', {name: '+'}).click();
+	}
+
+	const initialSimulation = await simulationPlayhead.textContent();
+	const initialBanner = await viewportBanner.textContent();
+	const scale = viewportBanner.getByText(/масштаб/);
+	const initialScale = await scale.textContent();
+
+	const navigator = worldTime.getByLabel('Точный навигатор времени');
+	await navigator.getByLabel('День просмотра').fill('37');
+	await navigator.getByLabel('Время просмотра').fill('18:40');
+	await navigator.getByRole('button', {name: 'Перейти'}).click();
+
+	await expect(viewMoment).toContainText('День 37');
+	await expect(viewMoment).toContainText('18:40');
+	expect(await simulationPlayhead.textContent()).toBe(initialSimulation);
+	expect(await scale.textContent()).toBe(initialScale);
+	await expect(viewportBanner).not.toHaveText(initialBanner ?? '');
+
+	const cursorLine = worldTime.locator('.narrative-workspace__view-cursor-line');
+	await expect(cursorLine).toBeVisible();
+	const cursorLeft = await cursorLine.evaluate(element =>
+		Number.parseFloat((element as HTMLElement).style.left)
+	);
+	const viewportWidth = await timelineViewport.evaluate(element => element.clientWidth);
+	expect(Math.abs(cursorLeft - viewportWidth / 2)).toBeLessThanOrEqual(2);
+});
+
 test('A65 authoring pilot creates, previews, exports and plays one branching scene through UI', async ({
 	page
 }) => {
