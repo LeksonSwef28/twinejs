@@ -136,20 +136,23 @@ const WorkspaceFocusBoundary: React.FC = () => (
 
 const ProjectInitializer: React.FC = () => {
 	const {project, replaceProjectFromStarter} = useNarrativeProject();
-	const initialized = React.useRef(false);
 
-	React.useEffect(() => {
-		if (!initialized.current && project.storyNodes.length === 0) {
-			initialized.current = true;
-			replaceProjectFromStarter(workspaceProject());
-		}
-	}, [project, replaceProjectFromStarter]);
+	if (project.storyNodes.length === 0) {
+		return (
+			<button
+				type="button"
+				onClick={() => replaceProjectFromStarter(workspaceProject())}
+			>
+				initialize-project
+			</button>
+		);
+	}
 
-	return project.storyNodes.length === 0 ? null : <WorkspaceFocusBoundary />;
+	return <WorkspaceFocusBoundary />;
 };
 
 function renderWorkspace() {
-	return render(
+	const result = render(
 		<NarrativeProjectProvider
 			hostStoryId="story-a67-workspace-context"
 			projectName="A67 workspace context integration"
@@ -157,6 +160,8 @@ function renderWorkspace() {
 			<ProjectInitializer />
 		</NarrativeProjectProvider>
 	);
+	fireEvent.click(screen.getByRole('button', {name: 'initialize-project'}));
+	return result;
 }
 
 function storyCanvasButtons(container: HTMLElement) {
