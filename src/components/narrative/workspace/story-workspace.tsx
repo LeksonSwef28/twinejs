@@ -3,8 +3,15 @@ import {
 	canvasNodeRepresentsAuthorFocus,
 	resolveAuthorFocus
 } from '../../../application/narrative/author-focus';
+import {
+	authoredItemPlacementEquals,
+	ResolvedAuthoredItemPlacement,
+	resolveAuthoredItemPlacement,
+	validateAuthoredItemPlacementTarget
+} from '../../../application/narrative/authored-item-placement';
 import {CanvasNodeInstance} from '../../../domain/narrative/editor';
 import {CognitionTier} from '../../../domain/narrative/entities';
+import {ItemPlacement} from '../../../domain/narrative/items';
 import {
 	analyzeStoryContinuity,
 	connectedStoryNodeIds
@@ -51,8 +58,80 @@ interface PanState {
 	originY: number;
 }
 
+type ItemPlacementDraft =
+	| {kind: 'unplaced'}
+	| {kind: 'location'; locationId?: string}
+	| {kind: 'character'; characterId?: string};
+
+interface ItemPlacementDraftState {
+	sourceKey: string;
+	value: ItemPlacementDraft;
+}
+
 function storyNodeClass(kind: StoryNodeKind) {
 	return `narrative-workspace__node--${kind}`;
+}
+
+function authoredItemPlacementKey(placement: ItemPlacement) {
+	switch (placement.type) {
+		case 'unplaced':
+			return 'unplaced';
+		case 'location':
+			return `location:${placement.locationId}`;
+		case 'character':
+			return `character:${placement.characterId}`;
+	}
+}
+
+function itemPlacementDraftFromResolved(
+	placement: ResolvedAuthoredItemPlacement
+): ItemPlacementDraft {
+	switch (placement.type) {
+		case 'unplaced':
+			return {kind: 'unplaced'};
+		case 'location':
+			return placement.status === 'resolved'
+				? {kind: 'location', locationId: placement.locationId}
+				: {kind: 'location'};
+		case 'character':
+			return placement.status === 'resolved'
+				? {kind: 'character', characterId: placement.characterId}
+				: {kind: 'character'};
+	}
+}
+
+function itemPlacementFromDraft(
+	draft: ItemPlacementDraft
+): ItemPlacement | undefined {
+	switch (draft.kind) {
+		case 'unplaced':
+			return {type: 'unplaced'};
+		case 'location':
+			return draft.locationId
+				? {type: 'location', locationId: draft.locationId}
+				: undefined;
+		case 'character':
+			return draft.characterId
+				? {type: 'character', characterId: draft.characterId}
+				: undefined;
+	}
+}
+
+function authoredItemPlacementSummary(
+	placement: ResolvedAuthoredItemPlacement
+): string {
+	switch (placement.type) {
+		case 'unplaced':
+			return 'Текущее размещение: без размещения.';
+		case 'location':
+			return placement.status === 'resolved'
+				? `Текущее размещение: локация «${placement.location.name}».`
+				: `Текущее размещение: отсутствующая локация (${placement.locationId}).`;
+		case 'character':
+			return placement.status === 'resolved'
+				? `Текущее размещение: у персонажа «${placement.character.name}».`
+				: `Текущее размещение: отсутствующий персонаж (${placement.characterId}).`;
+	}
 }
 
 export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
@@ -67,6 +146,8 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 		React.useState<string>();
 	const [selectedLocalItemId, setSelectedLocalItemId] =
 		React.useState<string>();
+	const [itemPlacementDraftState, setItemPlacementDraftState] =
+		React.useState<ItemPlacementDraftState>();
 	const [connectionSourceId, setConnectionSourceId] = React.useState<string>();
 	const [connectionMode, setConnectionMode] =
 		React.useState<StoryEdgeMode>('reference');
@@ -112,6 +193,20 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 	const inspectedItemDefinition = inspectedItem
 		? itemDefinitionsById.get(inspectedItem.definitionId)
 		: undefined;
+	const resolvedInspectedItemPlacement = inspectedItem
+		? resolveAuthoredItemPlacement(project, inspectedItem.placement)
+		: undefined;
+	const itemPlacementDraftSourceKey = inspectedItem
+		? `${inspectedItem.id}:${authoredItemPlacementKey(inspectedItem.placement)}`
+		: undefined;
+	const canonicalItemPlacementDraft: ItemPlacementDraft =
+		resolvedInspectedItemPlacement
+			? itemPlacementDraftFromResolved(resolvedInspectedItemPlacement)
+			: {kind: 'unplaced'};
+	const itemPlacementDraft =
+		itemPlacementDraftState?.sourceKey === itemPlacementDraftSourceKey
+			? itemPlacementDraftState.value
+			: canonicalItemPlacementDraft;
 	const continuity = React.useMemo(
 		() =>
 			analyzeStoryContinuity(
@@ -133,6 +228,15 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 			setSelectedLocalItemId(undefined);
 		}
 	}, [focus]);
+
+	React.useEffect(() => {
+		if (
+			selectedLocalItemId &&
+			!itemInstancesById.has(selectedLocalItemId)
+		) {
+			setSelectedLocalItemId(undefined);
+		}
+	}, [itemInstancesById, selectedLocalItemId]);
 
 	React.useEffect(() => {
 		setSelectedCanvasNodeId(current => {
@@ -431,6 +535,72 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 			selectedCanvasNode?.entityRef?.type === 'item' &&
 			selectedCanvasNode.entityRef.id === inspectedItem.id
 	);
+
+	const validLocationDraftValue =
+		itemPlacementDraft.kind === 'location' &&
+		itemPlacementDraft.locationId &&
+		project.locations.some(
+			location => location.id === itemPlacementDraft.locationId
+		)
+			? itemPlacementDraft.locationId
+			: '';
+	const validCharacterDraftValue =
+		itemPlacementDraft.kind === 'character' &&
+		itemPlacementDraft.characterId &&
+		project.characters.some(
+			character => character.id === itemPlacementDraft.characterId
+		)
+			? itemPlacementDraft.characterId
+			: '';
+	const nextItemPlacement = inspectedItem
+		? itemPlacementFromDraft(itemPlacementDraft)
+		: undefined;
+	const itemPlacementTargetValidation = nextItemPlacement
+		? validateAuthoredItemPlacementTarget(project, nextItemPlacement)
+		: undefined;
+	const canApplyItemPlacement = Boolean(
+		inspectedItem &&
+			nextItemPlacement &&
+			itemPlacementTargetValidation?.status === 'valid' &&
+			!authoredItemPlacementEquals(
+				inspectedItem.placement,
+				nextItemPlacement
+			)
+	);
+
+	function setItemPlacementDraft(value: ItemPlacementDraft) {
+		if (!itemPlacementDraftSourceKey) {
+			return;
+		}
+		setItemPlacementDraftState({
+			sourceKey: itemPlacementDraftSourceKey,
+			value
+		});
+	}
+
+	function applyInspectedItemPlacement() {
+		if (!inspectedItem) {
+			return;
+		}
+		const placement = itemPlacementFromDraft(itemPlacementDraft);
+		if (!placement) {
+			return;
+		}
+		if (
+			validateAuthoredItemPlacementTarget(project, placement).status !==
+			'valid'
+		) {
+			return;
+		}
+		if (authoredItemPlacementEquals(inspectedItem.placement, placement)) {
+			return;
+		}
+		execute({
+			type: 'item/setPlacement',
+			id: inspectedItem.id,
+			placement
+		});
+	}
 
 	return (
 		<div className="narrative-workspace__studio">
@@ -905,6 +1075,78 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 							Это конкретный физический экземпляр. Его положение в мире не
 							 смешивается с определением типа предмета.
 						</p>
+						{resolvedInspectedItemPlacement ? (
+							<p>{authoredItemPlacementSummary(resolvedInspectedItemPlacement)}</p>
+						) : null}
+						<form
+							className="narrative-workspace__compact-form"
+							onSubmit={event => {
+								event.preventDefault();
+								applyInspectedItemPlacement();
+							}}
+						>
+							<select
+								aria-label="Тип размещения предмета"
+								value={itemPlacementDraft.kind}
+								onChange={event => {
+									switch (event.target.value) {
+										case 'location':
+											setItemPlacementDraft({kind: 'location'});
+											break;
+										case 'character':
+											setItemPlacementDraft({kind: 'character'});
+											break;
+										default:
+											setItemPlacementDraft({kind: 'unplaced'});
+									}
+								}}
+							>
+								<option value="unplaced">Без размещения</option>
+								<option value="location">В локации</option>
+								<option value="character">У персонажа</option>
+							</select>
+							{itemPlacementDraft.kind === 'location' ? (
+								<select
+									aria-label="Локация предмета"
+									value={validLocationDraftValue}
+									onChange={event =>
+										setItemPlacementDraft({
+											kind: 'location',
+											locationId: event.target.value || undefined
+										})
+									}
+								>
+									<option value="">Выбери локацию</option>
+									{project.locations.map(location => (
+										<option key={location.id} value={location.id}>
+											{location.name}
+										</option>
+									))}
+								</select>
+							) : null}
+							{itemPlacementDraft.kind === 'character' ? (
+								<select
+									aria-label="Персонаж с предметом"
+									value={validCharacterDraftValue}
+									onChange={event =>
+										setItemPlacementDraft({
+											kind: 'character',
+											characterId: event.target.value || undefined
+										})
+									}
+								>
+									<option value="">Выбери персонажа</option>
+									{project.characters.map(character => (
+										<option key={character.id} value={character.id}>
+											{character.name}
+										</option>
+									))}
+								</select>
+							) : null}
+							<button type="submit" disabled={!canApplyItemPlacement}>
+								Применить размещение
+							</button>
+						</form>
 						<button
 							type="button"
 							disabled={!canRemoveInspectedItemReference}
