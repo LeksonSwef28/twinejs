@@ -10,6 +10,7 @@ import {
 	visibleAbsoluteMinuteRange
 } from '../../../domain/narrative/world-time';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {AuthoringNavigationActions} from './use-authoring-navigation';
 import {buildWorldTimeLocationIndexes} from './world-time-indexes';
 
 interface WorldPanState {
@@ -26,7 +27,13 @@ function absoluteMinuteLabel(absoluteMinute: number) {
 	return `Д${day} ${formatMinuteOfDay(minuteOfDay)}`;
 }
 
-export const WorldTimeWorkspace: React.FC = () => {
+export interface WorldTimeWorkspaceProps {
+	navigate: AuthoringNavigationActions['navigate'];
+}
+
+export const WorldTimeWorkspace: React.FC<WorldTimeWorkspaceProps> = ({
+	navigate
+}) => {
 	const {project, execute, createId} = useNarrativeProject();
 	const [locationName, setLocationName] = React.useState('');
 	const [directDay, setDirectDay] = React.useState(
@@ -262,22 +269,7 @@ export const WorldTimeWorkspace: React.FC = () => {
 	}
 
 	function openStoryNode(storyNodeId: string) {
-		execute({type: 'editor/selectWorkspace', workspace: 'story'});
-		const visual = project.editor.storyCanvas?.nodes.find(
-			node =>
-				node.entityRef?.type === 'storyNode' &&
-				node.entityRef.id === storyNodeId
-		);
-		if (visual) {
-			execute({
-				type: 'editor/setStoryViewport',
-				viewport: {
-					x: 380 - visual.position.x,
-					y: 240 - visual.position.y,
-					zoom: Math.max(project.editor.storyCanvas?.viewport.zoom ?? 1, 0.8)
-				}
-			});
-		}
+		navigate({type: 'open-story-in-story', storyNodeId});
 	}
 
 	const worldRange = visibleAbsoluteMinuteRange(

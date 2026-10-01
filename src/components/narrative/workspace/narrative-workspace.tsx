@@ -12,6 +12,7 @@ import {
 import {NarrativeWorkspaceMode} from '../../../domain/narrative/project';
 import {workspacePanelsForMode} from '../../../domain/narrative/workspace-navigation';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {AuthoringSessionFocusProvider} from './authoring-session-focus';
 import {CrossWorkspaceNavigator} from './cross-workspace-navigator';
 import {InteractionTemplatePanel} from './interaction-template-panel';
 import {MemorySaliencePanel} from './memory-salience-panel';
@@ -29,6 +30,7 @@ import {SimulationDebugPanel} from './simulation-debug-panel';
 import {StoryBrainPanel} from './story-brain-panel';
 import {StoryMetadataPanel} from './story-metadata-panel';
 import {StoryWorkspace} from './story-workspace';
+import {useAuthoringNavigation} from './use-authoring-navigation';
 import {WorldTimeWorkspace} from './world-time-workspace';
 import './narrative-workspace.css';
 import './narrative-workspace-v9.css';
@@ -47,12 +49,13 @@ const weekdayLabels = {
 
 const minuteStep = 5;
 
-export const NarrativeWorkspace: React.FC = () => {
+const NarrativeWorkspaceSession: React.FC = () => {
 	const {project, execute, undo, redo, canUndo, canRedo, saveStatus} =
 		useNarrativeProject();
 	const [projectLibraryOpen, setProjectLibraryOpen] = React.useState(false);
 	const [exportOpen, setExportOpen] = React.useState(false);
 	const [splitView, setSplitView] = React.useState(false);
+	const {navigate} = useAuthoringNavigation({splitView});
 	const [simulationDebugOpen, setSimulationDebugOpen] = React.useState(false);
 	const [previewFromHereRequest, setPreviewFromHereRequest] =
 		React.useState<PreviewFromHereRequest>();
@@ -364,9 +367,9 @@ export const NarrativeWorkspace: React.FC = () => {
 				onClose={() => setSimulationDebugOpen(false)}
 			/>
 
-			<ProjectSearchPanel />
+			<ProjectSearchPanel navigate={navigate} />
 			<CrossWorkspaceNavigator
-				splitView={splitView}
+				navigate={navigate}
 				onPreviewFromHere={openPreviewFromHere}
 			/>
 			<ProjectLibrary
@@ -384,20 +387,22 @@ export const NarrativeWorkspace: React.FC = () => {
 							<strong>Story</strong>
 							<small>authoring</small>
 						</div>
-						<StoryWorkspace />
+						<StoryWorkspace navigate={navigate} />
 					</div>
 					<div className="narrative-workspace__split-pane is-world-time">
 						<div className="narrative-workspace__split-pane-heading">
 							<strong>World / Time</strong>
 							<small>same view cursor, simulation unchanged</small>
 						</div>
-						<WorldTimeWorkspace />
+						<WorldTimeWorkspace navigate={navigate} />
 					</div>
 				</div>
 			) : (
 				<>
-					{visiblePanels.showStory && <StoryWorkspace />}
-					{visiblePanels.showWorldTime && <WorldTimeWorkspace />}
+					{visiblePanels.showStory && <StoryWorkspace navigate={navigate} />}
+					{visiblePanels.showWorldTime && (
+						<WorldTimeWorkspace navigate={navigate} />
+					)}
 				</>
 			)}
 
@@ -418,3 +423,10 @@ export const NarrativeWorkspace: React.FC = () => {
 		</section>
 	);
 };
+
+
+export const NarrativeWorkspace: React.FC = () => (
+	<AuthoringSessionFocusProvider>
+		<NarrativeWorkspaceSession />
+	</AuthoringSessionFocusProvider>
+);
