@@ -425,12 +425,8 @@ const NarrativeWorkspaceSession: React.FC = () => {
 };
 
 
-export const NarrativeWorkspace: React.FC = () => {
-	const {project} = useNarrativeProject();
-
-	return (
-		<AuthoringSessionFocusProvider key={project.projectId}>
-			<NarrativeWorkspaceSession />
-		</AuthoringSessionFocusProvider>
-	);
-};
+export const NarrativeWorkspace: React.FC = () => (
+	<AuthoringSessionFocusProvider>
+		<NarrativeWorkspaceSession />
+	</AuthoringSessionFocusProvider>
+);

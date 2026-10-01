@@ -128,14 +128,11 @@ const WorkspaceSession: React.FC = () => {
 	);
 };
 
-const KeyedWorkspaceSession: React.FC = () => {
-	const {project} = useNarrativeProject();
-	return (
-		<AuthoringSessionFocusProvider key={project.projectId}>
-			<WorkspaceSession />
-		</AuthoringSessionFocusProvider>
-	);
-};
+const WorkspaceFocusBoundary: React.FC = () => (
+	<AuthoringSessionFocusProvider>
+		<WorkspaceSession />
+	</AuthoringSessionFocusProvider>
+);
 
 const ProjectInitializer: React.FC = () => {
 	const {project, replaceProjectFromStarter} = useNarrativeProject();
@@ -148,7 +145,7 @@ const ProjectInitializer: React.FC = () => {
 		}
 	}, [project, replaceProjectFromStarter]);
 
-	return <KeyedWorkspaceSession />;
+	return project.storyNodes.length === 0 ? null : <WorkspaceFocusBoundary />;
 };
 
 function renderWorkspace() {

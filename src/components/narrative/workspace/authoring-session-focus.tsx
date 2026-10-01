@@ -15,20 +15,31 @@ export interface AuthoringSessionFocusValue {
 	clearFocus(): void;
 }
 
+interface StoredAuthorFocus {
+	projectId: string;
+	focus: AuthorFocus;
+}
+
 const AuthoringSessionFocusContext = React.createContext<
 	AuthoringSessionFocusValue | undefined
 >(undefined);
 
 export const AuthoringSessionFocusProvider: React.FC = props => {
 	const {project} = useNarrativeProject();
-	const [storedFocus, setStoredFocus] = React.useState<AuthorFocus>();
-	const focus = validateAuthorFocus(project, storedFocus);
+	const [storedFocus, setStoredFocus] = React.useState<StoredAuthorFocus>();
+	const focus =
+		storedFocus?.projectId === project.projectId
+			? validateAuthorFocus(project, storedFocus.focus)
+			: undefined;
 
 	React.useEffect(() => {
-		if (storedFocus && !focus) {
+		if (
+			storedFocus &&
+			(storedFocus.projectId !== project.projectId || !focus)
+		) {
 			setStoredFocus(undefined);
 		}
-	}, [focus, storedFocus]);
+	}, [focus, project.projectId, storedFocus]);
 
 	const setFocus = React.useCallback(
 		(next: AuthorFocus): FocusSetResult => {
@@ -36,7 +47,7 @@ export const AuthoringSessionFocusProvider: React.FC = props => {
 			if (!validated) {
 				return {status: 'invalid-target'};
 			}
-			setStoredFocus(validated);
+			setStoredFocus({projectId: project.projectId, focus: validated});
 			return {status: 'focused', focus: validated};
 		},
 		[project]

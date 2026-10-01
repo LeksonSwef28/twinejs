@@ -82,14 +82,11 @@ const FocusProbe: React.FC = () => {
 	);
 };
 
-const KeyedFocusBoundary: React.FC = () => {
-	const {project} = useNarrativeProject();
-	return (
-		<AuthoringSessionFocusProvider key={project.projectId}>
-			<FocusProbe />
-		</AuthoringSessionFocusProvider>
-	);
-};
+const FocusBoundary: React.FC = () => (
+	<AuthoringSessionFocusProvider>
+		<FocusProbe />
+	</AuthoringSessionFocusProvider>
+);
 
 function ProjectInitializer() {
 	const {project, replaceProjectFromStarter} = useNarrativeProject();
@@ -100,7 +97,7 @@ function ProjectInitializer() {
 			replaceProjectFromStarter(projectWithStory('Initial'));
 		}
 	}, [project, replaceProjectFromStarter]);
-	return <KeyedFocusBoundary />;
+	return project.storyNodes.length === 0 ? null : <FocusBoundary />;
 }
 
 function renderFixture() {
@@ -150,7 +147,7 @@ describe('A67 authoring session focus provider', () => {
 		expect(screen.getByTestId('focus')).toHaveTextContent('none');
 	});
 
-	test('keyed project replacement resets session Focus even when entity ids collide', async () => {
+	test('project replacement resets session Focus even when entity ids collide', async () => {
 		renderFixture();
 		await screen.findByTestId('focus');
 
