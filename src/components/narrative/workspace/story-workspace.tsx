@@ -64,7 +64,7 @@ type ItemPlacementDraft =
 	| {kind: 'character'; characterId?: string};
 
 interface ItemPlacementDraftState {
-	sourceKey: string;
+	sourceToken: string;
 	value: ItemPlacementDraft;
 }
 
@@ -148,6 +148,10 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 		React.useState<string>();
 	const [itemPlacementDraftState, setItemPlacementDraftState] =
 		React.useState<ItemPlacementDraftState>();
+	const itemPlacementDraftSourceRef = React.useRef<{
+		key?: string;
+		revision: number;
+	}>({revision: 0});
 	const [connectionSourceId, setConnectionSourceId] = React.useState<string>();
 	const [connectionMode, setConnectionMode] =
 		React.useState<StoryEdgeMode>('reference');
@@ -199,13 +203,20 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 	const itemPlacementDraftSourceKey = inspectedItem
 		? `${inspectedItem.id}:${authoredItemPlacementKey(inspectedItem.placement)}`
 		: undefined;
+	if (itemPlacementDraftSourceRef.current.key !== itemPlacementDraftSourceKey) {
+		itemPlacementDraftSourceRef.current = {
+			key: itemPlacementDraftSourceKey,
+			revision: itemPlacementDraftSourceRef.current.revision + 1
+		};
+	}
+	const itemPlacementDraftSourceToken =
+		`${itemPlacementDraftSourceRef.current.revision}:${itemPlacementDraftSourceKey ?? 'none'}`;
 	const canonicalItemPlacementDraft: ItemPlacementDraft =
 		resolvedInspectedItemPlacement
 			? itemPlacementDraftFromResolved(resolvedInspectedItemPlacement)
 			: {kind: 'unplaced'};
 	const itemPlacementDraft =
-		itemPlacementDraftState &&
-		itemPlacementDraftState.sourceKey === itemPlacementDraftSourceKey
+		itemPlacementDraftState?.sourceToken === itemPlacementDraftSourceToken
 			? itemPlacementDraftState.value
 			: canonicalItemPlacementDraft;
 	const continuity = React.useMemo(
@@ -574,7 +585,7 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 			return;
 		}
 		setItemPlacementDraftState({
-			sourceKey: itemPlacementDraftSourceKey,
+			sourceToken: itemPlacementDraftSourceToken,
 			value
 		});
 	}
