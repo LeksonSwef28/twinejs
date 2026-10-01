@@ -216,7 +216,8 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 			? itemPlacementDraftFromResolved(resolvedInspectedItemPlacement)
 			: {kind: 'unplaced'};
 	const itemPlacementDraft =
-		itemPlacementDraftState?.sourceToken === itemPlacementDraftSourceToken
+		itemPlacementDraftState &&
+		itemPlacementDraftState.sourceToken === itemPlacementDraftSourceToken
 			? itemPlacementDraftState.value
 			: canonicalItemPlacementDraft;
 	const continuity = React.useMemo(
