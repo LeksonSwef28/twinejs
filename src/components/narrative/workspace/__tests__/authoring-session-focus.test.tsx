@@ -90,18 +90,21 @@ const FocusBoundary: React.FC = () => (
 
 function ProjectInitializer() {
 	const {project, replaceProjectFromStarter} = useNarrativeProject();
-	const initialized = React.useRef(false);
-	React.useEffect(() => {
-		if (!initialized.current && project.storyNodes.length === 0) {
-			initialized.current = true;
-			replaceProjectFromStarter(projectWithStory('Initial'));
-		}
-	}, [project, replaceProjectFromStarter]);
-	return project.storyNodes.length === 0 ? null : <FocusBoundary />;
+	if (project.storyNodes.length === 0) {
+		return (
+			<button
+				type="button"
+				onClick={() => replaceProjectFromStarter(projectWithStory('Initial'))}
+			>
+				initialize-project
+			</button>
+		);
+	}
+	return <FocusBoundary />;
 }
 
 function renderFixture() {
-	return render(
+	const result = render(
 		<NarrativeProjectProvider
 			hostStoryId="story-a67-focus-provider"
 			projectName="A67 focus provider test"
@@ -109,6 +112,8 @@ function renderFixture() {
 			<ProjectInitializer />
 		</NarrativeProjectProvider>
 	);
+	fireEvent.click(screen.getByRole('button', {name: 'initialize-project'}));
+	return result;
 }
 
 describe('A67 authoring session focus provider', () => {
