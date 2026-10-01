@@ -6,6 +6,7 @@ import {
 	NarrativeProjectProvider,
 	useNarrativeProject
 } from '../../../../store/narrative-project';
+import {createLocalStorageNarrativeProjectRepository} from '../../../../store/narrative-project/repository';
 import {
 	AuthoringSessionFocusProvider,
 	useAuthoringSessionFocus
@@ -134,34 +135,23 @@ const WorkspaceFocusBoundary: React.FC = () => (
 	</AuthoringSessionFocusProvider>
 );
 
-const ProjectInitializer: React.FC = () => {
-	const {project, replaceProjectFromStarter} = useNarrativeProject();
-
-	if (project.storyNodes.length === 0) {
-		return (
-			<button
-				type="button"
-				onClick={() => replaceProjectFromStarter(workspaceProject())}
-			>
-				initialize-project
-			</button>
-		);
-	}
-
-	return <WorkspaceFocusBoundary />;
-};
-
 function renderWorkspace() {
-	const result = render(
+	const hostStoryId = 'story-a67-workspace-context';
+	const projectName = 'A67 workspace context integration';
+	createLocalStorageNarrativeProjectRepository(
+		hostStoryId,
+		projectName,
+		ninetyThreeDaysTemplate
+	).save(workspaceProject());
+
+	return render(
 		<NarrativeProjectProvider
-			hostStoryId="story-a67-workspace-context"
-			projectName="A67 workspace context integration"
+			hostStoryId={hostStoryId}
+			projectName={projectName}
 		>
-			<ProjectInitializer />
+			<WorkspaceFocusBoundary />
 		</NarrativeProjectProvider>
 	);
-	fireEvent.click(screen.getByRole('button', {name: 'initialize-project'}));
-	return result;
 }
 
 function storyCanvasButtons(container: HTMLElement) {

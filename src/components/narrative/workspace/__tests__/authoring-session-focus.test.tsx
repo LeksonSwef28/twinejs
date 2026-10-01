@@ -6,6 +6,7 @@ import {
 	NarrativeProjectProvider,
 	useNarrativeProject
 } from '../../../../store/narrative-project';
+import {createLocalStorageNarrativeProjectRepository} from '../../../../store/narrative-project/repository';
 import {
 	AuthoringSessionFocusProvider,
 	useAuthoringSessionFocus
@@ -88,32 +89,23 @@ const FocusBoundary: React.FC = () => (
 	</AuthoringSessionFocusProvider>
 );
 
-function ProjectInitializer() {
-	const {project, replaceProjectFromStarter} = useNarrativeProject();
-	if (project.storyNodes.length === 0) {
-		return (
-			<button
-				type="button"
-				onClick={() => replaceProjectFromStarter(projectWithStory('Initial'))}
-			>
-				initialize-project
-			</button>
-		);
-	}
-	return <FocusBoundary />;
-}
-
 function renderFixture() {
-	const result = render(
+	const hostStoryId = 'story-a67-focus-provider';
+	const projectName = 'A67 focus provider test';
+	createLocalStorageNarrativeProjectRepository(
+		hostStoryId,
+		projectName,
+		ninetyThreeDaysTemplate
+	).save(projectWithStory('Initial'));
+
+	return render(
 		<NarrativeProjectProvider
-			hostStoryId="story-a67-focus-provider"
-			projectName="A67 focus provider test"
+			hostStoryId={hostStoryId}
+			projectName={projectName}
 		>
-			<ProjectInitializer />
+			<FocusBoundary />
 		</NarrativeProjectProvider>
 	);
-	fireEvent.click(screen.getByRole('button', {name: 'initialize-project'}));
-	return result;
 }
 
 describe('A67 authoring session focus provider', () => {
