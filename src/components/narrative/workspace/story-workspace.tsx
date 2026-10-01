@@ -1,4 +1,8 @@
 import * as React from 'react';
+import {
+	canvasNodeRepresentsAuthorFocus,
+	resolveAuthorFocus
+} from '../../../application/narrative/author-focus';
 import {CanvasNodeInstance} from '../../../domain/narrative/editor';
 import {CognitionTier} from '../../../domain/narrative/entities';
 import {
@@ -6,8 +10,9 @@ import {
 	connectedStoryNodeIds
 } from '../../../domain/narrative/story-analysis';
 import {StoryEdgeMode, StoryNodeKind} from '../../../domain/narrative/story';
-import {minutesPerDay} from '../../../domain/narrative/calendar';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {useAuthoringSessionFocus} from './authoring-session-focus';
+import {AuthoringNavigationActions} from './use-authoring-navigation';
 
 const storyWorldWidth = 5000;
 const storyWorldHeight = 3200;
@@ -27,11 +32,9 @@ const edgeModeLabels: Record<StoryEdgeMode, string> = {
 	executable: 'Исполняемая'
 };
 
-type SelectedStoryEntity =
-	| {type: 'character'; id: string; canvasNodeId: string}
-	| {type: 'storyNode'; id: string; canvasNodeId: string}
-	| {type: 'item'; id: string; canvasNodeId: string}
-	| undefined;
+export interface StoryWorkspaceProps {
+	navigate: AuthoringNavigationActions['navigate'];
+}
 
 interface DragState {
 	canvasNodeId: string;
@@ -52,15 +55,18 @@ function storyNodeClass(kind: StoryNodeKind) {
 	return `narrative-workspace__node--${kind}`;
 }
 
-export const StoryWorkspace: React.FC = () => {
+export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 	const {project, execute, createId} = useNarrativeProject();
+	const {focus, setFocus} = useAuthoringSessionFocus();
 	const [characterName, setCharacterName] = React.useState('');
 	const [cognitionTier, setCognitionTier] = React.useState<CognitionTier>('full');
 	const [storyTitle, setStoryTitle] = React.useState('');
 	const [storyKind, setStoryKind] = React.useState<StoryNodeKind>('beat');
 	const [itemName, setItemName] = React.useState('');
-	const [selectedStoryEntity, setSelectedStoryEntity] =
-		React.useState<SelectedStoryEntity>();
+	const [selectedCanvasNodeId, setSelectedCanvasNodeId] =
+		React.useState<string>();
+	const [selectedLocalItemId, setSelectedLocalItemId] =
+		React.useState<string>();
 	const [connectionSourceId, setConnectionSourceId] = React.useState<string>();
 	const [connectionMode, setConnectionMode] =
 		React.useState<StoryEdgeMode>('reference');
@@ -91,17 +97,17 @@ export const StoryWorkspace: React.FC = () => {
 		() => new Map(project.itemInstances.map(item => [item.id, item])),
 		[project.itemInstances]
 	);
+	const inspectedItem = selectedLocalItemId
+		? itemInstancesById.get(selectedLocalItemId)
+		: undefined;
+	const resolvedFocus = resolveAuthorFocus(project, focus);
 	const inspectedCharacter =
-		selectedStoryEntity?.type === 'character'
-			? charactersById.get(selectedStoryEntity.id)
+		!inspectedItem && resolvedFocus && 'character' in resolvedFocus
+			? resolvedFocus.character
 			: undefined;
 	const inspectedStoryNode =
-		selectedStoryEntity?.type === 'storyNode'
-			? storyNodesById.get(selectedStoryEntity.id)
-			: undefined;
-	const inspectedItem =
-		selectedStoryEntity?.type === 'item'
-			? itemInstancesById.get(selectedStoryEntity.id)
+		!inspectedItem && resolvedFocus && 'storyNode' in resolvedFocus
+			? resolvedFocus.storyNode
 			: undefined;
 	const inspectedItemDefinition = inspectedItem
 		? itemDefinitionsById.get(inspectedItem.definitionId)
@@ -116,14 +122,39 @@ export const StoryWorkspace: React.FC = () => {
 		[project.storyConnections, project.storyNodes, project.template.dayCount]
 	);
 	const highlightedStoryIds = React.useMemo(() => {
-		if (selectedStoryEntity?.type !== 'storyNode') {
+		if (focus?.type !== 'story-node') {
 			return undefined;
 		}
-		return connectedStoryNodeIds(
-			selectedStoryEntity.id,
-			project.storyConnections
-		);
-	}, [project.storyConnections, selectedStoryEntity]);
+		return connectedStoryNodeIds(focus.id, project.storyConnections);
+	}, [focus, project.storyConnections]);
+
+	React.useEffect(() => {
+		if (focus) {
+			setSelectedLocalItemId(undefined);
+		}
+	}, [focus]);
+
+	React.useEffect(() => {
+		setSelectedCanvasNodeId(current => {
+			if (!current) {
+				return current;
+			}
+			const node = storyCanvas.nodes.find(candidate => candidate.id === current);
+			if (!node) {
+				return undefined;
+			}
+			if (
+				selectedLocalItemId &&
+				node.entityRef?.type === 'item' &&
+				node.entityRef.id === selectedLocalItemId
+			) {
+				return current;
+			}
+			return canvasNodeRepresentsAuthorFocus(node, focus)
+				? current
+				: undefined;
+		});
+	}, [focus, project.editor.storyCanvas?.nodes, selectedLocalItemId]);
 
 	React.useEffect(() => {
 		if (!dragState) {
@@ -286,27 +317,20 @@ export const StoryWorkspace: React.FC = () => {
 				});
 				setConnectionSourceId(undefined);
 			}
-			setSelectedStoryEntity({
-				type: 'storyNode',
-				id: node.entityRef.id,
-				canvasNodeId: node.id
-			});
+			setSelectedLocalItemId(undefined);
+			setSelectedCanvasNodeId(node.id);
+			setFocus({type: 'story-node', id: node.entityRef.id});
 			return;
 		}
 		if (node.entityRef.type === 'character') {
-			setSelectedStoryEntity({
-				type: 'character',
-				id: node.entityRef.id,
-				canvasNodeId: node.id
-			});
+			setSelectedLocalItemId(undefined);
+			setSelectedCanvasNodeId(node.id);
+			setFocus({type: 'character', id: node.entityRef.id});
 			return;
 		}
 		if (node.entityRef.type === 'item') {
-			setSelectedStoryEntity({
-				type: 'item',
-				id: node.entityRef.id,
-				canvasNodeId: node.id
-			});
+			setSelectedLocalItemId(node.entityRef.id);
+			setSelectedCanvasNodeId(node.id);
 		}
 	}
 
@@ -376,21 +400,13 @@ export const StoryWorkspace: React.FC = () => {
 	}
 
 	function openSelectedStoryNodeInWorldTime() {
-		const placement = inspectedStoryNode?.placement;
-		if (placement?.day === undefined || placement.minuteOfDay === undefined) {
+		if (!inspectedStoryNode) {
 			return;
 		}
-		const centerAbsoluteMinute =
-			(placement.day - 1) * minutesPerDay + placement.minuteOfDay;
-		execute({
-			type: 'editor/setWorldTimeViewport',
-			centerAbsoluteMinute,
-			pixelsPerHour: Math.max(
-				12,
-				project.editor.worldTimeViewport?.pixelsPerHour ?? 12
-			)
+		navigate({
+			type: 'open-story-in-world-time',
+			storyNodeId: inspectedStoryNode.id
 		});
-		execute({type: 'editor/selectWorkspace', workspace: 'world-time'});
 	}
 
 	const visualNodeByStoryId = new Map<string, CanvasNodeInstance>();
@@ -402,6 +418,19 @@ export const StoryWorkspace: React.FC = () => {
 			visualNodeByStoryId.set(node.entityRef.id, node);
 		}
 	}
+	const selectedCanvasNode = selectedCanvasNodeId
+		? storyCanvas.nodes.find(node => node.id === selectedCanvasNodeId)
+		: undefined;
+	const canRemoveInspectedCharacterReference = Boolean(
+		inspectedCharacter &&
+			selectedCanvasNode?.entityRef?.type === 'character' &&
+			selectedCanvasNode.entityRef.id === inspectedCharacter.id
+	);
+	const canRemoveInspectedItemReference = Boolean(
+		inspectedItem &&
+			selectedCanvasNode?.entityRef?.type === 'item' &&
+			selectedCanvasNode.entityRef.id === inspectedItem.id
+	);
 
 	return (
 		<div className="narrative-workspace__studio">
@@ -620,7 +649,11 @@ export const StoryWorkspace: React.FC = () => {
 							if (!character && !storyNode && !itemInstance && !node.title) {
 								return null;
 							}
-							const isSelected = selectedStoryEntity?.canvasNodeId === node.id;
+							const isConcreteSelected = selectedCanvasNodeId === node.id;
+							const isCanonicalFocused = canvasNodeRepresentsAuthorFocus(
+								node,
+								focus
+							);
 							const dimmed =
 								highlightedStoryIds !== undefined &&
 								(!storyNode || !highlightedStoryIds.has(storyNode.id));
@@ -628,7 +661,8 @@ export const StoryWorkspace: React.FC = () => {
 								<button
 									key={node.id}
 									type="button"
-									className={`narrative-workspace__node ${storyNode ? storyNodeClass(storyNode.kind) : itemInstance ? 'narrative-workspace__node--item' : 'narrative-workspace__node--character'}${isSelected ? ' is-selected' : ''}${connectionSourceId === storyNode?.id ? ' is-connecting' : ''}${dimmed ? ' is-dimmed' : ''}`}
+									className={`narrative-workspace__node ${storyNode ? storyNodeClass(storyNode.kind) : itemInstance ? 'narrative-workspace__node--item' : 'narrative-workspace__node--character'}${isConcreteSelected || isCanonicalFocused ? ' is-selected' : ''}${connectionSourceId === storyNode?.id ? ' is-connecting' : ''}${dimmed ? ' is-dimmed' : ''}`}
+									data-author-focus={isCanonicalFocused ? 'true' : undefined}
 									style={{
 										left: node.position.x,
 										top: node.position.y,
@@ -831,7 +865,7 @@ export const StoryWorkspace: React.FC = () => {
 										type: 'story/removeNode',
 										id: inspectedStoryNode.id
 									});
-									setSelectedStoryEntity(undefined);
+									setSelectedCanvasNodeId(undefined);
 								}}
 							>
 								Удалить блок
@@ -848,12 +882,16 @@ export const StoryWorkspace: React.FC = () => {
 						</p>
 						<button
 							type="button"
+							disabled={!canRemoveInspectedCharacterReference}
 							onClick={() => {
+								if (!canRemoveInspectedCharacterReference || !selectedCanvasNodeId) {
+									return;
+								}
 								execute({
 									type: 'editor/removeCanvasNode',
-									canvasNodeId: selectedStoryEntity!.canvasNodeId
+									canvasNodeId: selectedCanvasNodeId
 								});
-								setSelectedStoryEntity(undefined);
+								setSelectedCanvasNodeId(undefined);
 							}}
 						>
 							Убрать с доски
@@ -869,12 +907,17 @@ export const StoryWorkspace: React.FC = () => {
 						</p>
 						<button
 							type="button"
+							disabled={!canRemoveInspectedItemReference}
 							onClick={() => {
+								if (!canRemoveInspectedItemReference || !selectedCanvasNodeId) {
+									return;
+								}
 								execute({
 									type: 'editor/removeCanvasNode',
-									canvasNodeId: selectedStoryEntity!.canvasNodeId
+									canvasNodeId: selectedCanvasNodeId
 								});
-								setSelectedStoryEntity(undefined);
+								setSelectedCanvasNodeId(undefined);
+								setSelectedLocalItemId(undefined);
 							}}
 						>
 							Убрать с доски

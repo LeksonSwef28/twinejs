@@ -17,7 +17,9 @@ export interface AuthoringNavigationActions {
 	navigate(intent: AuthoringNavigationIntent): AuthoringNavigationResult;
 }
 
-export function useAuthoringNavigation(options: {
+export function useAuthoringNavigation({
+	splitView
+}: {
 	splitView: boolean;
 }): AuthoringNavigationActions {
 	const {project, execute} = useNarrativeProject();
@@ -25,7 +27,7 @@ export function useAuthoringNavigation(options: {
 
 	const navigate = React.useCallback(
 		(intent: AuthoringNavigationIntent): AuthoringNavigationResult => {
-			const plan = planAuthoringNavigation(project, intent, options);
+			const plan = planAuthoringNavigation(project, intent, {splitView});
 			if (plan.projection.status === 'missing-target') {
 				return {projection: plan.projection};
 			}
@@ -46,7 +48,7 @@ export function useAuthoringNavigation(options: {
 				projection: plan.projection
 			};
 		},
-		[execute, options, project, setFocus]
+		[execute, project, setFocus, splitView]
 	);
 
 	return React.useMemo(() => ({navigate}), [navigate]);

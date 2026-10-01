@@ -1,15 +1,13 @@
 import * as React from 'react';
-import {minutesPerDay} from '../../../domain/narrative/calendar';
 import {
 	ProjectSearchDocument,
 	ProjectSearchKind,
 	buildProjectSearchIndex,
 	projectBackReferences,
-	projectSearchNavigationTarget,
 	searchNarrativeProject
 } from '../../../application/narrative/project-search';
-import {storyCanvasViewportForNode} from '../../../domain/narrative/workspace-navigation';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {AuthoringNavigationActions} from './use-authoring-navigation';
 
 const kindLabels: Record<ProjectSearchKind, string> = {
 	'story-node': 'Story',
@@ -36,7 +34,13 @@ type NavigationSnapshot = {
 	};
 };
 
-export const ProjectSearchPanel: React.FC = () => {
+export interface ProjectSearchPanelProps {
+	navigate: AuthoringNavigationActions['navigate'];
+}
+
+export const ProjectSearchPanel: React.FC<ProjectSearchPanelProps> = ({
+	navigate
+}) => {
 	const {project, execute} = useNarrativeProject();
 	const [query, setQuery] = React.useState('');
 	const [kind, setKind] = React.useState<ProjectSearchKind | 'all'>('all');
@@ -87,37 +91,7 @@ export const ProjectSearchPanel: React.FC = () => {
 
 	function applyDocumentNavigation(document: ProjectSearchDocument) {
 		pushHistory();
-		const target = projectSearchNavigationTarget(project, document);
-		if (target.storyNodeId || target.characterId) {
-			const visual = project.editor.storyCanvas?.nodes.find(node => {
-				if (!node.entityRef) {
-					return false;
-				}
-				return target.storyNodeId
-					? node.entityRef.type === 'storyNode' && node.entityRef.id === target.storyNodeId
-					: node.entityRef.type === 'character' && node.entityRef.id === target.characterId;
-			});
-			if (visual) {
-				execute({
-					type: 'editor/setStoryViewport',
-					viewport: storyCanvasViewportForNode(
-						visual.position,
-						project.editor.storyCanvas?.viewport.zoom
-					)
-				});
-			}
-		}
-		if (target.workspace === 'world-time' && target.absoluteMinute !== undefined) {
-			execute({
-				type: 'editor/setWorldTimeViewport',
-				centerAbsoluteMinute: target.absoluteMinute,
-				pixelsPerHour: Math.max(
-					12,
-					project.editor.worldTimeViewport?.pixelsPerHour ?? 12
-				)
-			});
-		}
-		execute({type: 'editor/selectWorkspace', workspace: target.workspace});
+		navigate({type: 'open-search-document', document});
 		setActiveKey(document.key);
 	}
 
@@ -127,16 +101,7 @@ export const ProjectSearchPanel: React.FC = () => {
 			return;
 		}
 		pushHistory();
-		execute({
-			type: 'editor/setWorldTimeViewport',
-			centerAbsoluteMinute:
-				(node.placement.day - 1) * minutesPerDay + node.placement.minuteOfDay,
-			pixelsPerHour: Math.max(
-				12,
-				project.editor.worldTimeViewport?.pixelsPerHour ?? 12
-			)
-		});
-		execute({type: 'editor/selectWorkspace', workspace: 'world-time'});
+		navigate({type: 'open-story-in-world-time', storyNodeId: document.id});
 		setActiveKey(document.key);
 	}
 

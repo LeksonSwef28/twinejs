@@ -2,24 +2,24 @@ import * as React from 'react';
 import {PreviewFromHereFocus} from '../../../application/narrative/preview-from-here';
 import {formatMinuteOfDay} from '../../../domain/narrative/calendar';
 import {
-	storyCanvasViewportForNode,
 	storyNodesForCharacter,
 	storyNodesForLocation,
 	storyWorldNavigationContext,
 	worldTimeViewportForStoryNode
 } from '../../../domain/narrative/workspace-navigation';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {AuthoringNavigationActions} from './use-authoring-navigation';
 
 export interface CrossWorkspaceNavigatorProps {
-	splitView?: boolean;
+	navigate: AuthoringNavigationActions['navigate'];
 	onPreviewFromHere?(focus: PreviewFromHereFocus): void;
 }
 
 export const CrossWorkspaceNavigator: React.FC<CrossWorkspaceNavigatorProps> = ({
-	splitView = false,
+	navigate,
 	onPreviewFromHere
 }) => {
-	const {project, execute} = useNarrativeProject();
+	const {project} = useNarrativeProject();
 	const [storyNodeId, setStoryNodeId] = React.useState('');
 	const [locationFilterId, setLocationFilterId] = React.useState('');
 	const [characterFilterId, setCharacterFilterId] = React.useState('');
@@ -43,11 +43,6 @@ export const CrossWorkspaceNavigator: React.FC<CrossWorkspaceNavigatorProps> = (
 			? storyNodeId
 			: filteredNodes[0]?.id ?? '';
 	const selectedNode = project.storyNodes.find(node => node.id === selectedId);
-	const visual = project.editor.storyCanvas?.nodes.find(
-		node =>
-			node.entityRef?.type === 'storyNode' &&
-			node.entityRef.id === selectedId
-	);
 	const worldTarget = selectedNode
 		? worldTimeViewportForStoryNode(
 				selectedNode,
@@ -71,33 +66,20 @@ export const CrossWorkspaceNavigator: React.FC<CrossWorkspaceNavigatorProps> = (
 	);
 
 	function showInStory() {
-		if (!visual) {
+		if (!selectedNode) {
 			return;
 		}
-		execute({
-			type: 'editor/setStoryViewport',
-			viewport: storyCanvasViewportForNode(
-				visual.position,
-				project.editor.storyCanvas?.viewport.zoom
-			)
-		});
-		if (!splitView) {
-			execute({type: 'editor/selectWorkspace', workspace: 'story'});
-		}
+		navigate({type: 'open-story-in-story', storyNodeId: selectedNode.id});
 	}
 
 	function showInWorldTime() {
-		if (!worldTarget) {
+		if (!selectedNode || !worldTarget) {
 			return;
 		}
-		execute({
-			type: 'editor/setWorldTimeViewport',
-			centerAbsoluteMinute: worldTarget.centerAbsoluteMinute,
-			pixelsPerHour: worldTarget.pixelsPerHour
+		navigate({
+			type: 'open-story-in-world-time',
+			storyNodeId: selectedNode.id
 		});
-		if (!splitView) {
-			execute({type: 'editor/selectWorkspace', workspace: 'world-time'});
-		}
 	}
 
 	if (project.storyNodes.length === 0) {
@@ -162,7 +144,7 @@ export const CrossWorkspaceNavigator: React.FC<CrossWorkspaceNavigatorProps> = (
 					))
 				)}
 			</select>
-			<button type="button" onClick={showInStory} disabled={!visual}>
+			<button type="button" onClick={showInStory} disabled={!selectedNode}>
 				Показать в Story
 			</button>
 			<button type="button" onClick={showInWorldTime} disabled={!worldTarget}>
