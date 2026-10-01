@@ -76,7 +76,13 @@ describe('A51 Preview from here controls', () => {
 
 	it('emits the selected Story node as typed authoring focus', () => {
 		const onPreviewFromHere = jest.fn();
-		render(<CrossWorkspaceNavigator onPreviewFromHere={onPreviewFromHere} />);
+		const navigate = jest.fn();
+		render(
+			<CrossWorkspaceNavigator
+				navigate={navigate}
+				onPreviewFromHere={onPreviewFromHere}
+			/>
+		);
 
 		fireEvent.click(screen.getByRole('button', {name: 'Preview from here'}));
 		expect(onPreviewFromHere).toHaveBeenCalledWith({
@@ -84,6 +90,7 @@ describe('A51 Preview from here controls', () => {
 			storyNodeId: 'meeting'
 		});
 		expect(mockExecute).not.toHaveBeenCalled();
+		expect(navigate).not.toHaveBeenCalled();
 	});
 
 	it('shows the focus/playhead mismatch before any explicit sandbox override', () => {

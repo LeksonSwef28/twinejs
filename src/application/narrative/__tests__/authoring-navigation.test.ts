@@ -1,3 +1,4 @@
+import {createDefaultNarrativeOutcome} from '../../../domain/narrative/interaction';
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
 import {buildProjectSearchIndex} from '../project-search';
@@ -58,6 +59,7 @@ function projectFixture() {
 			position: {x: 900, y: 1000}
 		}
 	);
+	const outcome = createDefaultNarrativeOutcome('move-a');
 	project.narrativeMoves.push({
 		id: 'move-a',
 		storyNodeId: 'scheduled',
@@ -65,8 +67,8 @@ function projectFixture() {
 		label: 'Сказать',
 		targetCharacterIds: [],
 		guards: [],
-		resolution: {type: 'automatic', outcomeId: 'outcome-a'},
-		outcomes: [{id: 'outcome-a', label: 'Ок', effectStoryNodeIds: []}]
+		resolution: {type: 'automatic', outcomeId: outcome.id},
+		outcomes: [outcome]
 	});
 	project.routineRules.push({
 		id: 'katya-routine',
