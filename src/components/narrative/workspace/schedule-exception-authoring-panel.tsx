@@ -749,7 +749,7 @@ export const ScheduleExceptionAuthoringPanel: React.FC = () => {
 		setPending(undefined);
 		setMessage(
 			resolved.intent.status === 'conflicting'
-				? 'Выбери одно назначение: локацию или отсутствие.'
+				? 'Исправь конфликт назначения перед сохранением.'
 				: 'Редактирование исключения расписания.'
 		);
 	}
