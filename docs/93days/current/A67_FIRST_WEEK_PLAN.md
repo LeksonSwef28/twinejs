@@ -1,6 +1,6 @@
 # A67 — FIRST WEEK COMPLETION PLAN
 
-Status: **ACTIVE**
+Status: **IMPLEMENTATION PROOF COMPLETE / CLOSURE PENDING**
 Updated: **2026-10-03**
 Branch: `content/a67-first-week-completion`
 
@@ -124,6 +124,24 @@ At minimum prove two complete Player histories:
 - learns about the consequence later rather than seeing the same scene.
 
 These histories must differ in canonical runtime state, not only text.
+
+## Closure audit — 2026-10-03
+
+Runtime/content acceptance status:
+
+- **PASS** — canonical Player reaches Day 7.
+- **PASS** — Day 1-4 regressions remain green.
+- **PASS** — new Old City social hub/network edge exists.
+- **PASS** — Day 6 Old City and dorm social lines are mutually exclusive.
+- **PASS** — missed Day 6 aftermath proceeds without the Player and becomes later Day 7 evidence.
+- **PASS** — deterministic NPC-only authored work is visible later through knowledge/story state.
+- **PASS** — two week-end histories differ in Story/knowledge/relationship/memory state.
+- **PASS** — save/continue restores Day 6 state and continues into Day 7.
+- **PASS** — no new gameplay schema or generic NPC AI was introduced.
+- **PENDING** — authoring pass: ordinary first-week content edits must be verified through canonical authoring workflows rather than relying on direct TypeScript fixture surgery.
+- **PENDING** — week-level playtest findings must be recorded and classified as CONTENT / PRESENTATION / TOOLING / RUNTIME.
+
+Therefore A67 is not reopened architecturally and is not yet marked DONE. Its implementation proof is complete; closure is now limited to the authoring/playtest pass.
 
 ## Definition of Done
 
