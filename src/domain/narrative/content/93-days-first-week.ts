@@ -5,10 +5,12 @@ export const firstWeekProjectId = '93-days-first-week-v1';
 
 export const firstWeekIds = {
 	locations: {
-		oldMarketSquare: 'a67-old-market-square'
+		oldMarket: 'a67-old-market',
+		oldCinema: 'a67-old-cinema'
 	},
 	scenes: {
-		oldMarketSquare: 'a67-old-market-square:scene'
+		oldMarket: 'a67-old-market:scene',
+		oldCinema: 'a67-old-cinema:scene'
 	},
 	characters: {
 		cameraStudent: 'a67-camera-student'
@@ -17,15 +19,18 @@ export const firstWeekIds = {
 		cameraStudent: 'a67-camera-student-week'
 	},
 	routines: {
-		cameraStudentMarket: 'a67-camera-student-market'
+		cameraStudentMarket: 'a67-camera-student-market',
+		cameraStudentCinema: 'a67-camera-student-cinema'
 	},
 	routes: {
 		dormToMarketBus: 'a67-route-dorm-market-bus',
-		marketToDormBus: 'a67-route-market-dorm-bus'
+		marketToDormBus: 'a67-route-market-dorm-bus',
+		marketToCinemaWalk: 'a67-route-market-cinema-walk',
+		cinemaToMarketWalk: 'a67-route-cinema-market-walk'
 	},
 	story: {
 		dayFiveMarketIntroduction: 'a67-day5-market-introduction',
-		daySixCinemaSquare: 'a67-day6-cinema-square',
+		daySixCinema: 'a67-day6-cinema',
 		daySixDormCounterline: 'a67-day6-dorm-counterline',
 		daySevenWeekEcho: 'a67-day7-week-echo'
 	}
@@ -35,9 +40,13 @@ export const firstWeekIds = {
  * A67-W1 first-week production skeleton.
  *
  * This layer deliberately reuses the existing A63 runtime and authoring model.
- * It adds canonical content structure only: one additional social hub, one NPC,
+ * It adds canonical content structure only: an Old City social hub, one NPC,
  * ordinary routines/routes, and Day 5-7 Story topology. Consequence/provenance
  * wiring is introduced in later A67 first-week slices.
+ *
+ * MASTER v31 treats the old market and old cinema as distinct Old City objects;
+ * this builder keeps them distinct rather than inventing an unverified combined
+ * square/location.
  */
 export function create93DaysFirstWeekProject(): NarrativeProject {
 	const project = create93DaysPlayerNpcSocialDeliveryProject();
@@ -48,18 +57,21 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 
 	project.locations = [
 		...project.locations,
-		{
-			id: ids.locations.oldMarketSquare,
-			name: 'Площадь у старого рынка и кинотеатра'
-		}
+		{id: ids.locations.oldMarket, name: 'Старый рынок'},
+		{id: ids.locations.oldCinema, name: 'Старый кинотеатр'}
 	];
 
 	project.scenes = [
 		...project.scenes,
 		{
-			id: ids.scenes.oldMarketSquare,
-			locationId: ids.locations.oldMarketSquare,
-			name: 'Площадь между рынком и старым кинотеатром'
+			id: ids.scenes.oldMarket,
+			locationId: ids.locations.oldMarket,
+			name: 'Торговые ряды старого рынка'
+		},
+		{
+			id: ids.scenes.oldCinema,
+			locationId: ids.locations.oldCinema,
+			name: 'Вход и площадка у старого кинотеатра'
 		}
 	];
 
@@ -78,7 +90,7 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 		{
 			id: ids.behaviorProfiles.cameraStudent,
 			characterId: ids.characters.cameraStudent,
-			name: 'Учёба, рынок и прогулки с фотоаппаратом'
+			name: 'Учёба, Старый город и прогулки с фотоаппаратом'
 		}
 	];
 
@@ -89,9 +101,18 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			characterId: ids.characters.cameraStudent,
 			behaviorProfileId: ids.behaviorProfiles.cameraStudent,
 			activeRange: {fromDay: 5, toDay: 7},
-			recurrence: {type: 'explicitDays', days: [5, 6, 7]},
+			recurrence: {type: 'explicitDays', days: [5, 7]},
 			timeWindow: {type: 'exact', startMinute: 16 * 60, endMinute: 20 * 60},
-			targetLocationId: ids.locations.oldMarketSquare
+			targetLocationId: ids.locations.oldMarket
+		},
+		{
+			id: ids.routines.cameraStudentCinema,
+			characterId: ids.characters.cameraStudent,
+			behaviorProfileId: ids.behaviorProfiles.cameraStudent,
+			activeRange: {fromDay: 6, toDay: 6},
+			recurrence: {type: 'explicitDays', days: [6]},
+			timeWindow: {type: 'exact', startMinute: 16 * 60, endMinute: 20 * 60},
+			targetLocationId: ids.locations.oldCinema
 		}
 	];
 
@@ -101,17 +122,35 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			id: ids.routes.dormToMarketBus,
 			label: 'Ехать от общежития к старому рынку',
 			originLocationId: 'arrival-student-dormitory',
-			destinationLocationId: ids.locations.oldMarketSquare,
+			destinationLocationId: ids.locations.oldMarket,
 			durationMinutes: 24,
 			mode: 'city-bus'
 		},
 		{
 			id: ids.routes.marketToDormBus,
 			label: 'Ехать от старого рынка к общежитию',
-			originLocationId: ids.locations.oldMarketSquare,
+			originLocationId: ids.locations.oldMarket,
 			destinationLocationId: 'arrival-student-dormitory',
 			durationMinutes: 24,
 			mode: 'city-bus'
+		},
+		{
+			id: ids.routes.marketToCinemaWalk,
+			label: 'Дойти от старого рынка до кинотеатра',
+			originLocationId: ids.locations.oldMarket,
+			destinationLocationId: ids.locations.oldCinema,
+			durationMinutes: 8,
+			mode: 'walk',
+			physicalAction: 'walk'
+		},
+		{
+			id: ids.routes.cinemaToMarketWalk,
+			label: 'Вернуться от кинотеатра к старому рынку',
+			originLocationId: ids.locations.oldCinema,
+			destinationLocationId: ids.locations.oldMarket,
+			durationMinutes: 8,
+			mode: 'walk',
+			physicalAction: 'walk'
 		}
 	];
 
@@ -120,15 +159,15 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 		{
 			id: ids.story.dayFiveMarketIntroduction,
 			kind: 'event',
-			title: 'Пятый день: площадь у старого рынка',
+			title: 'Пятый день: старый рынок',
 			description:
-				'Новый знакомый городской узел: рынок ещё живёт повседневной жизнью, а рядом старый кинотеатр становится предметом разговоров о том, что в городе стоит сохранять, а что менять.',
+				'Новый городской узел живёт обычной торговой жизнью. Через знакомство и наблюдение игрок получает первый необязательный вход в тему того, как город меняется.',
 			primaryCharacterId: ids.characters.cameraStudent,
 			participantIds: [ids.characters.cameraStudent],
 			placement: {
 				day: 5,
 				minuteOfDay: 17 * 60 + 30,
-				locationId: ids.locations.oldMarketSquare
+				locationId: ids.locations.oldMarket
 			},
 			activationState: 'available',
 			runtimePolicy: {
@@ -138,17 +177,17 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			}
 		},
 		{
-			id: ids.story.daySixCinemaSquare,
+			id: ids.story.daySixCinema,
 			kind: 'event',
-			title: 'Шестой день: разговор у кинотеатра',
+			title: 'Шестой день: разговор у старого кинотеатра',
 			description:
-				'На площади обсуждают будущее старого кинотеатра. Это социальная линия нового городского узла, а не обязательная центральная загадка.',
+				'У отдельного старого кинотеатра возникает разговор о его будущем. Это социальная линия Старого города, а не обязательная центральная загадка.',
 			primaryCharacterId: ids.characters.cameraStudent,
 			participantIds: [ids.characters.cameraStudent],
 			placement: {
 				day: 6,
 				minuteOfDay: 18 * 60,
-				locationId: ids.locations.oldMarketSquare
+				locationId: ids.locations.oldCinema
 			},
 			activationState: 'available',
 			runtimePolicy: {
@@ -195,15 +234,15 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 	project.storyConnections = [
 		...project.storyConnections,
 		{
-			id: 'a67-ref-day5-day6-market',
+			id: 'a67-ref-day5-day6-old-city',
 			sourceNodeId: ids.story.dayFiveMarketIntroduction,
-			targetNodeId: ids.story.daySixCinemaSquare,
+			targetNodeId: ids.story.daySixCinema,
 			kind: 'semantic',
 			mode: 'reference'
 		},
 		{
-			id: 'a67-ref-day6-market-week-echo',
-			sourceNodeId: ids.story.daySixCinemaSquare,
+			id: 'a67-ref-day6-cinema-week-echo',
+			sourceNodeId: ids.story.daySixCinema,
 			targetNodeId: ids.story.daySevenWeekEcho,
 			kind: 'semantic',
 			mode: 'reference'
