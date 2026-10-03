@@ -35,6 +35,7 @@ export const firstWeekIds = {
 	claims: {
 		cinemaInvitation: 'a67-claim-cinema-invitation',
 		cinemaFutureContested: 'a67-claim-cinema-future-contested',
+		cinemaAftermath: 'a67-claim-cinema-aftermath',
 		dormEveningContinuation: 'a67-claim-dorm-evening-continuation'
 	},
 	moves: {
@@ -42,15 +43,22 @@ export const firstWeekIds = {
 		marketMissed: 'a67-day5-market:missed-history',
 		marketDeclined: 'a67-day5-market:declined-history',
 		cinemaStay: 'a67-day6-cinema:stay',
+		cameraCinemaAftermath: 'a67-day6-cinema:aftermath',
 		dormStay: 'a67-day6-dorm:stay',
+		learnCinemaAftermath: 'a67-day7-market:aftermath',
 		weekOldCity: 'a67-day7-week:old-city',
 		weekDorm: 'a67-day7-week:dorm'
 	},
 	story: {
+		dayFiveCameraArrival: 'a67-day5-camera-arrival',
 		dayFiveMarketIntroduction: 'a67-day5-market-introduction',
+		daySixCameraArrival: 'a67-day6-camera-arrival',
 		daySixCinema: 'a67-day6-cinema',
 		daySixDormCounterline: 'a67-day6-dorm-counterline',
-		daySevenWeekEcho: 'a67-day7-week-echo'
+		daySixCinemaAftermath: 'a67-day6-cinema-aftermath',
+		daySevenWeekEcho: 'a67-day7-week-echo',
+		daySevenCameraArrival: 'a67-day7-camera-arrival',
+		daySevenMarketAftermath: 'a67-day7-market-aftermath'
 	}
 } as const;
 
@@ -416,6 +424,140 @@ function daySixDormMove(): NarrativeMoveDefinition {
 	};
 }
 
+
+function cameraCinemaAftermathMove(): NarrativeMoveDefinition {
+	const ids = firstWeekIds;
+	const id = ids.moves.cameraCinemaAftermath;
+	return {
+		id,
+		storyNodeId: ids.story.daySixCinemaAftermath,
+		kind: 'observe',
+		label: 'Остаться после основного разговора и увидеть, чем закончился вечер',
+		actorCharacterId: ids.characters.cameraStudent,
+		targetCharacterIds: [],
+		guards: [
+			storyStateGuard(
+				id + ':aftermath-available',
+				ids.story.daySixCinemaAftermath,
+				'available'
+			),
+			doesNotKnowClaimGuard(
+				id + ':new-aftermath',
+				ids.characters.cameraStudent,
+				ids.claims.cinemaAftermath
+			)
+		],
+		resolution: {type: 'automatic', outcomeId: id + ':outcome'},
+		outcomes: [
+			{
+				id: id + ':outcome',
+				key: 'observed',
+				label:
+					'После основной встречи спор не закончился: часть людей разошлась, а несколько человек остались договариваться о следующем разговоре.',
+				effectStoryNodeIds: [ids.story.daySevenMarketAftermath],
+				effects: [
+					{
+						id: id + ':learn',
+						type: 'character-learns-claim',
+						recipient: {
+							type: 'character',
+							characterId: ids.characters.cameraStudent
+						},
+						claim: {type: 'claim', claimId: ids.claims.cinemaAftermath},
+						attitude: 'believes',
+						confidence: 0.96,
+						source: {type: 'observed'}
+					},
+					{
+						id: id + ':memory',
+						type: 'character-remembers',
+						character: {
+							type: 'character',
+							characterId: ids.characters.cameraStudent
+						},
+						summary:
+							'После основного разговора у старого кинотеатра несколько человек задержались и договорились продолжить обсуждение позже.',
+						importance: 0.62,
+						baseStrength: 0.68,
+						tags: ['day-six', 'old-city', 'cinema', 'aftermath', 'npc-only'],
+						source: {type: 'owning-story-node'}
+					},
+					{
+						id: id + ':open-later-evidence',
+						type: 'story-node-set-state',
+						storyNodeId: ids.story.daySevenMarketAftermath,
+						state: 'available'
+					}
+				]
+			}
+		]
+	};
+}
+
+function daySevenMarketAftermathMove(): NarrativeMoveDefinition {
+	const ids = firstWeekIds;
+	const id = ids.moves.learnCinemaAftermath;
+	return {
+		id,
+		storyNodeId: ids.story.daySevenMarketAftermath,
+		kind: 'ask',
+		label: 'Спросить, чем закончился вчерашний разговор у кинотеатра',
+		actorCharacterId: playerId,
+		targetCharacterIds: [ids.characters.cameraStudent],
+		guards: [
+			storyStateGuard(
+				id + ':followup-active',
+				ids.story.daySevenMarketAftermath,
+				'active'
+			),
+			{
+				id: id + ':same-place',
+				condition: {
+					type: 'characters-share-location',
+					characterIds: [playerId, ids.characters.cameraStudent]
+				}
+			},
+			doesNotKnowClaimGuard(
+				id + ':new-to-player',
+				playerId,
+				ids.claims.cinemaAftermath
+			)
+		],
+		resolution: {type: 'automatic', outcomeId: id + ':outcome'},
+		outcomes: [
+			{
+				id: id + ':outcome',
+				key: 'heard-later',
+				label:
+					'Пропущенная часть вечера всё равно стала частью истории: о ней можно узнать позже от человека, который там остался.',
+				effectStoryNodeIds: [],
+				effects: [
+					{
+						id: id + ':learn',
+						type: 'character-learns-claim',
+						recipient: {type: 'character', characterId: playerId},
+						claim: {type: 'claim', claimId: ids.claims.cinemaAftermath},
+						attitude: 'believes',
+						confidence: 0.9,
+						source: {type: 'observed'}
+					},
+					{
+						id: id + ':memory',
+						type: 'character-remembers',
+						character: {type: 'move-actor'},
+						summary:
+							'На следующий день я узнал, что после основного разговора у кинотеатра люди ещё долго не расходились и договорились продолжить спор.',
+						importance: 0.58,
+						baseStrength: 0.64,
+						tags: ['day-seven', 'old-city', 'missed-event', 'later-evidence'],
+						source: {type: 'current-move'}
+					}
+				]
+			}
+		]
+	};
+}
+
 function daySevenMoves(): NarrativeMoveDefinition[] {
 	const ids = firstWeekIds;
 	const branchMove = (
@@ -615,6 +757,12 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			tags: ['day-six', 'old-city', 'cinema', 'city-change']
 		},
 		{
+			id: ids.claims.cinemaAftermath,
+			text: 'После основного разговора у старого кинотеатра часть людей задержалась и договорилась продолжить обсуждение в другой день.',
+			stance: 'supports',
+			tags: ['day-six', 'old-city', 'cinema', 'aftermath', 'missable']
+		},
+		{
 			id: ids.claims.dormEveningContinuation,
 			text: 'Разговоры и впечатления первых дней уже стали частью повседневной жизни общежития.',
 			stance: 'supports',
@@ -624,6 +772,22 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 
 	project.storyNodes = [
 		...project.storyNodes,
+		{
+			id: ids.story.dayFiveCameraArrival,
+			kind: 'event',
+			title: 'Пятый день: студентка приходит к старому рынку',
+			description:
+				'Authored NPC movement: расписание объясняет намерение, а это событие фиксирует реальное прибытие в Actual Presence.',
+			primaryCharacterId: ids.characters.cameraStudent,
+			participantIds: [ids.characters.cameraStudent],
+			placement: {
+				day: 5,
+				minuteOfDay: 17 * 60 + 20,
+				locationId: ids.locations.oldMarket
+			},
+			activationState: 'available',
+			runtimePolicy: {occurrenceMode: 'one-shot', durationMinutes: 0}
+		},
 		{
 			id: ids.story.dayFiveMarketIntroduction,
 			kind: 'event',
@@ -646,6 +810,22 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 				durationMinutes: 30,
 				missAfterMinutes: 90
 			}
+		},
+		{
+			id: ids.story.daySixCameraArrival,
+			kind: 'event',
+			title: 'Шестой день: студентка приходит к старому кинотеатру',
+			description:
+				'Явное authored arrival переводит Scheduled Presence в фактическое присутствие только через runtime-оркестрацию.',
+			primaryCharacterId: ids.characters.cameraStudent,
+			participantIds: [ids.characters.cameraStudent],
+			placement: {
+				day: 6,
+				minuteOfDay: 17 * 60 + 50,
+				locationId: ids.locations.oldCinema
+			},
+			activationState: 'available',
+			runtimePolicy: {occurrenceMode: 'one-shot', durationMinutes: 0}
 		},
 		{
 			id: ids.story.daySixCinema,
@@ -694,6 +874,22 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			}
 		},
 		{
+			id: ids.story.daySixCinemaAftermath,
+			kind: 'event',
+			title: 'Шестой день: разговор продолжается без героя',
+			description:
+				'После основного окна у кинотеатра мир продолжает жить: студентка остаётся ещё ненадолго и видит продолжение спора, даже если игрок ушёл или выбрал общежитие.',
+			primaryCharacterId: ids.characters.cameraStudent,
+			participantIds: [ids.characters.cameraStudent],
+			placement: {
+				day: 6,
+				minuteOfDay: 19 * 60 + 15,
+				locationId: ids.locations.oldCinema
+			},
+			activationState: 'available',
+			runtimePolicy: {occurrenceMode: 'one-shot', durationMinutes: 0}
+		},
+		{
 			id: ids.story.daySevenWeekEcho,
 			kind: 'beat',
 			title: 'Седьмой день: город возвращает последствия',
@@ -707,6 +903,41 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 				locationId: arrivalCorridorIds.locations.studentDormitory
 			},
 			activationState: 'dormant'
+		},
+		{
+			id: ids.story.daySevenCameraArrival,
+			kind: 'event',
+			title: 'Седьмой день: студентка возвращается к старому рынку',
+			description: 'Явное authored прибытие для Day 7 follow-up.',
+			primaryCharacterId: ids.characters.cameraStudent,
+			participantIds: [ids.characters.cameraStudent],
+			placement: {
+				day: 7,
+				minuteOfDay: 15 * 60 + 45,
+				locationId: ids.locations.oldMarket
+			},
+			activationState: 'available',
+			runtimePolicy: {occurrenceMode: 'one-shot', durationMinutes: 0}
+		},
+		{
+			id: ids.story.daySevenMarketAftermath,
+			kind: 'dialogue',
+			title: 'Седьмой день: узнать о пропущенном продолжении',
+			description:
+				'Если вчерашний вечер прошёл без игрока, последствия не исчезают: при новой встрече можно узнать, что происходило после основного разговора.',
+			primaryCharacterId: ids.characters.cameraStudent,
+			participantIds: [playerId, ids.characters.cameraStudent],
+			placement: {
+				day: 7,
+				minuteOfDay: 16 * 60,
+				locationId: ids.locations.oldMarket
+			},
+			activationState: 'dormant',
+			runtimePolicy: {
+				occurrenceMode: 'one-shot',
+				durationMinutes: 20,
+				missAfterMinutes: 120
+			}
 		}
 	];
 
@@ -714,7 +945,9 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 		...project.narrativeMoves,
 		...dayFiveMarketMoves(),
 		daySixCinemaMove(),
+		cameraCinemaAftermathMove(),
 		daySixDormMove(),
+		daySevenMarketAftermathMove(),
 		...daySevenMoves()
 	];
 
@@ -731,6 +964,13 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			id: 'a67-ref-day6-cinema-week-echo',
 			sourceNodeId: ids.story.daySixCinema,
 			targetNodeId: ids.story.daySevenWeekEcho,
+			kind: 'semantic',
+			mode: 'reference'
+		},
+		{
+			id: 'a67-ref-day6-aftermath-day7-market',
+			sourceNodeId: ids.story.daySixCinemaAftermath,
+			targetNodeId: ids.story.daySevenMarketAftermath,
 			kind: 'semantic',
 			mode: 'reference'
 		},
