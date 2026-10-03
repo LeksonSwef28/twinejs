@@ -198,16 +198,16 @@ describe('A39 carrying and containers', () => {
 			...thermos,
 			placement: {type: 'location', locationId: 'home'}
 		};
-		const authoredWithPlayer: ItemInstance = {
+		const authoredAtCafe: ItemInstance = {
 			...thermos,
-			placement: {type: 'character', characterId: 'player'}
+			placement: {type: 'location', locationId: 'cafe'}
 		};
 
 		expect(effectiveItemPlacement(authoredAtHome, {})).toEqual(
 			authoredAtHome.placement
 		);
-		expect(effectiveItemPlacement(authoredWithPlayer, {})).toEqual(
-			authoredWithPlayer.placement
+		expect(effectiveItemPlacement(authoredAtCafe, {})).toEqual(
+			authoredAtCafe.placement
 		);
 
 		const overrides = applyItemRuntimePlacement({}, 'thermos-1', {
@@ -217,7 +217,7 @@ describe('A39 carrying and containers', () => {
 		expect(effectiveItemPlacement(authoredAtHome, overrides)).toEqual(
 			overrides['thermos-1']
 		);
-		expect(effectiveItemPlacement(authoredWithPlayer, overrides)).toEqual(
+		expect(effectiveItemPlacement(authoredAtCafe, overrides)).toEqual(
 			overrides['thermos-1']
 		);
 	});
