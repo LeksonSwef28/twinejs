@@ -777,7 +777,7 @@ describe('A67-W1 first-week content skeleton', () => {
 
 		expect(session.currentProject.simulation).toMatchObject({
 			day: 6,
-			minuteOfDay: 18 * 60 + 45
+			minuteOfDay: 18 * 60 + 15
 		});
 		expect(
 			playerKnows(session, firstWeekIds.claims.dormEveningContinuation)
