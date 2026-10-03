@@ -1,8 +1,11 @@
 import {compileNarrativeRuntimeArtifact, NarrativeRuntimeArtifactV1} from '../export-compiler';
+import {setNarrativeCharacterActualLocation} from '../living-simulation';
 import {executeNarrativePlayerAction} from '../player-action';
+import {deriveNarrativePlayerPresentation} from '../player-presentation';
 import {
 	materializeNarrativePlayerSession,
-	NarrativePlayerSession
+	NarrativePlayerSession,
+	replaceNarrativePlayerSessionProject
 } from '../player-runtime';
 import {executeNarrativePlayerStoryWork} from '../player-story-work';
 import {executeNarrativePlayerWait} from '../player-wait';
@@ -24,6 +27,9 @@ const playerId = arrivalCorridorIds.characters.player;
 const contactId = dayOneNarrativeIds.characters.localContact;
 const smsWorkId = 'story-node:' + phoneSocialLoopIds.story.incomingSms;
 const reportWorkId = 'story-node:' + rumorSocialEchoIds.story.contactReportsToDormDuty;
+const dayFiveWorkId = 'story-node:' + firstWeekIds.story.dayFiveMarketIntroduction;
+const daySixCinemaWorkId = 'story-node:' + firstWeekIds.story.daySixCinema;
+const daySixDormWorkId = 'story-node:' + firstWeekIds.story.daySixDormCounterline;
 
 function compileFixture(): NarrativeRuntimeArtifactV1 {
 	const compiled = compileNarrativeRuntimeArtifact(create93DaysFirstWeekProject());
@@ -93,6 +99,48 @@ function action(session: NarrativePlayerSession, moveId: string) {
 		throw new Error(result.summary);
 	}
 	return result.session;
+}
+
+
+function replace(
+	session: NarrativePlayerSession,
+	project: NarrativePlayerSession['currentProject']
+) {
+	const result = replaceNarrativePlayerSessionProject(session, project);
+	if (result.status !== 'updated') {
+		throw new Error('A67 Player session replacement failed.');
+	}
+	return result.session;
+}
+
+function place(
+	session: NarrativePlayerSession,
+	characterId: string,
+	locationId: string
+) {
+	return replace(
+		session,
+		setNarrativeCharacterActualLocation(
+			session.currentProject,
+			characterId,
+			locationId
+		)
+	);
+}
+
+function declinedHistoryThroughDayThree() {
+	let session = start(compileFixture());
+	session = waitUntil(session, 2, 10 * 60 + 30);
+	session = story(session, smsWorkId, 'execute');
+	session = action(session, phoneSocialLoopIds.moves.decline);
+	session = waitUntil(session, 3, 8 * 60 + 15);
+	return session;
+}
+
+function playerKnows(session: NarrativePlayerSession, claimId: string) {
+	return session.currentProject.simulation.characterKnowledge.some(
+		item => item.characterId === playerId && item.claimId === claimId
+	);
 }
 
 describe('A67-W1 first-week content skeleton', () => {
@@ -211,12 +259,7 @@ describe('A67-W1 first-week content skeleton', () => {
 	});
 
 	test('preserves inherited A63 exact-time Day Three NPC delivery', () => {
-		let session = start(compileFixture());
-
-		session = waitUntil(session, 2, 10 * 60 + 30);
-		session = story(session, smsWorkId, 'execute');
-		session = action(session, phoneSocialLoopIds.moves.decline);
-		session = waitUntil(session, 3, 8 * 60 + 15);
+		const session = declinedHistoryThroughDayThree();
 
 		expect(
 			session.currentProject.runtimeOccurrences.filter(
@@ -255,4 +298,179 @@ describe('A67-W1 first-week content skeleton', () => {
 			)
 		).toBe(true);
 	});
+
+	test('carries prior social history into the Day Five market and Old City branch', () => {
+		let session = declinedHistoryThroughDayThree();
+
+		session = waitUntil(session, 5, 17 * 60 + 30);
+		session = place(session, playerId, firstWeekIds.locations.oldMarket);
+		session = place(
+			session,
+			firstWeekIds.characters.cameraStudent,
+			firstWeekIds.locations.oldMarket
+		);
+		session = story(session, dayFiveWorkId, 'execute');
+
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: firstWeekIds.moves.marketDeclined,
+					state: 'ready'
+				})
+			])
+		);
+		session = action(session, firstWeekIds.moves.marketDeclined);
+
+		expect(
+			session.currentProject.simulation.characterKnowledge
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					characterId: firstWeekIds.characters.cameraStudent,
+					claimId: rumorSocialEchoIds.claims.declinedMeeting,
+					source: expect.objectContaining({
+						type: 'told',
+						sourceCharacterId: playerId
+					})
+				})
+			])
+		);
+		expect(playerKnows(session, firstWeekIds.claims.cinemaInvitation)).toBe(true);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySixCinema
+			]
+		).toBe('available');
+
+		session = waitUntil(session, 6, 18 * 60);
+		session = place(session, playerId, firstWeekIds.locations.oldCinema);
+		session = place(
+			session,
+			firstWeekIds.characters.cameraStudent,
+			firstWeekIds.locations.oldCinema
+		);
+		session = story(session, daySixCinemaWorkId, 'execute');
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: firstWeekIds.moves.cinemaStay,
+					state: 'ready'
+				})
+			])
+		);
+		session = action(session, firstWeekIds.moves.cinemaStay);
+
+		expect(
+			playerKnows(session, firstWeekIds.claims.cinemaFutureContested)
+		).toBe(true);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySixDormCounterline
+			]
+		).toBe('blocked');
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySevenWeekEcho
+			]
+		).toBe('available');
+
+		session = waitUntil(session, 7, 11 * 60);
+		session = place(
+			session,
+			playerId,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: firstWeekIds.moves.weekOldCity,
+					state: 'ready'
+				})
+			])
+		);
+		session = action(session, firstWeekIds.moves.weekOldCity);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySevenWeekEcho
+			]
+		).toBe('completed');
+	});
+
+	test('lets the Day Six dorm line become a distinct week-end history', () => {
+		let session = declinedHistoryThroughDayThree();
+
+		session = waitUntil(session, 6, 18 * 60 + 15);
+		session = place(
+			session,
+			playerId,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		session = place(
+			session,
+			arrivalCorridorIds.characters.dormDuty,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		session = story(session, daySixDormWorkId, 'execute');
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: firstWeekIds.moves.dormStay,
+					state: 'ready'
+				})
+			])
+		);
+		session = action(session, firstWeekIds.moves.dormStay);
+
+		expect(
+			playerKnows(session, firstWeekIds.claims.dormEveningContinuation)
+		).toBe(true);
+		expect(
+			playerKnows(session, firstWeekIds.claims.cinemaFutureContested)
+		).toBe(false);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySixCinema
+			]
+		).toBe('blocked');
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySevenWeekEcho
+			]
+		).toBe('available');
+
+		session = waitUntil(session, 7, 11 * 60);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: firstWeekIds.moves.weekDorm,
+					state: 'ready'
+				})
+			])
+		);
+		session = action(session, firstWeekIds.moves.weekDorm);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySevenWeekEcho
+			]
+		).toBe('completed');
+		expect(
+			session.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('first-week') &&
+					memory.summary.includes('общежитие')
+			)
+		).toBe(true);
+	});
+
 });
