@@ -469,6 +469,85 @@ describe('A67-W1 first-week content skeleton', () => {
 		).toBe('completed');
 	});
 
+
+	test('makes the Day Six cinema and dorm choices mutually exclusive from the same prior history', () => {
+		let base = declinedHistoryThroughDayThree();
+		base = waitUntil(base, 5, 17 * 60 + 30);
+		base = place(base, playerId, firstWeekIds.locations.oldMarket);
+		base = place(
+			base,
+			firstWeekIds.characters.cameraStudent,
+			firstWeekIds.locations.oldMarket
+		);
+		base = story(base, dayFiveWorkId, 'execute');
+		base = action(base, firstWeekIds.moves.marketDeclined);
+
+		let cinema = waitUntil(base, 6, 18 * 60);
+		cinema = place(cinema, playerId, firstWeekIds.locations.oldCinema);
+		cinema = place(
+			cinema,
+			firstWeekIds.characters.cameraStudent,
+			firstWeekIds.locations.oldCinema
+		);
+		cinema = story(cinema, daySixCinemaWorkId, 'execute');
+		cinema = action(cinema, firstWeekIds.moves.cinemaStay);
+
+		let dorm = waitUntil(base, 6, 18 * 60 + 15);
+		dorm = place(
+			dorm,
+			playerId,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		dorm = place(
+			dorm,
+			arrivalCorridorIds.characters.dormDuty,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		dorm = story(dorm, daySixDormWorkId, 'execute');
+		dorm = action(dorm, firstWeekIds.moves.dormStay);
+
+		expect(
+			cinema.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySixDormCounterline
+			]
+		).toBe('blocked');
+		expect(
+			dorm.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySixCinema
+			]
+		).toBe('blocked');
+
+		expect(
+			playerKnows(cinema, firstWeekIds.claims.cinemaFutureContested)
+		).toBe(true);
+		expect(
+			playerKnows(cinema, firstWeekIds.claims.dormEveningContinuation)
+		).toBe(false);
+		expect(
+			playerKnows(dorm, firstWeekIds.claims.cinemaFutureContested)
+		).toBe(false);
+		expect(
+			playerKnows(dorm, firstWeekIds.claims.dormEveningContinuation)
+		).toBe(true);
+
+		expect(
+			cinema.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('day-six') &&
+					memory.tags.includes('cinema')
+			)
+		).toBe(true);
+		expect(
+			dorm.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('day-six') &&
+					memory.tags.includes('dorm')
+			)
+		).toBe(true);
+	});
+
 	test('lets the Day Six dorm line become a distinct week-end history', () => {
 		let session = declinedHistoryThroughDayThree();
 
