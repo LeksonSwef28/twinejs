@@ -63,7 +63,7 @@ Important correction to Architecture v11: Runtime Story State and occurrence his
 | Narrative Moves | DONE | guards/resolution/outcomes/effects |
 | Interaction templates | DONE | reusable authoring structures |
 | Reaction candidate ranking | DONE | explainable guard/score evaluation |
-| Automatic NPC choice/execution | **MISSING / DEFERRED** | ranking exists, but no canonical autonomous selector/action economy |
+| NPC decision selection/execution | PARTIAL | A43 explicitly evaluates/selects/executes supplied NPC opportunities with time cost, schedule conflicts, PendingReaction and explicit rolls; no general scheduler creates opportunities automatically |
 | NPC-to-NPC deterministic authored occurrence | DONE | A63 exact-time delivery proves authored autonomous world event without generic NPC AI |
 | Rumor/source provenance | DONE for current loop | A61-A63 chain |
 | Phone/SMS social loop | DONE for current loop | A60 Player presentation/integration |
@@ -119,10 +119,10 @@ Do not implement any of these pre-emptively.
 
 ## Known true future system gap
 
-The clearest intentionally unsolved system is **generic autonomous NPC action selection/execution**.
+The clearest intentionally incomplete layer is **generic NPC opportunity scheduling/orchestration**.
 
-Current Reaction Candidate Sets rank authored possibilities. They do not decide when an NPC acts, consume action/time cost, resolve conflicts/preemption, or execute a selected Move automatically.
+A43 already provides a canonical decision bridge once an explicit opportunity exists: it can rank candidates, choose an action, enforce budget/schedule/active-execution blockers, consume PendingReaction after execution, spend simulation time and apply the selected Move. What it does not do is autonomously decide *when* arbitrary NPCs receive decision opportunities or continuously schedule them across the city.
 
-A67 does not require generic AI if its autonomous world consequences can be expressed as deterministic authored Story work, as already proven by A63.
+A67 does not require a generic city-wide scheduler if its autonomous world consequences can be expressed as deterministic authored Story work or explicit A43 opportunities, as already proven by A63.
 
-A68 is the earliest milestone where broader NPC autonomy may become justified by real content pressure.
+A68 is the earliest milestone where broader opportunity scheduling may become justified by real content pressure.
