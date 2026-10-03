@@ -386,6 +386,26 @@ describe('A67-W1 first-week content skeleton', () => {
 		);
 		expect(playerKnows(session, firstWeekIds.claims.cinemaInvitation)).toBe(true);
 		expect(
+			session.currentProject.relationships
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					fromCharacterId: firstWeekIds.characters.cameraStudent,
+					toCharacterId: playerId,
+					values: expect.objectContaining({familiarity: 0.08})
+				})
+			])
+		);
+		expect(
+			session.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('day-five') &&
+					memory.tags.includes('new-contact') &&
+					memory.summary.includes('старом рынке')
+			)
+		).toBe(true);
+		expect(
 			session.currentProject.storyNodeStateOverrides[
 				firstWeekIds.story.daySixCinema
 			]
