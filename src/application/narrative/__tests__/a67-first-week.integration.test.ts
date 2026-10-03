@@ -8,6 +8,7 @@ import {
 	replaceNarrativePlayerSessionProject
 } from '../player-runtime';
 import {executeNarrativePlayerStoryWork} from '../player-story-work';
+import {executeNarrativePlayerTravel} from '../player-travel';
 import {executeNarrativePlayerWait} from '../player-wait';
 import {bootstrapNarrativePlayerWorldStart} from '../player-world-start';
 import {arrivalCorridorIds} from '../../../domain/narrative/content/93-days-arrival-corridor';
@@ -128,13 +129,17 @@ function place(
 	);
 }
 
-function declinedHistoryThroughDayThree() {
+function declinedHistoryBeforeDelivery() {
 	let session = start(compileFixture());
 	session = waitUntil(session, 2, 10 * 60 + 30);
 	session = story(session, smsWorkId, 'execute');
 	session = action(session, phoneSocialLoopIds.moves.decline);
-	session = waitUntil(session, 3, 8 * 60 + 15);
+	session = waitUntil(session, 3, 8 * 60);
 	return session;
+}
+
+function declinedHistoryThroughDayThree() {
+	return wait(declinedHistoryBeforeDelivery(), 15);
 }
 
 function playerKnows(session: NarrativePlayerSession, claimId: string) {
@@ -297,6 +302,48 @@ describe('A67-W1 first-week content skeleton', () => {
 					item.source.sourceCharacterId === contactId
 			)
 		).toBe(true);
+	});
+
+	test('preserves inherited A63 delivery when first-week travel crosses 08:15', () => {
+		let session = declinedHistoryBeforeDelivery();
+		session = place(
+			session,
+			playerId,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+
+		const travelled = executeNarrativePlayerTravel(
+			session,
+			firstWeekIds.routes.dormToMarketBus,
+			playerId
+		);
+		expect(travelled.status).toBe('applied');
+		if (travelled.status !== 'applied') {
+			throw new Error(travelled.summary);
+		}
+		session = travelled.session;
+
+		expect(session.currentProject.simulation).toMatchObject({
+			day: 3,
+			minuteOfDay: 8 * 60 + 24
+		});
+		expect(
+			session.currentProject.runtimeOccurrences.filter(
+				item =>
+					item.type === 'story-work' &&
+					item.workId === reportWorkId &&
+					item.result === 'executed' &&
+					item.moment.day === 3 &&
+					item.moment.minuteOfDay === 8 * 60 + 15
+			)
+		).toHaveLength(1);
+		expect(
+			session.currentProject.runtimeOccurrences.filter(
+				item =>
+					item.type === 'move-outcome' &&
+					item.moveId === rumorSocialEchoIds.moves.reportDeclined
+			)
+		).toHaveLength(1);
 	});
 
 	test('carries prior social history into the Day Five market and Old City branch', () => {

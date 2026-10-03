@@ -1,7 +1,9 @@
 import {applyNarrativeProjectBodyEffect, advanceNarrativeProjectSimulation} from './simulation';
 import {advanceNarrativePlayerTimeSegmented} from './player-time';
-import {deliverA63NpcSocialDueWork} from './player-npc-social-delivery';
-import {playerNpcSocialDeliveryProjectId} from '../../domain/narrative/content/93-days-player-npc-social-delivery';
+import {
+	deliverA63NpcSocialDueWork,
+	playerNpcSocialDeliveryIsEnabled
+} from './player-npc-social-delivery';
 import {
 	NarrativePlayerSession,
 	replaceNarrativePlayerSessionProject
@@ -122,7 +124,9 @@ export function executeNarrativePlayerSleep(
 		characterId: playerCharacterId,
 		durationMinutes
 	});
-	const a63Enabled = sleeping.project.projectId === playerNpcSocialDeliveryProjectId;
+	const a63Enabled = playerNpcSocialDeliveryIsEnabled(
+		sleeping.project.projectId
+	);
 	const advanced = a63Enabled
 		? advanceNarrativePlayerTimeSegmented(
 				sleeping.project,
