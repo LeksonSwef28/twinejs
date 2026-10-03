@@ -1,6 +1,6 @@
 # A63 Contract — Player-Time NPC Social Delivery
 
-Status: **A62 STABLE / #646 PRE-INTEGRATION CI GREEN / A63 INTEGRATION CI PENDING**
+Status: **A63 DONE / STABLE** — separately authorized [PR #36](https://github.com/LeksonSwef28/twinejs/pull/36) merged 2026-09-24; exact feature-head [#648 GREEN](https://github.com/LeksonSwef28/twinejs/actions/runs/35809211155), exact stable post-merge [#649 GREEN](https://github.com/LeksonSwef28/twinejs/actions/runs/35943776363). Historical planning/CI-pending notes in sections below describe the state *before* the merge and are retained as design provenance.
 Risk: **HIGH**
 Stacked source: `feature/a62-firsthand-social-repair` @ `fbff032730199e46fd5ff69737ac71ea321190be`
 Stable integration base: `93-days-editor` @ `45367571e7208457d3278b43b26043b282957b92` (A62 post-merge #647 GREEN)

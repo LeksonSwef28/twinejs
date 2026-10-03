@@ -1,8 +1,9 @@
 # 93 Days — POST-A52 GAME PRODUCTION ROADMAP
 
 Status: **ACTIVE / GAME PRODUCTION**  
-Stable source reviewed: `93-days-editor` @ `5058d1bb699fa5eba3a02aeaa2ebe45acdd9624a`  
-Decision date: **2026-09-19**
+Stable source reviewed: `93-days-editor` @ `8967fdf8ea327b5355a29175171cc7b233065645`  
+Original decision date: **2026-09-19**  
+Post-A63 status verification: **2026-09-28**
 
 ## 1. Product target
 
@@ -265,17 +266,14 @@ No stage may claim gameplay completion from compiler-proof HTML or editor Previe
 
 ### A63 — Player-Time NPC Social Delivery
 
-**Status:** **READY FOR REVIEW / POST-A62 INTEGRATION CI PENDING** — PR #36 `feature/a63-player-npc-social-delivery` is being integrated onto stable `45367571e7208457d3278b43b26043b282957b92` after A62 post-merge **#647 GREEN**. The old stacked A63 exact head `33880d4c759f07b7b8c7d05e0b14882e02e79484` passed **#646 GREEN** (full audit, lint, Jest, web/Player/Electron builds, Chromium 11/11, Vite/Electron smoke). Integration-head full CI must pass anew before any separately authorized A63 merge. Contract: `93DAYS_A63_PLAYER_NPC_SOCIAL_DELIVERY_CONTRACT.md`; change record: `93DAYS_A63_CHANGE_RECORD.md`.
+**Status:** **DONE / STABLE** — [PR #36](https://github.com/LeksonSwef28/twinejs/pull/36) merged on 2026-09-24 as exact stable commit `8967fdf8ea327b5355a29175171cc7b233065645`. Final A63 feature head `b297bda66ab585fc5701cc57640da19747c0673c` passed full [Branch Check #648](https://github.com/LeksonSwef28/twinejs/actions/runs/35809211155) GREEN. Post-merge full [Branch Check #649](https://github.com/LeksonSwef28/twinejs/actions/runs/35943776363) GREEN on exact stable merge SHA; separate Jest, Playwright, ESLint and Prettify checks GREEN. The merge commit's tree equals the tested feature head tree.
 
-**Original gap / opt-in closure:** non-A63 Player wait/travel/sleep keep their original declarative behavior. The A63 project adds one 08:00 authored NPC courtyard walk, explicit 15-minute transit and an 08:15 report at genuine dormitory Actual Presence. A63 Player wait/travel/sleep deliver this chain at the exact due moments through canonical Story/Move/NPC APIs; the old-project E0 negative regression remains intact.
+**Goal delivered:** the A63 project explicitly opts in a deterministic Day Three NPC courtyard departure at **08:00**, 15-minute physical transit and report to the dorm-duty listener at **08:15** only with real Actual Presence and a reportable meeting history. Player wait/travel/sleep partition canonical simulation at exact due times. The report and trust-sensitive assessment reuse canonical Story/Move/NPC APIs; Player direct responses remain manual. Older projects preserve their previous semantics.
 
-**Goal:** introduce one exact-time, deterministic, reusable application orchestration path for explicitly authored NPC-only scheduled Story work. It must segment long Player time actions at due moments, compose existing Story/Move/NPC decision APIs, preserve real Actual Presence and source provenance, and reach the A61/A62 Player-visible social consequence without a second clock, rumor queue or hidden RNG.
+**Verified boundary:** no general autonomous NPC pathfinder, second clock, rumor queue, new persistence format or hidden RNG. Missing physical presence cannot fabricate Knowledge; repeated waits and runtime save/restore do not replay a one-shot report. Contract: `93DAYS_A63_PLAYER_NPC_SOCIAL_DELIVERY_CONTRACT.md`; evidence: `93DAYS_A63_CHANGE_RECORD.md`.
 
-**Verification slices:**
+**Next design question:** the A63 browser test currently starts with a canonically prepared **Day Three fixture**. An unbroken **Day One → Day Four** standalone Player walkthrough, and the ordinary Narrative Editor → full A63 artifact selection, still require separate evidence. This is a testing/authoring workflow gap until a runtime defect is reproduced.
 
-- S1 — exact due-moment segmented Player time orchestration and trace contract;
-- S2 — concrete A61 report delivery only when contact + listener share real Actual Presence;
-- S3 — trust-sensitive assessment through the existing ReactionCandidateSet, no duplicated cognition logic;
-- S4 — wait / travel / sleep equivalence, save/restore no-replay and standalone Player smoke.
+### Post-A63 planning gate — TwineJS-first (proposal, not A64 approval)
 
-**Scope boundary:** no new persistence queue, schema/artifact bump, schedule→presence projection or broad autonomous ReactionCandidate execution. A63's contact walk is explicitly authored and opt-in, not a general NPC pathfinder. Self-review also distinguishes a genuinely missed physical encounter from a co-located encounter with unresolved meeting history. A62 is now stable; post-integration exact-head A63 CI and independent A63 merge authorization remain outstanding.
+The current near-term product is **our customized TwineJS editor + its canonical TypeScript Player**, not Godot. Review `93DAYS_TWINEJS_FIRST_POST_A63_GATE0.md` for the proposed A64 authoring/export and continuous four-day acceptance gate, then an actual NPC/Story authoring pilot. The Godot/2.5D visual vault remains a separate research stream and introduces no second gameplay engine into TwineJS.
