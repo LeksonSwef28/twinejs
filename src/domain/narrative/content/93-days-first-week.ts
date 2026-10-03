@@ -1,4 +1,5 @@
 import {NarrativeProject} from '../project';
+import {arrivalCorridorIds} from './93-days-arrival-corridor';
 import {create93DaysPlayerNpcSocialDeliveryProject} from './93-days-player-npc-social-delivery';
 
 export const firstWeekProjectId = '93-days-first-week-v1';
@@ -121,7 +122,7 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 		{
 			id: ids.routes.dormToMarketBus,
 			label: 'Ехать от общежития к старому рынку',
-			originLocationId: 'arrival-student-dormitory',
+			originLocationId: arrivalCorridorIds.locations.studentDormitory,
 			destinationLocationId: ids.locations.oldMarket,
 			durationMinutes: 24,
 			mode: 'city-bus'
@@ -130,7 +131,7 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			id: ids.routes.marketToDormBus,
 			label: 'Ехать от старого рынка к общежитию',
 			originLocationId: ids.locations.oldMarket,
-			destinationLocationId: 'arrival-student-dormitory',
+			destinationLocationId: arrivalCorridorIds.locations.studentDormitory,
 			durationMinutes: 24,
 			mode: 'city-bus'
 		},
@@ -163,7 +164,10 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			description:
 				'Новый городской узел живёт обычной торговой жизнью. Через знакомство и наблюдение игрок получает первый необязательный вход в тему того, как город меняется.',
 			primaryCharacterId: ids.characters.cameraStudent,
-			participantIds: [ids.characters.cameraStudent],
+			participantIds: [
+				arrivalCorridorIds.characters.player,
+				ids.characters.cameraStudent
+			],
 			placement: {
 				day: 5,
 				minuteOfDay: 17 * 60 + 30,
@@ -183,7 +187,10 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			description:
 				'У отдельного старого кинотеатра возникает разговор о его будущем. Это социальная линия Старого города, а не обязательная центральная загадка.',
 			primaryCharacterId: ids.characters.cameraStudent,
-			participantIds: [ids.characters.cameraStudent],
+			participantIds: [
+				arrivalCorridorIds.characters.player,
+				ids.characters.cameraStudent
+			],
 			placement: {
 				day: 6,
 				minuteOfDay: 18 * 60,
@@ -202,11 +209,15 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			title: 'Шестой день: жизнь общежития продолжается',
 			description:
 				'В то же время в общежитии продолжается уже знакомая социальная линия. Игрок не должен иметь возможность бездумно присутствовать в двух местах одновременно.',
-			participantIds: [],
+			primaryCharacterId: arrivalCorridorIds.characters.dormDuty,
+			participantIds: [
+				arrivalCorridorIds.characters.player,
+				arrivalCorridorIds.characters.dormDuty
+			],
 			placement: {
 				day: 6,
 				minuteOfDay: 18 * 60 + 15,
-				locationId: 'arrival-student-dormitory'
+				locationId: arrivalCorridorIds.locations.studentDormitory
 			},
 			activationState: 'available',
 			runtimePolicy: {
@@ -221,11 +232,12 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 			title: 'Седьмой день: город возвращает последствия',
 			description:
 				'К концу первой недели игрок должен увидеть не одинаковую финальную сцену, а следствие того, где он был, чего не видел и что о нём успели узнать другие.',
-			participantIds: [],
+			primaryCharacterId: arrivalCorridorIds.characters.player,
+			participantIds: [arrivalCorridorIds.characters.player],
 			placement: {
 				day: 7,
 				minuteOfDay: 11 * 60,
-				locationId: 'arrival-student-dormitory'
+				locationId: arrivalCorridorIds.locations.studentDormitory
 			},
 			activationState: 'dormant'
 		}
