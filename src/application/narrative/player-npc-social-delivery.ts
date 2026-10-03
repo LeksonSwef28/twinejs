@@ -21,6 +21,7 @@ import {
 	a63ContactArrivalStoryId,
 	a63ContactTravelLocationId
 } from '../../domain/narrative/content/93-days-player-npc-social-delivery';
+import {firstWeekProjectId} from '../../domain/narrative/content/93-days-first-week';
 import {
 	rumorSocialEchoIds
 } from '../../domain/narrative/content/93-days-rumor-social-echo';
@@ -44,7 +45,10 @@ export function deliverA63NpcSocialDueWork(
 	project: NarrativeProject,
 	dueWork: SimulationScheduledWork[]
 ): NarrativePlayerTimeDueWorkHandlingResult {
-	if (project.projectId !== playerNpcSocialDeliveryProjectId) {
+	if (
+		project.projectId !== playerNpcSocialDeliveryProjectId &&
+		project.projectId !== firstWeekProjectId
+	) {
 		return {project, handledWorkIds: []};
 	}
 	let current = project;

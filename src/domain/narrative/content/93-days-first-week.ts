@@ -1,6 +1,8 @@
 import {NarrativeProject} from '../project';
 import {create93DaysPlayerNpcSocialDeliveryProject} from './93-days-player-npc-social-delivery';
 
+export const firstWeekProjectId = '93-days-first-week-v1';
+
 export const firstWeekIds = {
 	locations: {
 		oldMarketSquare: 'a67-old-market-square'
@@ -41,7 +43,7 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 	const project = create93DaysPlayerNpcSocialDeliveryProject();
 	const ids = firstWeekIds;
 
-	project.projectId = '93-days-first-week-v1';
+	project.projectId = firstWeekProjectId;
 	project.name = '93 дня до конца нашего лета — первая неделя';
 
 	project.locations = [
