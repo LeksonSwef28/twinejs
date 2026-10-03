@@ -635,4 +635,420 @@ const ScheduleExceptionForm: React.FC<ScheduleExceptionFormProps> = props => {
 				</option>
 				)}
 				<option value="location">Находиться в локации</option>
-				<option value="absent">От
+				<option value="absent">Отсутствует</option>
+			</select>
+			{draft.intent.mode === 'location' && (
+				<select
+					aria-label="Локация исключения"
+					value={draft.intent.locationId}
+					onChange={event =>
+						setDraft({
+							intent: {mode: 'location', locationId: event.target.value}
+						})
+					}
+				>
+					<option value="">Выбери локацию</option>
+					{project.locations.map(location => (
+						<option key={location.id} value={location.id}>
+							{location.name}
+						</option>
+					))}
+				</select>
+			)}
+			<label>
+				Приоритет исключения
+				<input
+					aria-label="Приоритет исключения"
+					type="number"
+					value={draft.priority}
+					onChange={event => setDraft({priority: event.target.value})}
+				/>
+			</label>
+			<label>
+				Причина исключения
+				<input
+					aria-label="Причина исключения"
+					value={draft.reason}
+					onChange={event => setDraft({reason: event.target.value})}
+				/>
+			</label>
+			<button type="submit" disabled={props.submitDisabled}>
+				{props.submitLabel}
+			</button>
+			{props.onCancel && (
+				<button
+					type="button"
+					disabled={props.cancelDisabled}
+					onClick={props.onCancel}
+				>
+					Отменить редактирование исключения
+				</button>
+			)}
+		</form>
+	);
+};
+
+export const ScheduleExceptionAuthoringPanel: React.FC = () => {
+	const {project, execute, createId} = useNarrativeProject();
+	const [createDraft, setCreateDraft] = React.useState(() =>
+		createScheduleExceptionDraft(project)
+	);
+	const [editState, setEditState] =
+		React.useState<ScheduleExceptionEditState>();
+	const [pending, setPending] =
+		React.useState<PendingScheduleExceptionCommit>();
+	const [message, setMessage] = React.useState('');
+	const sourceRevisionRef = React.useRef(0);
+
+	const editingRaw = editState
+		? project.scheduleExceptions.find(item => item.id === editState.source.id)
+		: undefined;
+	const editSourceIsCurrent = Boolean(
+		editState && editingRaw === editState.source.raw
+	);
+
+	const createCandidate = candidateFromDraft('__preview__', createDraft);
+	const createIsValid = Boolean(
+		createCandidate &&
+			validateScheduleExceptionCandidate(project, createCandidate).status ===
+				'valid'
+	);
+
+	const editCandidate = editState
+		? candidateFromDraft(editState.source.id, editState.draft)
+		: undefined;
+	const editIsValid = Boolean(
+		editCandidate &&
+			validateScheduleExceptionCandidate(project, editCandidate).status ===
+				'valid'
+	);
+	const editIsChanged = Boolean(
+		editState &&
+			editingRaw &&
+			editCandidate &&
+			!scheduleExceptionAuthoringEquals(project, editingRaw, editCandidate)
+	);
+
+	function startEdit(raw: ScheduleException) {
+		sourceRevisionRef.current += 1;
+		const resolved = resolveScheduleExceptionForAuthoring(project, raw);
+		setEditState({
+			source: {
+				id: raw.id,
+				revision: sourceRevisionRef.current,
+				raw
+			},
+			draft: draftFromResolvedException(project, resolved)
+		});
+		setPending(undefined);
+		setMessage(
+			resolved.intent.status === 'conflicting'
+				? 'Выбери одно назначение: локацию или отсутствие.'
+				: 'Редактирование исключения расписания.'
+		);
+	}
+
+	function submitCreate(event: React.FormEvent) {
+		event.preventDefault();
+		if (pending || !createIsValid) {
+			if (!pending) {
+				setMessage('Проверь обязательные поля исключения.');
+			}
+			return;
+		}
+		const candidate = candidateFromDraft(
+			createId('schedule-exception'),
+			createDraft
+		);
+		if (
+			!candidate ||
+			validateScheduleExceptionCandidate(project, candidate).status !== 'valid'
+		) {
+			setMessage('Исключение не прошло каноническую проверку.');
+			return;
+		}
+		setPending({type: 'create', candidate});
+		execute({type: 'scheduleException/add', candidate});
+	}
+
+	function submitUpdate(event: React.FormEvent) {
+		event.preventDefault();
+		if (!editState || pending) {
+			return;
+		}
+		const current = project.scheduleExceptions.find(
+			item => item.id === editState.source.id
+		);
+		if (current !== editState.source.raw) {
+			setMessage(
+				'Исключение изменилось в проекте. Черновик обновлён из текущего состояния.'
+			);
+			return;
+		}
+		const candidate = candidateFromDraft(editState.source.id, editState.draft);
+		if (!candidate) {
+			setMessage('Проверь обязательные поля исключения.');
+			return;
+		}
+		if (validateScheduleExceptionCandidate(project, candidate).status !== 'valid') {
+			setMessage('Исключение не прошло каноническую проверку.');
+			return;
+		}
+		if (scheduleExceptionAuthoringEquals(project, current, candidate)) {
+			return;
+		}
+		setPending({
+			type: 'update',
+			candidate,
+			sourceId: editState.source.id,
+			sourceRevision: editState.source.revision,
+			sourceRaw: editState.source.raw
+		});
+		execute({type: 'scheduleException/update', candidate});
+	}
+
+	function removeException(id: string) {
+		if (pending) {
+			return;
+		}
+		setPending({type: 'remove', id});
+		execute({type: 'scheduleException/remove', id});
+	}
+
+	function cancelEdit() {
+		if (pending) {
+			return;
+		}
+		setEditState(undefined);
+		setMessage('');
+	}
+
+	React.useEffect(() => {
+		if (pending) {
+			if (pending.type === 'create') {
+				const current = project.scheduleExceptions.find(
+					item => item.id === pending.candidate.id
+				);
+				if (
+					current &&
+					scheduleExceptionAuthoringEquals(project, current, pending.candidate)
+				) {
+					setPending(undefined);
+					setCreateDraft(createScheduleExceptionDraft(project));
+					setMessage('Исключение сохранено.');
+				} else {
+					setPending(undefined);
+					setMessage('Исключение не прошло каноническую проверку.');
+				}
+				return;
+			}
+
+			if (pending.type === 'update') {
+				const current = project.scheduleExceptions.find(
+					item => item.id === pending.sourceId
+				);
+				if (!current) {
+					sourceRevisionRef.current += 1;
+					setPending(undefined);
+					setEditState(undefined);
+					setMessage(
+						'Исключение изменилось в проекте. Черновик обновлён из текущего состояния.'
+					);
+					return;
+				}
+				if (
+					scheduleExceptionAuthoringEquals(project, current, pending.candidate)
+				) {
+					sourceRevisionRef.current += 1;
+					setPending(undefined);
+					setEditState({
+						source: {
+							id: current.id,
+							revision: sourceRevisionRef.current,
+							raw: current
+						},
+						draft: draftFromResolvedException(
+							project,
+							resolveScheduleExceptionForAuthoring(project, current)
+						)
+					});
+					setMessage('Исключение сохранено.');
+					return;
+				}
+				if (current !== pending.sourceRaw) {
+					sourceRevisionRef.current += 1;
+					setPending(undefined);
+					setEditState({
+						source: {
+							id: current.id,
+							revision: sourceRevisionRef.current,
+							raw: current
+						},
+						draft: draftFromResolvedException(
+							project,
+							resolveScheduleExceptionForAuthoring(project, current)
+						)
+					});
+					setMessage(
+						'Исключение изменилось в проекте. Черновик обновлён из текущего состояния.'
+					);
+					return;
+				}
+				setPending(undefined);
+				setMessage('Исключение не прошло каноническую проверку.');
+				return;
+			}
+
+			const current = project.scheduleExceptions.find(
+				item => item.id === pending.id
+			);
+			if (!current) {
+				setPending(undefined);
+				if (editState?.source.id === pending.id) {
+					sourceRevisionRef.current += 1;
+					setEditState(undefined);
+				}
+				setMessage('Исключение удалено.');
+				return;
+			}
+			setPending(undefined);
+			if (
+				editState?.source.id === pending.id &&
+				current !== editState.source.raw
+			) {
+				sourceRevisionRef.current += 1;
+				setEditState({
+					source: {
+						id: current.id,
+						revision: sourceRevisionRef.current,
+						raw: current
+					},
+					draft: draftFromResolvedException(
+						project,
+						resolveScheduleExceptionForAuthoring(project, current)
+					)
+				});
+			}
+			setMessage('Исключение не удалось удалить из канонического проекта.');
+			return;
+		}
+
+		if (!editState) {
+			return;
+		}
+		const current = project.scheduleExceptions.find(
+			item => item.id === editState.source.id
+		);
+		if (!current) {
+			sourceRevisionRef.current += 1;
+			setEditState(undefined);
+			setMessage(
+				'Исключение изменилось в проекте. Черновик обновлён из текущего состояния.'
+			);
+			return;
+		}
+		if (current === editState.source.raw) {
+			return;
+		}
+		sourceRevisionRef.current += 1;
+		setEditState({
+			source: {
+				id: current.id,
+				revision: sourceRevisionRef.current,
+				raw: current
+			},
+			draft: draftFromResolvedException(
+				project,
+				resolveScheduleExceptionForAuthoring(project, current)
+			)
+		});
+		setMessage(
+			'Исключение изменилось в проекте. Черновик обновлён из текущего состояния.'
+		);
+	}, [
+		project,
+		project.scheduleExceptions,
+		project.characters,
+		project.locations,
+		project.template,
+		editState,
+		pending
+	]);
+
+	return (
+		<section
+			aria-label="Исключения расписания"
+			className="narrative-workspace__skill-check-editor"
+		>
+			<h3>Исключения расписания</h3>
+			<p>
+				Точечные изменения authored intent для WORLD/TIME поверх обычного
+				расписания.
+			</p>
+			{editState ? (
+				<ScheduleExceptionForm
+					project={project}
+					draft={editState.draft}
+					setDraft={draft =>
+						setEditState(current =>
+							current ? {...current, draft} : current
+						)
+					}
+					onSubmit={submitUpdate}
+					submitLabel="Сохранить исключение"
+					submitDisabled={
+						Boolean(pending) ||
+						!editSourceIsCurrent ||
+						!editIsValid ||
+						!editIsChanged
+					}
+					onCancel={cancelEdit}
+					cancelDisabled={Boolean(pending)}
+				/>
+			) : (
+				<ScheduleExceptionForm
+					project={project}
+					draft={createDraft}
+					setDraft={setCreateDraft}
+					onSubmit={submitCreate}
+					submitLabel="+ Исключение"
+					submitDisabled={Boolean(pending) || !createIsValid}
+				/>
+			)}
+			{message && <small>{message}</small>}
+			<div className="narrative-workspace__move-list">
+				{project.scheduleExceptions.map(raw => {
+					const resolved = resolveScheduleExceptionForAuthoring(project, raw);
+					return (
+						<article key={raw.id} className="narrative-workspace__move-card">
+							<strong>
+								{resolved.character.status === 'resolved'
+									? resolved.character.character.name
+									: `Персонаж не найден: ${resolved.character.characterId}`}
+							</strong>
+							<div>{formatRange(resolved)}</div>
+							<div>{formatWindow(project, resolved)}</div>
+							<div>{formatIntent(resolved)}</div>
+							<div>Приоритет: {String(raw.priority)}</div>
+							{raw.reason && <div>{raw.reason}</div>}
+							<button
+								type="button"
+								disabled={Boolean(pending)}
+								onClick={() => startEdit(raw)}
+							>
+								Редактировать исключение
+							</button>
+							<button
+								type="button"
+								disabled={Boolean(pending)}
+								onClick={() => removeException(raw.id)}
+							>
+								Удалить исключение
+							</button>
+						</article>
+					);
+				})}
+			</div>
+		</section>
+	);
+};
