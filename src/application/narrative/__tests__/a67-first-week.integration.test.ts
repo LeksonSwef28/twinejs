@@ -548,6 +548,103 @@ describe('A67-W1 first-week content skeleton', () => {
 		).toBe(true);
 	});
 
+
+	test('closes Day Seven with different week-end reflections for different Day Six histories', () => {
+		let base = declinedHistoryThroughDayThree();
+		base = waitUntil(base, 5, 17 * 60 + 30);
+		base = place(base, playerId, firstWeekIds.locations.oldMarket);
+		base = place(
+			base,
+			firstWeekIds.characters.cameraStudent,
+			firstWeekIds.locations.oldMarket
+		);
+		base = story(base, dayFiveWorkId, 'execute');
+		base = action(base, firstWeekIds.moves.marketDeclined);
+
+		let oldCity = waitUntil(base, 6, 18 * 60);
+		oldCity = place(oldCity, playerId, firstWeekIds.locations.oldCinema);
+		oldCity = place(
+			oldCity,
+			firstWeekIds.characters.cameraStudent,
+			firstWeekIds.locations.oldCinema
+		);
+		oldCity = story(oldCity, daySixCinemaWorkId, 'execute');
+		oldCity = action(oldCity, firstWeekIds.moves.cinemaStay);
+		oldCity = waitUntil(oldCity, 7, 11 * 60);
+		oldCity = place(
+			oldCity,
+			playerId,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+
+		let dorm = waitUntil(base, 6, 18 * 60 + 15);
+		dorm = place(
+			dorm,
+			playerId,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		dorm = place(
+			dorm,
+			arrivalCorridorIds.characters.dormDuty,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		dorm = story(dorm, daySixDormWorkId, 'execute');
+		dorm = action(dorm, firstWeekIds.moves.dormStay);
+		dorm = waitUntil(dorm, 7, 11 * 60);
+
+		expect(
+			deriveNarrativePlayerPresentation(oldCity.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: firstWeekIds.moves.weekOldCity,
+					state: 'ready'
+				})
+			])
+		);
+		expect(
+			deriveNarrativePlayerPresentation(dorm.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: firstWeekIds.moves.weekDorm,
+					state: 'ready'
+				})
+			])
+		);
+
+		oldCity = action(oldCity, firstWeekIds.moves.weekOldCity);
+		dorm = action(dorm, firstWeekIds.moves.weekDorm);
+
+		expect(
+			oldCity.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySevenWeekEcho
+			]
+		).toBe('completed');
+		expect(
+			dorm.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySevenWeekEcho
+			]
+		).toBe('completed');
+
+		expect(
+			oldCity.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('first-week') &&
+					memory.summary.includes('старый рынок')
+			)
+		).toBe(true);
+		expect(
+			dorm.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('first-week') &&
+					memory.summary.includes('общежитие')
+			)
+		).toBe(true);
+	});
+
 	test('lets the Day Six dorm line become a distinct week-end history', () => {
 		let session = declinedHistoryThroughDayThree();
 
