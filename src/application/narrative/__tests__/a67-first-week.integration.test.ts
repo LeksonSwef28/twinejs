@@ -89,9 +89,9 @@ describe('A67-W1 first-week content skeleton', () => {
 		expect(compiled.status).toBe('compiled');
 		if (compiled.status !== 'compiled') {
 			throw new Error(
-				compiled.diagnostics.map(item => item.summary).join('\n')
+				compiled.diagnostics.map(item => item.source).join('\n')
 			);
 		}
-		expect(compiled.artifact.projectId).toBe('93-days-first-week-v1');
+		expect(compiled.artifact.authored.projectId).toBe('93-days-first-week-v1');
 	});
 });
