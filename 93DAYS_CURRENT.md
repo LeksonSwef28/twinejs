@@ -167,6 +167,8 @@ In brief:
 - `docs/93days/current/CONTENT_STATUS.md` — canonical content coverage/status.
 - `docs/93days/current/CONTEXT_SOURCES.md` — source precedence and recovered source decisions.
 - `docs/93days/current/PRODUCT_PRINCIPLES.md` — compact fixed/working/seed product principles recovered from current concept sources.
+- `docs/93days/current/SYSTEM_STATUS.md` — implementation-backed DONE/PARTIAL/DEFERRED/MISSING system audit.
+- `docs/93days/current/A67_FIRST_WEEK_PLAN.md` — active A67 Day 5–7 completion gate and slice order.
 
 ## 9. Historical documentation policy
 
