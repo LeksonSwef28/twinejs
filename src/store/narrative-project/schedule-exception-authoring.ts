@@ -329,14 +329,11 @@ export function validateScheduleExceptionCandidate(
 		return {status: 'invalid-active-range'};
 	}
 	if (candidate.timeWindow.type === 'period') {
-		if (
-			!project.template.periods.some(
-				period => period.id === candidate.timeWindow.periodId
-			)
-		) {
+		const periodId = candidate.timeWindow.periodId;
+		if (!project.template.periods.some(period => period.id === periodId)) {
 			return {
 				status: 'missing-period',
-				periodId: candidate.timeWindow.periodId
+				periodId
 			};
 		}
 	} else if (
@@ -348,16 +345,14 @@ export function validateScheduleExceptionCandidate(
 	) {
 		return {status: 'invalid-time-window'};
 	}
-	if (
-		candidate.intent.type === 'location' &&
-		!project.locations.some(
-			location => location.id === candidate.intent.locationId
-		)
-	) {
-		return {
-			status: 'missing-location',
-			locationId: candidate.intent.locationId
-		};
+	if (candidate.intent.type === 'location') {
+		const locationId = candidate.intent.locationId;
+		if (!project.locations.some(location => location.id === locationId)) {
+			return {
+				status: 'missing-location',
+				locationId
+			};
+		}
 	}
 	if (!Number.isFinite(candidate.priority)) {
 		return {status: 'invalid-priority'};
