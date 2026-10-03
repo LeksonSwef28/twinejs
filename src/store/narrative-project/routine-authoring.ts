@@ -18,6 +18,11 @@ import {
 	NarrativeProjectHistoryState,
 	narrativeProjectHistoryReducer
 } from './reducer';
+import {
+	ScheduleExceptionAuthoringCommand,
+	applyScheduleExceptionAuthoringCommand,
+	isScheduleExceptionAuthoringCommand
+} from './schedule-exception-authoring';
 
 export type RoutineAuthoringCommand =
 	| {type: 'routine/add'; rule: RoutineRule}
@@ -57,6 +62,7 @@ export type MoveConditionAuthoringCommand =
 export type NarrativeAuthoringCommand =
 	| NarrativeProjectCommand
 	| RoutineAuthoringCommand
+	| ScheduleExceptionAuthoringCommand
 	| StoryMetadataAuthoringCommand
 	| MoveConditionAuthoringCommand;
 
@@ -450,6 +456,7 @@ export function narrativeProjectAuthoringReducer(
 		return narrativeProjectHistoryReducer(state, action);
 	}
 	if (
+		!isScheduleExceptionAuthoringCommand(action.command) &&
 		!isRoutineCommand(action.command) &&
 		!isStoryMetadataCommand(action.command) &&
 		!isMoveConditionCommand(action.command)
@@ -460,11 +467,13 @@ export function narrativeProjectAuthoringReducer(
 		});
 	}
 
-	const nextProject = isRoutineCommand(action.command)
-		? applyRoutineCommand(state.present, action.command)
-		: isStoryMetadataCommand(action.command)
-			? applyStoryMetadataCommand(state.present, action.command)
-			: applyMoveConditionCommand(state.present, action.command);
+	const nextProject = isScheduleExceptionAuthoringCommand(action.command)
+		? applyScheduleExceptionAuthoringCommand(state.present, action.command)
+		: isRoutineCommand(action.command)
+			? applyRoutineCommand(state.present, action.command)
+			: isStoryMetadataCommand(action.command)
+				? applyStoryMetadataCommand(state.present, action.command)
+				: applyMoveConditionCommand(state.present, action.command);
 	if (nextProject === state.present) {
 		return state;
 	}
