@@ -166,6 +166,7 @@ In brief:
 - `docs/93days/current/ROADMAP.md` — active milestone map.
 - `docs/93days/current/CONTENT_STATUS.md` — canonical content coverage/status.
 - `docs/93days/current/CONTEXT_SOURCES.md` — source precedence and recovered source decisions.
+- `docs/93days/current/PRODUCT_PRINCIPLES.md` — compact fixed/working/seed product principles recovered from current concept sources.
 
 ## 9. Historical documentation policy
 
