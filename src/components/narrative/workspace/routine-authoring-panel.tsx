@@ -8,6 +8,7 @@ import {
 } from '../../../domain/narrative/schedule';
 import {useNarrativeProject} from '../../../store/narrative-project';
 import {routineRuleIsAuthoringValid} from '../../../store/narrative-project/routine-authoring';
+import {ScheduleExceptionAuthoringPanel} from './schedule-exception-authoring-panel';
 
 const weekdayLabels: Record<Weekday, string> = {
 	monday: 'Пн',
@@ -472,6 +473,8 @@ export const RoutineAuthoringPanel: React.FC = () => {
 					<p>Пока нет authored расписаний.</p>
 				)}
 			</div>
+
+			<ScheduleExceptionAuthoringPanel />
 		</section>
 	);
 };
