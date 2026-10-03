@@ -650,6 +650,91 @@ describe('A67-W1 first-week content skeleton', () => {
 	});
 
 
+
+	test('lets a missed Day Six Old City aftermath become later Day Seven evidence', () => {
+		let session = declinedHistoryThroughDayThree();
+
+		session = waitUntil(session, 5, 17 * 60 + 30);
+		session = place(session, playerId, firstWeekIds.locations.oldMarket);
+		session = place(
+			session,
+			firstWeekIds.characters.cameraStudent,
+			firstWeekIds.locations.oldMarket
+		);
+		session = story(session, dayFiveWorkId, 'execute');
+		session = action(session, firstWeekIds.moves.marketDeclined);
+
+		// The player stays in the dorm on Day Six. The camera student still arrives
+		// at the cinema and the authored NPC-only aftermath runs at 19:15.
+		session = waitUntil(session, 6, 18 * 60 + 15);
+		session = place(
+			session,
+			playerId,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		session = place(
+			session,
+			arrivalCorridorIds.characters.dormDuty,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		session = story(session, daySixDormWorkId, 'execute');
+		session = action(session, firstWeekIds.moves.dormStay);
+		session = waitUntil(session, 6, 19 * 60 + 16);
+
+		expect(
+			session.currentProject.simulation.characterKnowledge.some(
+				item =>
+					item.characterId === firstWeekIds.characters.cameraStudent &&
+					item.claimId === firstWeekIds.claims.cinemaAftermath
+			)
+		).toBe(true);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySevenMarketAftermath
+			]
+		).toBe('available');
+		expect(
+			playerKnows(session, firstWeekIds.claims.cinemaAftermath)
+		).toBe(false);
+
+		// On Day Seven the player can learn what happened later, rather than being
+		// replayed the same Day Six scene.
+		session = waitUntil(session, 7, 16 * 60);
+		session = place(session, playerId, firstWeekIds.locations.oldMarket);
+		session = place(
+			session,
+			firstWeekIds.characters.cameraStudent,
+			firstWeekIds.locations.oldMarket
+		);
+		session = story(
+			session,
+			'story-node:' + firstWeekIds.story.daySevenMarketAftermath,
+			'execute'
+		);
+
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: firstWeekIds.moves.learnCinemaAftermath,
+					state: 'ready'
+				})
+			])
+		);
+		session = action(session, firstWeekIds.moves.learnCinemaAftermath);
+
+		expect(playerKnows(session, firstWeekIds.claims.cinemaAftermath)).toBe(true);
+		expect(
+			session.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('missed-event') &&
+					memory.tags.includes('later-evidence')
+			)
+		).toBe(true);
+	});
+
 	test('restores a Day Six first-week save and continues into the Day Seven closure', () => {
 		const artifact = compileFixture();
 		let session = start(artifact);
