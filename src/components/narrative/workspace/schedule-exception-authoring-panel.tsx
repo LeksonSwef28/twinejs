@@ -631,7 +631,7 @@ const ScheduleExceptionForm: React.FC<ScheduleExceptionFormProps> = props => {
 				<option value="unset">Выбери назначение</option>
 				{draft.intent.mode === 'conflicting-import' && (
 					<option value="conflicting-import">
-						Выбери одно назначение: локацию или отсутствие.'
+						Выбери одно назначение: локацию или отсутствие.
 				</option>
 				)}
 				<option value="location">Находиться в локации</option>
