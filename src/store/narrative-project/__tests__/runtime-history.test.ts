@@ -1,6 +1,7 @@
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
 import {narrativeProjectHistoryReducer} from '../reducer';
+import {narrativeProjectAuthoringReducer} from '../routine-authoring';
 import {
 	keepCurrentRuntime,
 	replaceRuntimeProjectInHistory
@@ -212,4 +213,117 @@ describe('runtime vs authoring history boundary', () => {
 		expect(redone.present.simulation.day).toBe(6);
 		expect(redone.present.simulation.minuteOfDay).toBe(930);
 	});
+
+	test('schedule exception Undo/Redo restores authored state while preserving current runtime', () => {
+		const project = createNarrativeProject(
+			'story-a67-d3-runtime-boundary',
+			'A67-D3 runtime boundary',
+			ninetyThreeDaysTemplate
+		);
+		project.locations.push(
+			{id: 'home', name: 'Дом'},
+			{id: 'cafe', name: 'Кафе'}
+		);
+		project.characters.push({
+			id: 'hero',
+			name: 'Герой',
+			cognitionTier: 'full',
+			defaultBehaviorProfileId: 'hero-profile'
+		});
+		project.scheduleExceptions.push({
+			id: 'exception-a',
+			characterId: 'hero',
+			activeRange: {fromDay: 2, toDay: 2},
+			timeWindow: {type: 'period', periodId: 'morning'},
+			targetLocationId: 'home',
+			priority: 1
+		});
+
+		const authoredChanged = narrativeProjectAuthoringReducer(
+			{past: [], present: project, future: []},
+			{
+				type: 'execute',
+				command: {
+					type: 'scheduleException/update',
+					candidate: {
+						id: 'exception-a',
+						characterId: 'hero',
+						activeRange: {fromDay: 2, toDay: 2},
+						timeWindow: {
+							type: 'exact',
+							startMinute: 23 * 60,
+							endMinute: 60,
+							endDayOffset: 1
+						},
+						intent: {type: 'location', locationId: 'cafe'},
+						priority: 2
+					}
+				}
+			}
+		);
+		expect(authoredChanged.past).toHaveLength(1);
+
+		const runtimeAdvanced = replaceRuntimeProjectInHistory(authoredChanged, {
+			...authoredChanged.present,
+			simulation: {
+				...authoredChanged.present.simulation,
+				day: 6,
+				minuteOfDay: 930,
+				actualLocationByCharacter: {hero: 'cafe'}
+			}
+		});
+
+		const undoSnapshot = narrativeProjectAuthoringReducer(runtimeAdvanced, {
+			type: 'undo'
+		});
+		const undone = {
+			...undoSnapshot,
+			present: keepCurrentRuntime(
+				undoSnapshot.present,
+				runtimeAdvanced.present
+			)
+		};
+		expect(undone.present.scheduleExceptions[0]).toEqual(
+			expect.objectContaining({
+				timeWindow: {type: 'period', periodId: 'morning'},
+				targetLocationId: 'home',
+				priority: 1
+			})
+		);
+		expect(undone.present.simulation).toEqual(
+			expect.objectContaining({
+				day: 6,
+				minuteOfDay: 930,
+				actualLocationByCharacter: {hero: 'cafe'}
+			})
+		);
+
+		const redoSnapshot = narrativeProjectAuthoringReducer(undone, {
+			type: 'redo'
+		});
+		const redone = {
+			...redoSnapshot,
+			present: keepCurrentRuntime(redoSnapshot.present, undone.present)
+		};
+		expect(redone.present.scheduleExceptions[0]).toEqual(
+			expect.objectContaining({
+				timeWindow: {
+					type: 'exact',
+					startMinute: 23 * 60,
+					endMinute: 60,
+					endDayOffset: 1
+				},
+				targetLocationId: 'cafe',
+				priority: 2
+			})
+		);
+		expect(redone.present.simulation).toEqual(
+			expect.objectContaining({
+				day: 6,
+				minuteOfDay: 930,
+				actualLocationByCharacter: {hero: 'cafe'}
+			})
+		);
+	});
+
 });

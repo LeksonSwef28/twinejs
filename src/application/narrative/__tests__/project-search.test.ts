@@ -1,6 +1,7 @@
 import {createDefaultNarrativeOutcome} from '../../../domain/narrative/interaction';
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
+import {applyScheduleExceptionAuthoringCommand} from '../../../store/narrative-project/schedule-exception-authoring';
 import {
 	buildProjectSearchIndex,
 	projectBackReferences,
@@ -295,4 +296,64 @@ describe('A50 project search', () => {
 			])
 		);
 	});
+
+	test('reflects command-authored ScheduleException add, update and remove', () => {
+		const project = projectFixture();
+		project.locations.push({id: 'park', name: 'Летний парк'});
+
+		const added = applyScheduleExceptionAuthoringCommand(project, {
+			type: 'scheduleException/add',
+			candidate: {
+				id: 'd3-command-exception',
+				characterId: 'katya',
+				activeRange: {fromDay: 5, toDay: 5},
+				timeWindow: {type: 'period', periodId: 'day'},
+				intent: {type: 'location', locationId: 'park'},
+				priority: 20
+			}
+		});
+		expect(
+			buildProjectSearchIndex(added).find(
+				document => document.key === 'schedule-exception:d3-command-exception'
+			)
+		).toEqual(
+			expect.objectContaining({
+				title: 'Катя: Летний парк',
+				workspace: 'world-time'
+			})
+		);
+
+		const updated = applyScheduleExceptionAuthoringCommand(added, {
+			type: 'scheduleException/update',
+			candidate: {
+				id: 'd3-command-exception',
+				characterId: 'katya',
+				activeRange: {fromDay: 5, toDay: 5},
+				timeWindow: {type: 'period', periodId: 'day'},
+				intent: {type: 'absent'},
+				priority: 30
+			}
+		});
+		expect(
+			buildProjectSearchIndex(updated).find(
+				document => document.key === 'schedule-exception:d3-command-exception'
+			)
+		).toEqual(
+			expect.objectContaining({
+				title: 'Катя: отсутствует',
+				detail: 'ScheduleException · priority 30'
+			})
+		);
+
+		const removed = applyScheduleExceptionAuthoringCommand(updated, {
+			type: 'scheduleException/remove',
+			id: 'd3-command-exception'
+		});
+		expect(
+			buildProjectSearchIndex(removed).some(
+				document => document.key === 'schedule-exception:d3-command-exception'
+			)
+		).toBe(false);
+	});
+
 });
