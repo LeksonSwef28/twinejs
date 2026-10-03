@@ -1,5 +1,5 @@
 import {advanceNarrativePlayerTimeSegmented} from './player-time';
-import {deliverA63NpcSocialDueWork} from './player-npc-social-delivery';
+import {deliverNarrativeProductionDueWork} from './player-production-due-work';
 import {
 	NarrativePlayerSession,
 	replaceNarrativePlayerSessionProject
@@ -39,7 +39,7 @@ export function executeNarrativePlayerWait(
 	const advanced = advanceNarrativePlayerTimeSegmented(
 		session.currentProject,
 		durationMinutes,
-		deliverA63NpcSocialDueWork
+		deliverNarrativeProductionDueWork
 	);
 	if (advanced.appliedMinutes !== durationMinutes) {
 		return {
