@@ -1,6 +1,10 @@
 import {compileNarrativeRuntimeArtifact, NarrativeRuntimeArtifactV1} from '../export-compiler';
 import {setNarrativeCharacterActualLocation} from '../living-simulation';
 import {executeNarrativePlayerAction} from '../player-action';
+import {
+	serializeNarrativePlayerSave,
+	restoreNarrativePlayerSaveJson
+} from '../player-save';
 import {deriveNarrativePlayerPresentation} from '../player-presentation';
 import {
 	materializeNarrativePlayerSession,
@@ -643,6 +647,79 @@ describe('A67-W1 first-week content skeleton', () => {
 					memory.summary.includes('общежитие')
 			)
 		).toBe(true);
+	});
+
+
+	test('restores a Day Six first-week save and continues into the Day Seven closure', () => {
+		const artifact = compileFixture();
+		let session = start(artifact);
+
+		session = waitUntil(session, 2, 10 * 60 + 30);
+		session = story(session, smsWorkId, 'execute');
+		session = action(session, phoneSocialLoopIds.moves.decline);
+		session = waitUntil(session, 5, 17 * 60 + 30);
+		session = place(session, playerId, firstWeekIds.locations.oldMarket);
+		session = place(
+			session,
+			firstWeekIds.characters.cameraStudent,
+			firstWeekIds.locations.oldMarket
+		);
+		session = story(session, dayFiveWorkId, 'execute');
+		session = action(session, firstWeekIds.moves.marketDeclined);
+		session = waitUntil(session, 6, 18 * 60 + 15);
+		session = place(
+			session,
+			playerId,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		session = place(
+			session,
+			arrivalCorridorIds.characters.dormDuty,
+			arrivalCorridorIds.locations.studentDormitory
+		);
+		session = story(session, daySixDormWorkId, 'execute');
+		session = action(session, firstWeekIds.moves.dormStay);
+
+		const serialized = serializeNarrativePlayerSave(session);
+		const fresh = start(artifact);
+		const restored = restoreNarrativePlayerSaveJson(fresh, serialized);
+
+		expect(restored.status).toBe('restored');
+		if (restored.status !== 'restored') {
+			throw new Error('Expected A67 first-week save to restore.');
+		}
+		session = restored.session;
+
+		expect(session.currentProject.simulation).toMatchObject({
+			day: 6,
+			minuteOfDay: 18 * 60 + 45
+		});
+		expect(
+			playerKnows(session, firstWeekIds.claims.dormEveningContinuation)
+		).toBe(true);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySixCinema
+			]
+		).toBe('blocked');
+
+		session = waitUntil(session, 7, 11 * 60);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: firstWeekIds.moves.weekDorm,
+					state: 'ready'
+				})
+			])
+		);
+		session = action(session, firstWeekIds.moves.weekDorm);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySevenWeekEcho
+			]
+		).toBe('completed');
 	});
 
 	test('lets the Day Six dorm line become a distinct week-end history', () => {
