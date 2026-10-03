@@ -1,6 +1,7 @@
 import {createNarrativeProject} from '../project-factory';
 import {analyzeNarrativeScheduleConflicts} from '../schedule-analysis';
 import {NarrativeProjectTemplate} from '../template';
+import {applyScheduleExceptionAuthoringCommand} from '../../../store/narrative-project/schedule-exception-authoring';
 
 const template: NarrativeProjectTemplate = {
 	id: 'schedule-exception-analysis-test',
@@ -99,4 +100,73 @@ describe('ScheduleException ambiguity diagnostics', () => {
 			)
 		).toEqual([]);
 	});
+
+	it('derives ambiguity from command-produced records and priority updates', () => {
+		let value = project();
+		value = applyScheduleExceptionAuthoringCommand(value, {
+			type: 'scheduleException/add',
+			candidate: {
+				id: 'first',
+				characterId: 'hero',
+				activeRange: {fromDay: 1, toDay: 1},
+				timeWindow: {
+					type: 'exact',
+					startMinute: 540,
+					endMinute: 660,
+					endDayOffset: 0
+				},
+				intent: {type: 'absent'},
+				priority: 100
+			}
+		});
+		value = applyScheduleExceptionAuthoringCommand(value, {
+			type: 'scheduleException/add',
+			candidate: {
+				id: 'second',
+				characterId: 'hero',
+				activeRange: {fromDay: 1, toDay: 1},
+				timeWindow: {
+					type: 'exact',
+					startMinute: 600,
+					endMinute: 720,
+					endDayOffset: 0
+				},
+				intent: {type: 'absent'},
+				priority: 50
+			}
+		});
+
+		expect(
+			analyzeNarrativeScheduleConflicts(value).findings.filter(
+				finding => finding.kind === 'schedule-exception-ambiguity'
+			)
+		).toEqual([]);
+
+		value = applyScheduleExceptionAuthoringCommand(value, {
+			type: 'scheduleException/update',
+			candidate: {
+				id: 'second',
+				characterId: 'hero',
+				activeRange: {fromDay: 1, toDay: 1},
+				timeWindow: {
+					type: 'exact',
+					startMinute: 600,
+					endMinute: 720,
+					endDayOffset: 0
+				},
+				intent: {type: 'absent'},
+				priority: 100
+			}
+		});
+		expect(
+			analyzeNarrativeScheduleConflicts(value).findings
+		).toContainEqual(
+			expect.objectContaining({
+				kind: 'schedule-exception-ambiguity',
+				ruleIds: ['first', 'second'],
+				overlap: {start: 600, end: 660}
+			})
+		);
+	});
+
 });
