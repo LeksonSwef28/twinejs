@@ -1,0 +1,189 @@
+.simulation-debug {
+	margin: 0.75rem 1rem 1rem;
+	padding: 1rem;
+	border: 1px solid var(--gray-3, #555);
+	border-radius: 0.7rem;
+	background: var(--gray-0, #181818);
+	box-shadow: 0 0.4rem 1.4rem rgb(0 0 0 / 22%);
+}
+
+.simulation-debug__header,
+.simulation-debug__controls,
+.simulation-debug__story-row,
+.simulation-debug__metrics {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+
+.simulation-debug__header {
+	justify-content: space-between;
+	margin-bottom: 0.75rem;
+}
+
+.simulation-debug__header h2,
+.simulation-debug__card h3,
+.simulation-debug__character h4 {
+	margin: 0;
+}
+
+.simulation-debug__eyebrow {
+	margin: 0 0 0.2rem;
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	opacity: 0.72;
+}
+
+.simulation-debug__controls {
+	flex-wrap: wrap;
+	padding: 0.7rem;
+	margin-bottom: 0.85rem;
+	border-radius: 0.55rem;
+	background: rgb(255 255 255 / 5%);
+}
+
+.simulation-debug__controls button.is-active {
+	font-weight: 700;
+}
+
+.simulation-debug__grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.simulation-debug__card {
+	min-width: 0;
+	padding: 0.8rem;
+	border: 1px solid rgb(255 255 255 / 10%);
+	border-radius: 0.55rem;
+	background: rgb(255 255 255 / 3%);
+}
+
+.simulation-debug__card.is-wide {
+	grid-column: 1 / -1;
+}
+
+.simulation-debug__card h3 {
+	margin-bottom: 0.6rem;
+	font-size: 0.95rem;
+}
+
+.simulation-debug__character-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+	gap: 0.6rem;
+}
+
+.simulation-debug__character {
+	padding: 0.65rem;
+	border-radius: 0.45rem;
+	background: rgb(0 0 0 / 14%);
+}
+
+.simulation-debug__character dl {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 0.2rem 0.45rem;
+	margin: 0.55rem 0;
+	font-size: 0.8rem;
+}
+
+.simulation-debug__character dt {
+	opacity: 0.62;
+}
+
+.simulation-debug__character dd {
+	margin: 0;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.simulation-debug__body,
+.simulation-debug__mini-section,
+.simulation-debug__button-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+}
+
+.simulation-debug__body,
+.simulation-debug__mini-section {
+	margin-top: 0.45rem;
+	padding-top: 0.45rem;
+	border-top: 1px solid rgb(255 255 255 / 8%);
+	font-size: 0.78rem;
+}
+
+.simulation-debug__metrics {
+	flex-wrap: wrap;
+	margin-top: 0.5rem;
+	font-size: 0.72rem;
+	opacity: 0.78;
+}
+
+.simulation-debug__story-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+}
+
+.simulation-debug__story-row {
+	flex-wrap: wrap;
+	padding: 0.4rem 0;
+	border-bottom: 1px solid rgb(255 255 255 / 7%);
+	font-size: 0.78rem;
+}
+
+.simulation-debug__story-row code {
+	opacity: 0.7;
+}
+
+.simulation-debug__card ul,
+.simulation-debug__card ol {
+	margin: 0.45rem 0 0;
+	padding-left: 1.25rem;
+}
+
+.simulation-debug__card li {
+	margin: 0.25rem 0;
+	font-size: 0.78rem;
+}
+
+.simulation-debug__card pre {
+	max-height: 18rem;
+	overflow: auto;
+	padding: 0.6rem;
+	border-radius: 0.4rem;
+	background: rgb(0 0 0 / 28%);
+	font-size: 0.7rem;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.simulation-debug__button-list {
+	align-items: stretch;
+}
+
+.simulation-debug__button-list button {
+	text-align: left;
+}
+
+.simulation-debug__empty,
+.simulation-debug__hint {
+	margin: 0.4rem 0;
+	font-size: 0.78rem;
+	opacity: 0.66;
+}
+
+@media (max-width: 52rem) {
+	.simulation-debug__grid {
+		grid-template-columns: 1fr;
+	}
+
+	.simulation-debug__card.is-wide {
+		grid-column: auto;
+	}
+}

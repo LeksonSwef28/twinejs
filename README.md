@@ -38,6 +38,9 @@ Run `npm start` to begin serving a development version of Twine locally. This
 server will automatically update with changes you make.
 
 Run `npm run start:electron` to run a development version of the Electron app.
+On Windows PowerShell, if execution policy blocks `npm.ps1`, use
+`npm.cmd run start:electron` instead. The same `npm.cmd` fallback can be used
+for install/start commands without changing PowerShell execution policy.
 **Running this can damage files in your Twine storied folder. Take a backup copy
 of this folder before proceeding.** Most of the app will automatically update as
 you work, but if you want the app to read story files initially again, you will
