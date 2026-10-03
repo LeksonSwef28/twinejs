@@ -111,7 +111,7 @@ describe('schedule exception authoring persistence boundary', () => {
 
 	test('loads legacy records without read-time modernization and modernizes only the edited record', () => {
 		const hostStoryId = 'a67-d3-legacy-persistence';
-		let project = fixture(hostStoryId);
+		const project = fixture(hostStoryId);
 		const editedLegacy: ScheduleException = {
 			id: 'edited-legacy',
 			characterId: 'katya',
