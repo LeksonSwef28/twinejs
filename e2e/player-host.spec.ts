@@ -1155,6 +1155,136 @@ test('A66-S4 direct WORLD/TIME moment navigation centers the view without moving
 	expect(Math.abs(cursorLeft - viewportWidth / 2)).toBeLessThanOrEqual(2);
 });
 
+test('A67 world authoring pilot builds a coherent authored world through normal UI', async ({
+	page
+}) => {
+	await createA65AuthoringStory(page);
+
+	const simulationPlayhead = page.locator('.narrative-workspace__playhead');
+	const initialSimulation = await simulationPlayhead.textContent();
+	const storyLibrary = page.getByLabel('Project Library истории');
+
+	for (const name of ['Мира', 'Лев']) {
+		await storyLibrary.getByLabel('Имя нового персонажа').fill(name);
+		await storyLibrary.getByRole('button', {name: '+ Персонаж'}).click();
+		await expect(storyLibrary).toContainText(name);
+	}
+
+	await storyLibrary.locator('summary').filter({hasText: 'Предметы'}).click();
+	await storyLibrary.getByLabel('Название типа предмета').fill('Термос');
+	await storyLibrary.getByRole('button', {name: '+ Тип предмета'}).click();
+	const thermos = storyLibrary
+		.locator('.narrative-workspace__item-library-entry')
+		.filter({hasText: 'Термос'});
+	await thermos.getByRole('button', {name: '+ экземпляр'}).click();
+	await expect(thermos).toContainText('1 шт.');
+
+	await storyLibrary.getByLabel('Тип сюжетного блока').selectOption('event');
+	await storyLibrary
+		.getByLabel('Название сюжетного блока')
+		.fill('Встреча в вечернем кафе');
+	await storyLibrary.getByRole('button', {name: '+ На доску'}).click();
+
+	await page.getByRole('tab', {name: 'Время и мир'}).click();
+	const worldLibrary = page.getByLabel('Project Library мира');
+	for (const name of ['Дом Миры', 'Кафе у реки']) {
+		await worldLibrary.getByLabel('Название новой локации').fill(name);
+		await worldLibrary.getByRole('button', {name: '+ Локация'}).click();
+		await expect(worldLibrary).toContainText(name);
+	}
+
+	const routines = page.getByLabel('Расписания персонажей');
+	await routines.getByLabel('Персонаж расписания').selectOption({label: 'Мира'});
+	await routines.getByLabel('Локация расписания').selectOption({label: 'Кафе у реки'});
+	await routines.getByLabel('С дня').fill('1');
+	await routines.getByLabel('По день').fill('93');
+	await routines.getByLabel('Повтор расписания').selectOption('everyDay');
+	await routines.getByLabel('Тип временного окна расписания').selectOption('exact');
+	await routines.getByLabel('Начало').fill('17:00');
+	await routines.getByLabel('Конец').fill('19:00');
+	await routines.getByRole('button', {name: '+ Расписание'}).click();
+	await expect(routines).toContainText('Мира');
+	await expect(routines).toContainText('Кафе у реки');
+	await expect(routines).toContainText('17:00–19:00');
+
+	await page.getByRole('tab', {name: 'История'}).click();
+	const navigator = page.getByLabel('Точный навигатор истории');
+	await navigator.getByLabel('День просмотра').fill('12');
+	await navigator.getByLabel('Время просмотра').fill('17:30');
+	await navigator.getByRole('button', {name: 'Перейти'}).click();
+
+	const eventNode = page
+		.locator('.narrative-workspace__node')
+		.filter({hasText: 'Встреча в вечернем кафе'});
+	await eventNode.click();
+	const inspector = page.getByLabel('Инспектор истории');
+	await inspector.getByRole('button', {name: 'Привязать к текущему времени'}).click();
+	await inspector
+		.getByLabel('Локация сюжетного блока')
+		.selectOption({label: 'Кафе у реки'});
+	await expect(inspector).toContainText('Привязано: День 12 · 17:30');
+
+	await page.getByRole('button', {name: 'Библиотека'}).click();
+	const library = page.getByRole('dialog', {name: 'Project Library'});
+	await library
+		.getByLabel('Название объективного факта')
+		.fill('Мира пришла в кафе в 17:30');
+	await library
+		.getByLabel('Описание объективного факта')
+		.fill('Факт мира для A67 authoring pilot.');
+	await library.getByRole('button', {name: '+ Факт'}).click();
+
+	await library
+		.getByLabel('Текст утверждения')
+		.fill('Мира была в кафе этим вечером');
+	await library
+		.getByLabel('Связанный объективный факт')
+		.selectOption({label: 'Мира пришла в кафе в 17:30'});
+	await library
+		.getByLabel('Отношение утверждения к факту')
+		.selectOption('supports');
+	await library.getByRole('button', {name: '+ Утверждение'}).click();
+
+	await library
+		.getByLabel('Персонаж стартового знания')
+		.selectOption({label: 'Лев'});
+	await library
+		.getByLabel('Claim стартового знания')
+		.selectOption({label: 'Мира была в кафе этим вечером'});
+	await library
+		.getByLabel('Отношение персонажа к Claim')
+		.selectOption('believes');
+	await library.getByLabel('Уверенность персонажа от 0 до 1').fill('0.8');
+	await library.getByLabel('Источник стартового знания').selectOption('told');
+	await library
+		.getByLabel('Кто сообщил стартовое знание')
+		.selectOption({label: 'Мира'});
+	await library.getByRole('button', {name: 'Задать стартовое знание'}).click();
+	await expect(library).toContainText('Мира пришла в кафе в 17:30');
+	await expect(library).toContainText('Мира была в кафе этим вечером');
+	await expect(library).toContainText('Лев');
+	await page.getByLabel('Закрыть библиотеку').click();
+
+	const search = page.getByLabel('Поиск по Narrative Project');
+	await search.fill('Встреча в вечернем кафе');
+	const result = page
+		.locator('.narrative-workspace__project-search-result')
+		.filter({hasText: 'Встреча в вечернем кафе'});
+	await expect(result).toBeVisible();
+	await result.getByRole('button', {name: 'Во времени'}).click();
+	await expect(page.getByRole('tab', {name: 'Время и мир'})).toHaveAttribute(
+		'aria-selected',
+		'true'
+	);
+	await expect(
+		page
+			.locator('.narrative-workspace__story-marker')
+			.filter({hasText: 'Встреча в вечернем кафе'})
+	).toBeVisible();
+
+	expect(await simulationPlayhead.textContent()).toBe(initialSimulation);
+});
+
 test('A65 authoring pilot creates, previews, exports and plays one branching scene through UI', async ({
 	page
 }) => {
