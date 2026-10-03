@@ -355,15 +355,16 @@ function formatWindow(
 	if (window.status === 'invalid-exact') {
 		return 'Некорректное точное время';
 	}
-	if (window.value.type === 'period') {
+	const value = window.value;
+	if (value.type === 'period') {
 		const label =
-			project.template.periods.find(period => period.id === window.value.periodId)
-				?.label ?? window.value.periodId;
+			project.template.periods.find(period => period.id === value.periodId)
+				?.label ?? value.periodId;
 		return `Период: ${label}${window.source === 'legacy-period' ? ' (legacy)' : ''}`;
 	}
-	return `${formatMinuteOfDay(window.value.startMinute)}–${formatMinuteOfDay(
-		window.value.endMinute
-	)}${window.value.endDayOffset === 1 ? ' (+1 день)' : ''}`;
+	return `${formatMinuteOfDay(value.startMinute)}–${formatMinuteOfDay(
+		value.endMinute
+	)}${value.endDayOffset === 1 ? ' (+1 день)' : ''}`;
 }
 
 function formatIntent(resolved: ResolvedScheduleExceptionForAuthoring) {
@@ -598,15 +599,20 @@ const ScheduleExceptionForm: React.FC<ScheduleExceptionFormProps> = props => {
 					<select
 						aria-label="День окончания исключения"
 						value={draft.window.endDayOffset}
-						onChange={event =>
+						onChange={event => {
+							if (draft.window.mode !== 'exact') {
+								return;
+							}
 							setDraft({
 								window: {
-									...draft.window,
+									mode: 'exact',
+									startTime: draft.window.startTime,
+									endTime: draft.window.endTime,
 									endDayOffset: event.target.value as '0' | '1'
 								},
 								windowNeedsExplicitRepair: false
-							})
-						}
+							});
+						}}
 					>
 						<option value="0">В тот же день</option>
 						<option value="1">На следующий день</option>
