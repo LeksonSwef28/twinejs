@@ -161,4 +161,56 @@ describe('A39 physical runtime persistence', () => {
 		expect(loaded.injuriesByCharacter).toEqual({});
 		expect(loaded.itemPlacementOverrides).toEqual({});
 	});
+
+	test('authored placement and runtime override stay independent across save and reopen', () => {
+		const source = physicalProject();
+		source.itemInstances = source.itemInstances.map(instance =>
+			instance.id === 'thermos-1'
+				? {
+						...instance,
+						placement: {type: 'character' as const, characterId: 'player'}
+					}
+				: instance
+		);
+		source.itemPlacementOverrides = {
+			'thermos-1': {
+				type: 'container',
+				containerInstanceId: 'portfolio-1'
+			}
+		};
+		const repository = createLocalStorageNarrativeProjectRepository(
+			hostStoryId,
+			source.name,
+			ninetyThreeDaysTemplate
+		);
+
+		repository.save(source);
+
+		const raw = JSON.parse(window.localStorage.getItem(storageKey)!);
+		const authoredThermos = raw.authored.itemInstances.find(
+			(instance: {id: string}) => instance.id === 'thermos-1'
+		);
+		expect(authoredThermos.placement).toEqual({
+			type: 'character',
+			characterId: 'player'
+		});
+		expect(raw.authored.itemPlacementOverrides).toBeUndefined();
+		expect(raw.runtime.itemInstances).toBeUndefined();
+		expect(raw.runtime.itemPlacementOverrides['thermos-1']).toEqual({
+			type: 'container',
+			containerInstanceId: 'portfolio-1'
+		});
+
+		const loaded = repository.load();
+		expect(
+			loaded.itemInstances.find(instance => instance.id === 'thermos-1')?.placement
+		).toEqual({
+			type: 'character',
+			characterId: 'player'
+		});
+		expect(loaded.itemPlacementOverrides['thermos-1']).toEqual({
+			type: 'container',
+			containerInstanceId: 'portfolio-1'
+		});
+	});
 });

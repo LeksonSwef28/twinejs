@@ -1,5 +1,6 @@
 import {
 	applyItemRuntimePlacement,
+	effectiveItemPlacement,
 	evaluateCarryingAction,
 	evaluatePackIntoContainer,
 	evaluatePackIntoPockets,
@@ -189,5 +190,35 @@ describe('A39 carrying and containers', () => {
 		expect(climb.allowed).toBe(false);
 		expect(climb.blockers.map(blocker => blocker.code)).toContain('hands-occupied');
 		expect(climb.modifiers.map(modifier => modifier.code)).toContain('carried-weight');
+	});
+
+	test('effective placement follows the authored baseline until a sparse runtime override exists', () => {
+		const thermos = instances.find(instance => instance.id === 'thermos-1')!;
+		const authoredAtHome: ItemInstance = {
+			...thermos,
+			placement: {type: 'location', locationId: 'home'}
+		};
+		const authoredAtCafe: ItemInstance = {
+			...thermos,
+			placement: {type: 'location', locationId: 'cafe'}
+		};
+
+		expect(effectiveItemPlacement(authoredAtHome, {})).toEqual(
+			authoredAtHome.placement
+		);
+		expect(effectiveItemPlacement(authoredAtCafe, {})).toEqual(
+			authoredAtCafe.placement
+		);
+
+		const overrides = applyItemRuntimePlacement({}, 'thermos-1', {
+			type: 'container',
+			containerInstanceId: 'portfolio-1'
+		});
+		expect(effectiveItemPlacement(authoredAtHome, overrides)).toEqual(
+			overrides['thermos-1']
+		);
+		expect(effectiveItemPlacement(authoredAtCafe, overrides)).toEqual(
+			overrides['thermos-1']
+		);
 	});
 });

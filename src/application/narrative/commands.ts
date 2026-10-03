@@ -43,6 +43,7 @@ export type NarrativeProjectCommand =
 			definitionId: string;
 			placement?: ItemPlacement;
 	  }
+	| {type: 'item/setPlacement'; id: string; placement: ItemPlacement}
 	| {type: 'fact/add'; id: string; title: string; description?: string}
 	| {
 			type: 'claim/add';

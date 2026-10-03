@@ -1,3 +1,7 @@
+import {
+	authoredItemPlacementEquals,
+	validateAuthoredItemPlacementTarget
+} from '../../application/narrative/authored-item-placement';
 import {NarrativeProjectCommand} from '../../application/narrative/commands';
 import {
 	clampDay,
@@ -434,6 +438,31 @@ export function applyNarrativeProjectCommand(
 					}
 				]
 			});
+		case 'item/setPlacement': {
+			const item = project.itemInstances.find(
+				candidate => candidate.id === command.id
+			);
+			if (!item) {
+				return project;
+			}
+			if (
+				validateAuthoredItemPlacementTarget(project, command.placement).status !==
+				'valid'
+			) {
+				return project;
+			}
+			if (authoredItemPlacementEquals(item.placement, command.placement)) {
+				return project;
+			}
+			return touched({
+				...project,
+				itemInstances: project.itemInstances.map(candidate =>
+					candidate.id === command.id
+						? {...candidate, placement: command.placement}
+						: candidate
+				)
+			});
+		}
 		case 'fact/add': {
 			const title = command.title.trim();
 			if (!title) {

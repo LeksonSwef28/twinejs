@@ -116,4 +116,100 @@ describe('runtime vs authoring history boundary', () => {
 			'story-runtime-only': 'completed'
 		});
 	});
+
+	test('authored item placement Undo/Redo can keep the current runtime overlay and playhead', () => {
+		const project = createNarrativeProject(
+			'story-a67-d2-runtime-boundary',
+			'A67-D2 runtime boundary',
+			ninetyThreeDaysTemplate
+		);
+		project.locations.push(
+			{id: 'home', name: 'Дом'},
+			{id: 'cafe', name: 'Кафе'}
+		);
+		project.characters.push({
+			id: 'player',
+			name: 'Player',
+			cognitionTier: 'full',
+			defaultBehaviorProfileId: 'player-default'
+		});
+		project.itemDefinitions.push({
+			id: 'thermos',
+			name: 'Термос',
+			tags: ['drink']
+		});
+		project.itemInstances.push({
+			id: 'thermos-1',
+			definitionId: 'thermos',
+			placement: {type: 'unplaced'}
+		});
+
+		const withRuntime = replaceRuntimeProjectInHistory(
+			{past: [], present: project, future: []},
+			{
+				...project,
+				itemPlacementOverrides: {
+					'thermos-1': {type: 'character', characterId: 'player'}
+				},
+				simulation: {...project.simulation, day: 2, minuteOfDay: 480}
+			}
+		);
+		const authoredChanged = narrativeProjectHistoryReducer(withRuntime, {
+			type: 'execute',
+			command: {
+				type: 'item/setPlacement',
+				id: 'thermos-1',
+				placement: {type: 'location', locationId: 'home'}
+			}
+		});
+		const runtimeAdvanced = replaceRuntimeProjectInHistory(authoredChanged, {
+			...authoredChanged.present,
+			itemPlacementOverrides: {
+				'thermos-1': {type: 'location', locationId: 'cafe'}
+			},
+			simulation: {
+				...authoredChanged.present.simulation,
+				day: 6,
+				minuteOfDay: 930
+			}
+		});
+
+		const undoSnapshot = narrativeProjectHistoryReducer(runtimeAdvanced, {
+			type: 'undo'
+		});
+		const undone = {
+			...undoSnapshot,
+			present: keepCurrentRuntime(
+				undoSnapshot.present,
+				runtimeAdvanced.present
+			)
+		};
+
+		expect(undone.present.itemInstances[0].placement).toEqual({
+			type: 'unplaced'
+		});
+		expect(undone.present.itemPlacementOverrides).toEqual(
+			runtimeAdvanced.present.itemPlacementOverrides
+		);
+		expect(undone.present.simulation.day).toBe(6);
+		expect(undone.present.simulation.minuteOfDay).toBe(930);
+
+		const redoSnapshot = narrativeProjectHistoryReducer(undone, {
+			type: 'redo'
+		});
+		const redone = {
+			...redoSnapshot,
+			present: keepCurrentRuntime(redoSnapshot.present, undone.present)
+		};
+
+		expect(redone.present.itemInstances[0].placement).toEqual({
+			type: 'location',
+			locationId: 'home'
+		});
+		expect(redone.present.itemPlacementOverrides).toEqual(
+			runtimeAdvanced.present.itemPlacementOverrides
+		);
+		expect(redone.present.simulation.day).toBe(6);
+		expect(redone.present.simulation.minuteOfDay).toBe(930);
+	});
 });
