@@ -8,6 +8,7 @@ import {
 	scheduleExceptionAuthoringEquals,
 	validateScheduleExceptionCandidate
 } from '../schedule-exception-authoring';
+import {NarrativeProjectHistoryState} from '../reducer';
 import {narrativeProjectAuthoringReducer} from '../routine-authoring';
 
 function projectFixture() {
@@ -402,7 +403,11 @@ describe('schedule exception authoring core', () => {
 describe('schedule exception authored history routing', () => {
 	test('adds one history step, supports undo/redo and preserves no-op Redo', () => {
 		const project = projectFixture();
-		let state = {past: [], present: project, future: []};
+		let state: NarrativeProjectHistoryState = {
+			past: [],
+			present: project,
+			future: []
+		};
 
 		state = narrativeProjectAuthoringReducer(state, {
 			type: 'execute',
@@ -444,7 +449,11 @@ describe('schedule exception authored history routing', () => {
 			priority: 50,
 			reason: 'appointment'
 		});
-		const state = {past: [], present: project, future: []};
+		const state: NarrativeProjectHistoryState = {
+			past: [],
+			present: project,
+			future: []
+		};
 		const next = narrativeProjectAuthoringReducer(state, {
 			type: 'execute',
 			command: {

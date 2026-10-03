@@ -389,33 +389,38 @@ function windowsEqual(
 	current: ResolvedScheduleExceptionWindow,
 	candidate: NormalizedScheduleExceptionWindow
 ) {
-	if (current.status !== 'resolved' || current.value.type !== candidate.type) {
+	if (current.status !== 'resolved') {
 		return false;
 	}
-	if (current.value.type === 'period' && candidate.type === 'period') {
-		return current.value.periodId === candidate.periodId;
+	switch (candidate.type) {
+		case 'period':
+			return (
+				current.value.type === 'period' &&
+				current.value.periodId === candidate.periodId
+			);
+		case 'exact':
+			return (
+				current.value.type === 'exact' &&
+				current.value.startMinute === candidate.startMinute &&
+				current.value.endMinute === candidate.endMinute &&
+				current.value.endDayOffset === candidate.endDayOffset
+			);
 	}
-	if (current.value.type === 'exact' && candidate.type === 'exact') {
-		return (
-			current.value.startMinute === candidate.startMinute &&
-			current.value.endMinute === candidate.endMinute &&
-			current.value.endDayOffset === candidate.endDayOffset
-		);
-	}
-	return false;
 }
 
 function intentsEqual(
 	current: ResolvedScheduleExceptionIntent,
 	candidate: ScheduleExceptionAuthoringIntent
 ) {
-	if (candidate.type === 'absent') {
-		return current.status === 'absent';
+	switch (candidate.type) {
+		case 'absent':
+			return current.status === 'absent';
+		case 'location':
+			return (
+				current.status === 'location-resolved' &&
+				current.locationId === candidate.locationId
+			);
 	}
-	return (
-		current.status === 'location-resolved' &&
-		current.locationId === candidate.locationId
-	);
 }
 
 export function scheduleExceptionAuthoringEquals(
