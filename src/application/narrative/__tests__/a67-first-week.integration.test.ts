@@ -352,9 +352,34 @@ describe('A67-W1 first-week content skeleton', () => {
 			session.currentProject.simulation.actualLocationByCharacter[playerId]
 		).toBe(arrivalCorridorIds.locations.studentDormitory);
 
-		// Day 7: the week-end reflection is reached without any direct presence
-		// mutation in this history.
-		session = waitUntil(session, 7, 11 * 60);
+		// Day 7: authored 11:00 timing is respected before the reflection begins.
+		session = waitUntil(session, 7, 10 * 60 + 59);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).not.toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({id: firstWeekIds.moves.weekOldCity})
+			])
+		);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).storyOpportunities
+		).not.toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({id: daySevenWeekWorkId})
+			])
+		);
+
+		session = wait(session, 1);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).storyOpportunities
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: daySevenWeekWorkId,
+					state: 'ready'
+				})
+			])
+		);
 		session = story(session, daySevenWeekWorkId, 'execute');
 		expect(
 			deriveNarrativePlayerPresentation(session.currentProject).actions
