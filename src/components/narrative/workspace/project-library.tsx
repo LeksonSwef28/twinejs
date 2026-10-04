@@ -28,6 +28,7 @@ const sourceTypeLabels: Record<KnowledgeSource['type'], string> = {
 	authored: 'Задано автором',
 	observed: 'Наблюдал сам',
 	told: 'Кто-то сообщил',
+	mediated: 'Опосредованный источник',
 	inferred: 'Сделал вывод'
 };
 
@@ -47,6 +48,9 @@ export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) =
 	const [knowledgeSourceType, setKnowledgeSourceType] =
 		React.useState<KnowledgeSource['type']>('authored');
 	const [knowledgeSourceCharacterId, setKnowledgeSourceCharacterId] =
+		React.useState('');
+	const [knowledgeSourceMedium, setKnowledgeSourceMedium] = React.useState('');
+	const [knowledgeSourceAttribution, setKnowledgeSourceAttribution] =
 		React.useState('');
 
 	if (!open) {
@@ -93,6 +97,8 @@ export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) =
 		if (
 			!knowledgeCharacterId ||
 			!knowledgeClaimId ||
+			(knowledgeSourceType === 'mediated' &&
+				!knowledgeSourceMedium.trim()) ||
 			!Number.isFinite(confidence) ||
 			confidence < 0 ||
 			confidence > 1
@@ -117,6 +123,13 @@ export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) =
 					sourceCharacterId: knowledgeSourceCharacterId || undefined
 				};
 				break;
+			case 'mediated':
+				source = {
+					type: 'mediated',
+					medium: knowledgeSourceMedium.trim(),
+					attribution: knowledgeSourceAttribution.trim() || undefined
+				};
+				break;
 		}
 
 		execute({
@@ -138,6 +151,11 @@ export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) =
 			return character
 				? `Сообщил: ${character.name}`
 				: 'Источник-персонаж не найден';
+		}
+		if (source.type === 'mediated') {
+			return source.attribution
+				? `${source.medium}: ${source.attribution}`
+				: source.medium;
 		}
 		return sourceTypeLabels[source.type];
 	}
@@ -362,6 +380,10 @@ export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) =
 								if (event.target.value !== 'told') {
 									setKnowledgeSourceCharacterId('');
 								}
+								if (event.target.value !== 'mediated') {
+									setKnowledgeSourceMedium('');
+									setKnowledgeSourceAttribution('');
+								}
 							}}
 						>
 							{Object.entries(sourceTypeLabels).map(([sourceType, label]) => (
@@ -385,6 +407,24 @@ export const ProjectLibrary: React.FC<ProjectLibraryProps> = ({open, onClose}) =
 									</option>
 								))}
 							</select>
+						)}
+						{knowledgeSourceType === 'mediated' && (
+							<>
+								<input
+									value={knowledgeSourceMedium}
+									aria-label="Канал стартового knowledge source"
+									placeholder="forum / chat / note"
+									onChange={event => setKnowledgeSourceMedium(event.target.value)}
+								/>
+								<input
+									value={knowledgeSourceAttribution}
+									aria-label="Атрибуция стартового knowledge source"
+									placeholder="ник / подпись"
+									onChange={event =>
+										setKnowledgeSourceAttribution(event.target.value)
+									}
+								/>
+							</>
 						)}
 						<button
 							type="submit"
