@@ -1,3 +1,4 @@
+import {NarrativeMoveDefinition} from '../interaction';
 import {NarrativeProject} from '../project';
 import {arrivalCorridorIds} from './93-days-arrival-corridor';
 import {
@@ -29,17 +30,121 @@ export const computerClubCycleIds = {
 	routes: {
 		dormToClub: 'a68-route-dorm-club',
 		clubToDorm: 'a68-route-club-dorm'
+	},
+	claims: {
+		nightSession: 'a68-claim-night-session'
+	},
+	story: {
+		workerArrival: 'a68-day8-club-worker-arrival',
+		regularArrival: 'a68-day8-club-regular-arrival',
+		entry: 'a68-day8-club-entry'
+	},
+	moves: {
+		askWorker: 'a68-day8-club-entry:ask-worker',
+		readForum: 'a68-day8-club-entry:read-forum'
 	}
 } as const;
+
+const playerId = arrivalCorridorIds.characters.player;
+
+function storyActiveGuard(id: string, storyNodeId: string) {
+	return {
+		id,
+		condition: {
+			type: 'story-node-state' as const,
+			storyNodeId,
+			state: 'active' as const
+		}
+	};
+}
+
+function sourceSplitMoves(): NarrativeMoveDefinition[] {
+	const ids = computerClubCycleIds;
+	const directId = ids.moves.askWorker;
+	const forumId = ids.moves.readForum;
+	return [
+		{
+			id: directId,
+			storyNodeId: ids.story.entry,
+			kind: 'ask',
+			label: 'Спросить администратора, что сегодня обсуждают',
+			actorCharacterId: playerId,
+			targetCharacterIds: [ids.characters.clubWorker],
+			guards: [
+				storyActiveGuard(directId + ':entry-active', ids.story.entry),
+				{
+					id: directId + ':same-place',
+					condition: {
+						type: 'characters-share-location',
+						characterIds: [playerId, ids.characters.clubWorker]
+					}
+				}
+			],
+			resolution: {type: 'automatic', outcomeId: directId + ':outcome'},
+			outcomes: [
+				{
+					id: directId + ':outcome',
+					key: 'heard-directly',
+					label: 'Администратор коротко объясняет, что планируется вечером.',
+					effectStoryNodeIds: [],
+					effects: [
+						{
+							id: directId + ':learn',
+							type: 'character-learns-claim',
+							recipient: {type: 'character', characterId: playerId},
+							claim: {type: 'claim', claimId: ids.claims.nightSession},
+							attitude: 'believes',
+							confidence: 0.88,
+							source: {type: 'move-target', targetIndex: 0}
+						}
+					]
+				}
+			]
+		},
+		{
+			id: forumId,
+			storyNodeId: ids.story.entry,
+			kind: 'observe',
+			label: 'Прочитать закреплённое сообщение на локальном форуме',
+			actorCharacterId: playerId,
+			targetCharacterIds: [],
+			guards: [storyActiveGuard(forumId + ':entry-active', ids.story.entry)],
+			resolution: {type: 'automatic', outcomeId: forumId + ':outcome'},
+			outcomes: [
+				{
+					id: forumId + ':outcome',
+					key: 'read-mediated',
+					label: 'Сообщение описывает тот же план, но через сетевую атрибуцию.',
+					effectStoryNodeIds: [],
+					effects: [
+						{
+							id: forumId + ':learn',
+							type: 'character-learns-claim',
+							recipient: {type: 'character', characterId: playerId},
+							claim: {type: 'claim', claimId: ids.claims.nightSession},
+							attitude: 'believes',
+							confidence: 0.68,
+							source: {
+								type: 'mediated',
+								medium: 'forum',
+								attribution: 'north_bridge'
+							}
+						}
+					]
+				}
+			]
+		}
+	];
+}
 
 /**
  * A68-C1 initial production skeleton.
  *
  * This layer expands the already proven first-week project with one MASTER-backed
  * central/student social space. It intentionally adds only ordinary canonical
- * content data: a Computer Club location, two NPC roles, routine intent and
- * explicit travel routes. Story/provenance/cross-place consequences are added in
- * later C1 slices after the topology is proven.
+ * content data: a Computer Club location, two NPC roles, routine intent,
+ * explicit travel routes and a first source-aware Story entry. Cross-place
+ * consequences and deeper relationship continuity remain later C1 slices.
  */
 export function create93DaysComputerClubCycleProject(): NarrativeProject {
 	const project = create93DaysFirstWeekProject();
@@ -145,6 +250,81 @@ export function create93DaysComputerClubCycleProject(): NarrativeProject {
 			mode: 'walk',
 			physicalAction: 'walk'
 		}
+	];
+
+	project.claims = [
+		...project.claims,
+		{
+			id: ids.claims.nightSession,
+			text: 'На девятый день в компьютерном клубе хотят оставить несколько машин на позднюю сетевую игру, но мест меньше, чем желающих.',
+			stance: 'supports',
+			tags: ['a68', 'computer-club', 'social-plan', 'early-internet']
+		}
+	];
+
+	project.storyNodes = [
+		...project.storyNodes,
+		{
+			id: ids.story.workerArrival,
+			kind: 'event',
+			title: 'Восьмой день: администратор приходит на вечернюю смену',
+			description:
+				'Явное authored arrival превращает рабочее расписание в фактическое присутствие.',
+			primaryCharacterId: ids.characters.clubWorker,
+			participantIds: [ids.characters.clubWorker],
+			placement: {
+				day: 8,
+				minuteOfDay: 17 * 60 + 50,
+				locationId: ids.locations.computerClub
+			},
+			activationState: 'available',
+			runtimePolicy: {occurrenceMode: 'one-shot', durationMinutes: 0}
+		},
+		{
+			id: ids.story.regularArrival,
+			kind: 'event',
+			title: 'Восьмой день: завсегдатай приходит в клуб',
+			description:
+				'Второй authored arrival создаёт реальное пересечение людей, а не только Scheduled Presence.',
+			primaryCharacterId: ids.characters.clubRegular,
+			participantIds: [ids.characters.clubRegular],
+			placement: {
+				day: 8,
+				minuteOfDay: 17 * 60 + 55,
+				locationId: ids.locations.computerClub
+			},
+			activationState: 'available',
+			runtimePolicy: {occurrenceMode: 'one-shot', durationMinutes: 0}
+		},
+		{
+			id: ids.story.entry,
+			kind: 'dialogue',
+			title: 'Восьмой день: первый вечер в компьютерном клубе',
+			description:
+				'Игрок впервые видит клуб как обычное социальное место: разговоры, машины, локальная сеть и форум существуют в одной среде.',
+			primaryCharacterId: ids.characters.clubWorker,
+			participantIds: [
+				playerId,
+				ids.characters.clubWorker,
+				ids.characters.clubRegular
+			],
+			placement: {
+				day: 8,
+				minuteOfDay: 18 * 60,
+				locationId: ids.locations.computerClub
+			},
+			activationState: 'available',
+			runtimePolicy: {
+				occurrenceMode: 'one-shot',
+				durationMinutes: 30,
+				missAfterMinutes: 120
+			}
+		}
+	];
+
+	project.narrativeMoves = [
+		...project.narrativeMoves,
+		...sourceSplitMoves()
 	];
 
 	// Keep the existing A67 Old City content intact. The first C1 bridge Story

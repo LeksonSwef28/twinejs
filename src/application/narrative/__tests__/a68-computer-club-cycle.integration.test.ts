@@ -1,7 +1,13 @@
 import {compileNarrativeRuntimeArtifact} from '../export-compiler';
+import {executeNarrativePlayerAction} from '../player-action';
 import {deriveNarrativePlayerPresentation} from '../player-presentation';
-import {materializeNarrativePlayerSession} from '../player-runtime';
+import {
+	materializeNarrativePlayerSession,
+	NarrativePlayerSession
+} from '../player-runtime';
+import {executeNarrativePlayerStoryWork} from '../player-story-work';
 import {executeNarrativePlayerTravel} from '../player-travel';
+import {executeNarrativePlayerWait} from '../player-wait';
 import {bootstrapNarrativePlayerWorldStart} from '../player-world-start';
 import {arrivalCorridorIds} from '../../../domain/narrative/content/93-days-arrival-corridor';
 import {
@@ -35,10 +41,54 @@ function start() {
 	return started.session;
 }
 
+function wait(session: NarrativePlayerSession, minutes: number) {
+	const result = executeNarrativePlayerWait(session, minutes);
+	if (result.status !== 'applied') {
+		throw new Error(result.summary);
+	}
+	return result.session;
+}
+
+function waitUntil(
+	session: NarrativePlayerSession,
+	day: number,
+	minuteOfDay: number
+) {
+	const now =
+		(session.currentProject.simulation.day - 1) * 24 * 60 +
+		session.currentProject.simulation.minuteOfDay;
+	const target = (day - 1) * 24 * 60 + minuteOfDay;
+	if (target <= now) {
+		throw new Error('A68 test requires a future target.');
+	}
+	return wait(session, target - now);
+}
+
+function story(session: NarrativePlayerSession, storyNodeId: string) {
+	const result = executeNarrativePlayerStoryWork(
+		session,
+		'story-node:' + storyNodeId,
+		'execute',
+		playerId
+	);
+	if (result.status !== 'applied') {
+		throw new Error(result.summary);
+	}
+	return result.session;
+}
+
+function action(session: NarrativePlayerSession, moveId: string) {
+	const result = executeNarrativePlayerAction(session, moveId, playerId);
+	if (result.status !== 'applied') {
+		throw new Error(result.summary);
+	}
+	return result.session;
+}
+
 function travel(
-	session: ReturnType<typeof start>,
+	session: NarrativePlayerSession,
 	routeId: string
-): ReturnType<typeof start> {
+): NarrativePlayerSession {
 	const result = executeNarrativePlayerTravel(session, routeId, playerId);
 	if (result.status !== 'applied') {
 		throw new Error(result.summary);
@@ -157,4 +207,78 @@ describe('A68-C1 Computer Club topology', () => {
 			])
 		);
 	});
+
+	test('preserves distinct direct and mediated provenance for the same club claim', () => {
+		let base = start();
+
+		base = travel(base, arrivalCorridorIds.routes.stationToSquareWalk);
+		base = travel(base, arrivalCorridorIds.routes.squareToStopWalk);
+		base = travel(base, arrivalCorridorIds.routes.stopToDormCityBus);
+		base = waitUntil(base, 8, 17 * 60 + 44);
+		base = travel(base, computerClubCycleIds.routes.dormToClub);
+
+		expect(base.currentProject.simulation).toMatchObject({
+			day: 8,
+			minuteOfDay: 18 * 60
+		});
+		expect(
+			base.currentProject.simulation.actualLocationByCharacter[
+				computerClubCycleIds.characters.clubWorker
+			]
+		).toBe(computerClubCycleIds.locations.computerClub);
+		expect(
+			base.currentProject.simulation.actualLocationByCharacter[
+				computerClubCycleIds.characters.clubRegular
+			]
+		).toBe(computerClubCycleIds.locations.computerClub);
+
+		base = story(base, computerClubCycleIds.story.entry);
+		expect(
+			deriveNarrativePlayerPresentation(base.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: computerClubCycleIds.moves.askWorker,
+					state: 'ready'
+				}),
+				expect.objectContaining({
+					id: computerClubCycleIds.moves.readForum,
+					state: 'ready'
+				})
+			])
+		);
+
+		const direct = action(base, computerClubCycleIds.moves.askWorker);
+		const mediated = action(base, computerClubCycleIds.moves.readForum);
+
+		const directKnowledge =
+			direct.currentProject.simulation.characterKnowledge.find(
+				item =>
+					item.characterId === playerId &&
+					item.claimId === computerClubCycleIds.claims.nightSession
+			);
+		const mediatedKnowledge =
+			mediated.currentProject.simulation.characterKnowledge.find(
+				item =>
+					item.characterId === playerId &&
+					item.claimId === computerClubCycleIds.claims.nightSession
+			);
+
+		expect(directKnowledge?.source).toEqual({
+			type: 'told',
+			sourceCharacterId: computerClubCycleIds.characters.clubWorker,
+			sourceEventId: computerClubCycleIds.story.entry
+		});
+		expect(mediatedKnowledge?.source).toEqual({
+			type: 'mediated',
+			medium: 'forum',
+			attribution: 'north_bridge',
+			sourceEventId: computerClubCycleIds.story.entry
+		});
+		expect(directKnowledge?.claimId).toBe(mediatedKnowledge?.claimId);
+		expect(directKnowledge?.confidence).toBeGreaterThan(
+			mediatedKnowledge?.confidence ?? 0
+		);
+	});
+
 });
