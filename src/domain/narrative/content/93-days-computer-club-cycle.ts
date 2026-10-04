@@ -43,6 +43,7 @@ export const computerClubCycleIds = {
 	moves: {
 		askWorker: 'a68-day8-club-entry:ask-worker',
 		readForum: 'a68-day8-club-entry:read-forum',
+		referenceCinema: 'a68-day8-club-entry:reference-old-cinema',
 		tellDormDuty: 'a68-day9-dorm-club-echo:tell-duty'
 	}
 } as const;
@@ -60,10 +61,22 @@ function storyActiveGuard(id: string, storyNodeId: string) {
 	};
 }
 
+function knowsClaimGuard(id: string, characterId: string, claimId: string) {
+	return {
+		id,
+		condition: {
+			type: 'character-knows-claim' as const,
+			characterId,
+			claimId
+		}
+	};
+}
+
 function sourceSplitMoves(): NarrativeMoveDefinition[] {
 	const ids = computerClubCycleIds;
 	const directId = ids.moves.askWorker;
 	const forumId = ids.moves.readForum;
+	const continuityId = ids.moves.referenceCinema;
 	return [
 		{
 			id: directId,
@@ -143,6 +156,65 @@ function sourceSplitMoves(): NarrativeMoveDefinition[] {
 							type: 'story-node-set-state',
 							storyNodeId: ids.story.dormEcho,
 							state: 'available'
+						}
+					]
+				}
+			]
+		},
+		{
+			id: continuityId,
+			storyNodeId: ids.story.entry,
+			kind: 'inform',
+			label: 'Упомянуть спор о будущем старого кинотеатра',
+			actorCharacterId: playerId,
+			targetCharacterIds: [ids.characters.clubWorker],
+			guards: [
+				storyActiveGuard(continuityId + ':entry-active', ids.story.entry),
+				knowsClaimGuard(
+					continuityId + ':old-city-history',
+					playerId,
+					firstWeekIds.claims.cinemaFutureContested
+				),
+				{
+					id: continuityId + ':same-place',
+					condition: {
+						type: 'characters-share-location',
+						characterIds: [playerId, ids.characters.clubWorker]
+					}
+				}
+			],
+			resolution: {type: 'automatic', outcomeId: continuityId + ':outcome'},
+			outcomes: [
+				{
+					id: continuityId + ':outcome',
+					key: 'old-city-continuity',
+					label:
+						'Знакомый городской спор делает первый разговор с администратором менее формальным.',
+					effectStoryNodeIds: [],
+					effects: [
+						{
+							id: continuityId + ':familiarity',
+							type: 'relationship-adjust',
+							from: {type: 'move-target', targetIndex: 0},
+							to: {type: 'move-actor'},
+							axis: 'familiarity',
+							delta: 0.04
+						},
+						{
+							id: continuityId + ':memory',
+							type: 'character-remembers',
+							character: {type: 'move-actor'},
+							summary:
+								'В компьютерном клубе разговор неожиданно связался с тем, что я уже видел у старого кинотеатра.',
+							importance: 0.42,
+							baseStrength: 0.48,
+							tags: [
+								'a68',
+								'computer-club',
+								'a67-continuity',
+								'old-city'
+							],
+							source: {type: 'current-move'}
 						}
 					]
 				}
