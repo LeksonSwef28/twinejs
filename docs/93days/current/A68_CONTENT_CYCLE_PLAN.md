@@ -161,6 +161,8 @@ A68-C1 is accepted when:
 9. ordinary edits remain authorable through canonical tools;
 10. playtest can explain why the cross-place consequence happened.
 
+Implementation acceptance tests are specified in `docs/93days/current/A68_C1_ACCEPTANCE_CONTRACT.md`.
+
 ## A68-C1 implementation checklist
 
 This checklist is intentionally concrete enough to begin implementation after the A67 manual UX gate, while still avoiding premature biographies or a new architecture.

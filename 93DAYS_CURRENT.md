@@ -170,6 +170,7 @@ In brief:
 - `docs/93days/current/SYSTEM_STATUS.md` — implementation-backed DONE/PARTIAL/DEFERRED/MISSING system audit.
 - `docs/93days/current/A67_FIRST_WEEK_PLAN.md` — active A67 Day 5–7 completion gate and slice order.
 - `docs/93days/current/A68_CONTENT_CYCLE_PLAN.md` — prepared A68 second social/city cycle, beginning with the Computer Club bridge batch.
+- `docs/93days/current/A68_C1_ACCEPTANCE_CONTRACT.md` — executable C1 test contract for travel, provenance, continuity, cross-place consequence, save and authoring.
 
 ## 9. Historical documentation policy
 
