@@ -19,7 +19,7 @@ the actual A64-A67 implementation history, and the current stable repository.
 | A67-D1 | shared author focus/context | DONE | enabling work |
 | A67-D2 | authored item placement | DONE | enabling work |
 | A67-D3 | Schedule Exception authoring | DONE | enabling work |
-| **A67** | **first coherent playable week** | **CLOSURE PENDING** | authoring pass + week-level playtest |
+| **A67** | **first coherent playable week** | **ENGINEERING PASS / HUMAN UX PLAYTEST PENDING** | one manual Player UX/pacing walkthrough |
 | **A68** | second social/city content cycle + playtest | **PROPOSED / BLOCKED ON A67** | begin only after A67 proof |
 | **A69** | production-scale authoring/performance gate | **PROPOSED / FOUNDATION READY** | validate on real A68-scale graph |
 | Post-A69 | 93-day production + endings | **UNPLANNED AS EXECUTION PLAN** | weekly/season plan + ending matrix |
@@ -60,12 +60,11 @@ Day 1-4 already exercise:
 
 ### Remaining A67 work
 
-The Day 5-7 implementation/runtime proof is now present. Remaining closure work is intentionally narrow:
+The Day 5-7 implementation/runtime proof is now present. Canonical authoring and cold Player control proofs also pass. Remaining closure work is intentionally narrow:
 
-- verify ordinary first-week edits through canonical authoring workflows;
-- conduct one week-level playtest;
-- classify findings into CONTENT / PRESENTATION / TOOLING / RUNTIME;
-- fix only blocking findings before closing A67.
+- conduct one manual week-level Player UX/pacing walkthrough;
+- classify any human-observed findings into CONTENT / PRESENTATION / TOOLING / RUNTIME;
+- fix only P0/P1 blocking findings before closing A67.
 
 Implemented first-week proof includes:
 

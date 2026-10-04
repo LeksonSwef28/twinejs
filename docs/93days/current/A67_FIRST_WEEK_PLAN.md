@@ -1,7 +1,7 @@
 # A67 — FIRST WEEK COMPLETION PLAN
 
-Status: **IMPLEMENTATION PROOF COMPLETE / CLOSURE PENDING**
-Updated: **2026-10-03**
+Status: **ENGINEERING CLOSURE PASS / HUMAN UX PLAYTEST PENDING**
+Updated: **2026-10-04**
 Branch: `content/a67-first-week-completion`
 
 ## Goal
@@ -138,10 +138,13 @@ Runtime/content acceptance status:
 - **PASS** — two week-end histories differ in Story/knowledge/relationship/memory state.
 - **PASS** — save/continue restores Day 6 state and continues into Day 7.
 - **PASS** — no new gameplay schema or generic NPC AI was introduced.
-- **PENDING** — authoring pass: ordinary first-week content edits must be verified through canonical authoring workflows rather than relying on direct TypeScript fixture surgery.
-- **PENDING** — week-level playtest findings must be recorded and classified as CONTENT / PRESENTATION / TOOLING / RUNTIME.
+- **PASS** — canonical authoring rehearsal edits Claim, Routine, Story metadata/placement, Move/effect, undo/redo and recompiles the real first-week project.
+- **PASS** — cold Player control history reaches Day 7 using authored travel/wait/Story/Move controls without direct presence mutation.
+- **PASS** — Day 7 reflection respects its authored 11:00 time; it is absent at 10:59 and becomes a scheduled Story opportunity at 11:00.
+- **PASS** — week-level engineering findings are recorded and classified as CONTENT / PRESENTATION / TOOLING / RUNTIME.
+- **PENDING (human)** — one manual UX/pacing walkthrough in the actual Player presentation. Automated engineering evidence must not be mislabeled as a human playtest.
 
-Therefore A67 is not reopened architecturally and is not yet marked DONE. Its implementation proof is complete; closure is now limited to the authoring/playtest pass.
+Therefore A67 has no known engineering blocker. It remains formally open only for the manual UX/pacing walkthrough required by the original gate.
 
 ## Definition of Done
 

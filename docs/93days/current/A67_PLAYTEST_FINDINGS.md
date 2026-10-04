@@ -1,6 +1,6 @@
 # A67 — WEEK-LEVEL PLAYTEST FINDINGS
 
-Status: **IN PROGRESS**
+Status: **ENGINEERING PASS / HUMAN UX WALKTHROUGH PENDING**
 Updated: **2026-10-04**
 Branch: `test/a67-cold-player-closure`
 Base stable: `955b560c3d02d861371de1532aab2823ac5cec5b`
@@ -29,21 +29,21 @@ Cold history:
 
 ### RUNTIME — cold-path proof previously incomplete
 
-**Status: FIX IN VERIFICATION**
+**Status: PASS**
 
 Earlier focused A67 tests used a local `place()` helper to establish Actual Presence before testing individual scenes. That is valid for focused state tests but did not by itself prove the roadmap gate “cold Player reaches Day 7 through canonical controls.”
 
-The new closure test removes direct presence mutation from the acceptance history and uses authored travel plus production due-work.
+The closure test removes direct presence mutation from the acceptance history and uses authored travel plus production due-work. Exact-head Branch Check #37180243828 passes.
 
 ### PRESENTATION / RUNTIME — Day 7 clock-time visibility
 
-**Status: INVESTIGATING**
+**Status: FIXED / PASS**
 
 The Day 7 week reflection is authored at 11:00. Player action presentation filters Story placement by day, while the current reflection Move is guarded by Story state `available` rather than an active Story occurrence.
 
-Risk: the reflection may become visible earlier on Day 7 than its authored 11:00 moment.
+Finding confirmed: the reflection Move could become visible from the start of Day 7 because Player actions filtered Story placement by day while the Move only required Story state `available`.
 
-Acceptance rule: the Day 7 reflection must not be actionable before its authored time, and must become actionable through the canonical Story/Player flow at or after 11:00.
+Fix: the week reflection is now scheduled one-shot Story work, and its branch Moves require Story state `active`. The cold-path regression verifies the action is absent at 10:59, the Story opportunity appears at 11:00, and the reflection becomes actionable only after that Story work begins.
 
 ### TOOLING — first-week ordinary authoring
 
@@ -59,11 +59,12 @@ The first-week content has distinct Old City and dorm histories, different Claim
 
 ## Closure rule
 
-Do not mark A67 DONE until:
+Engineering closure status:
 
-- cold canonical-control history passes;
-- Day 7 authored-time visibility is verified/fixed;
-- post-merge regressions are green;
-- findings are classified and no P0/P1 blocking finding remains.
+- **PASS** — cold canonical-control history;
+- **PASS** — Day 7 authored-time visibility;
+- **PASS** — post-merge stable regressions on `955b560c…` (Jest/ESLint/Playwright/Prettify);
+- **PASS** — exact-head closure Branch Check #37180243828;
+- **PASS** — findings classified with no known P0/P1 engineering blocker.
 
-A human UX/pacing pass may produce follow-up CONTENT/PRESENTATION issues, but it must not be silently represented as automated engineering evidence.
+Formal A67 closure still requires one manual Player UX/pacing walkthrough. That observation can create follow-up CONTENT/PRESENTATION defects, but automated engineering evidence is not labeled as a human playtest.
