@@ -12,6 +12,18 @@ It is a content-production milestone. It must reuse the existing relationship, k
 
 A68 must not introduce a second rumor engine, generalized social-belief engine, or separate internet simulation unless authored content proves a concrete missing contract.
 
+## Source basis
+
+MASTER v31 source support used for this preparation:
+
+- `14_LOCATION_REGISTRY_V01.md` — Computer Club: **fixed by function**, approximate position between Old and New City near students; Bar “Конечная”: **working** main social-hub candidate.
+- `16_YOUTH_AND_SOCIAL_SPACES.md` — Computer Club functions: LAN, games, early internet, forums/chats, disk exchange, youth companies and double online/offline identities; dormitory remains a social location.
+- `13_CITY_STRUCTURE_V02.md` — central-student transition contains university, dormitory, Computer Club, Bar “Конечная” and links to Central Park.
+- `20_SOCIAL_GRAPH_RULES.md` — culture/group intersections describe typical contact, not friendship/enmity; interpersonal state stays separate.
+- `02_CITY_WORLD.md` — city progression from Old City through the central-student transition into New City; the Player should gradually learn routes and social links rather than unlock a single linear map.
+
+Research social-atlas group nodes are used only as idea/evidence support. Candidate group labels are not promoted to game canon merely because they exist in the atlas.
+
 ## Source-grounded first cluster
 
 The first A68 cluster should be the **Computer Club / central-student transition**.
