@@ -169,6 +169,7 @@ In brief:
 - `docs/93days/current/PRODUCT_PRINCIPLES.md` — compact fixed/working/seed product principles recovered from current concept sources.
 - `docs/93days/current/SYSTEM_STATUS.md` — implementation-backed DONE/PARTIAL/DEFERRED/MISSING system audit.
 - `docs/93days/current/A67_FIRST_WEEK_PLAN.md` — active A67 Day 5–7 completion gate and slice order.
+- `docs/93days/current/A68_CONTENT_CYCLE_PLAN.md` — prepared A68 second social/city cycle, beginning with the Computer Club bridge batch.
 
 ## 9. Historical documentation policy
 

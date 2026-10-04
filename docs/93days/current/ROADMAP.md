@@ -20,7 +20,7 @@ the actual A64-A67 implementation history, and the current stable repository.
 | A67-D2 | authored item placement | DONE | enabling work |
 | A67-D3 | Schedule Exception authoring | DONE | enabling work |
 | **A67** | **first coherent playable week** | **ENGINEERING PASS / HUMAN UX PLAYTEST PENDING** | one manual Player UX/pacing walkthrough |
-| **A68** | second social/city content cycle + playtest | **PROPOSED / BLOCKED ON A67** | begin only after A67 proof |
+| **A68** | second social/city content cycle + playtest | **PREPARED / BLOCKED ON A67 HUMAN UX WALKTHROUGH** | C1 Computer Club bridge batch prepared |
 | **A69** | production-scale authoring/performance gate | **PROPOSED / FOUNDATION READY** | validate on real A68-scale graph |
 | Post-A69 | 93-day production + endings | **UNPLANNED AS EXECUTION PLAN** | weekly/season plan + ending matrix |
 
@@ -91,12 +91,18 @@ A67 is done when:
 
 ## 3. A68 — Second content and social cycle
 
-Status: **PROPOSED; do not begin until A67 gate passes.**
+Status: **PREPARED; production implementation remains blocked until the A67 human UX/pacing walkthrough has no P0/P1 blocker.**
 
 ### Goal
 
 Expand from one week to a broader social/city network using the established provenance/runtime model,
 not a second relationship or rumor engine.
+
+### Prepared first batch
+
+See `docs/93days/current/A68_CONTENT_CYCLE_PLAN.md`.
+
+A68-C1 is grounded in MASTER v31 around the Computer Club / central-student transition. It should add two new NPC roles, reconnect at least one A67 character, and prove cross-place provenance consequences without a new internet/rumor engine.
 
 ### Expected scope
 
