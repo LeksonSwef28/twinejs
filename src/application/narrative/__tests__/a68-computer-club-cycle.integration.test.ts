@@ -16,6 +16,7 @@ import {
 	create93DaysComputerClubCycleProject
 } from '../../../domain/narrative/content/93-days-computer-club-cycle';
 import {firstWeekIds} from '../../../domain/narrative/content/93-days-first-week';
+import {phoneSocialLoopIds} from '../../../domain/narrative/content/93-days-phone-social-loop';
 
 const playerId = arrivalCorridorIds.characters.player;
 
@@ -279,6 +280,106 @@ describe('A68-C1 Computer Club topology', () => {
 		expect(directKnowledge?.confidence).toBeGreaterThan(
 			mediatedKnowledge?.confidence ?? 0
 		);
+	});
+
+
+	test('uses A67 Old City knowledge to expose one warmer Computer Club entry move', () => {
+		let baseline = start();
+		baseline = travel(
+			baseline,
+			arrivalCorridorIds.routes.stationToSquareWalk
+		);
+		baseline = travel(baseline, arrivalCorridorIds.routes.squareToStopWalk);
+		baseline = travel(baseline, arrivalCorridorIds.routes.stopToDormCityBus);
+		baseline = waitUntil(baseline, 8, 17 * 60 + 44);
+		baseline = travel(baseline, computerClubCycleIds.routes.dormToClub);
+		baseline = story(baseline, computerClubCycleIds.story.entry);
+
+		const baselineActions =
+			deriveNarrativePlayerPresentation(baseline.currentProject).actions;
+		expect(baselineActions).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: computerClubCycleIds.moves.askWorker,
+					state: 'ready'
+				}),
+				expect.objectContaining({
+					id: computerClubCycleIds.moves.readForum,
+					state: 'ready'
+				})
+			])
+		);
+		expect(
+			baselineActions.find(
+				action => action.id === computerClubCycleIds.moves.referenceCinema
+			)?.state
+		).not.toBe('ready');
+
+		let oldCity = start();
+		oldCity = travel(
+			oldCity,
+			arrivalCorridorIds.routes.stationToSquareWalk
+		);
+		oldCity = travel(oldCity, arrivalCorridorIds.routes.squareToStopWalk);
+		oldCity = travel(oldCity, arrivalCorridorIds.routes.stopToDormCityBus);
+
+		oldCity = waitUntil(oldCity, 2, 10 * 60 + 30);
+		oldCity = story(oldCity, phoneSocialLoopIds.story.incomingSms);
+		oldCity = action(oldCity, phoneSocialLoopIds.moves.decline);
+
+		oldCity = waitUntil(oldCity, 5, 17 * 60 + 6);
+		oldCity = travel(oldCity, firstWeekIds.routes.dormToMarketBus);
+		oldCity = story(oldCity, firstWeekIds.story.dayFiveMarketIntroduction);
+		oldCity = action(oldCity, firstWeekIds.moves.marketDeclined);
+
+		oldCity = waitUntil(oldCity, 6, 17 * 60 + 52);
+		oldCity = travel(oldCity, firstWeekIds.routes.marketToCinemaWalk);
+		oldCity = story(oldCity, firstWeekIds.story.daySixCinema);
+		oldCity = action(oldCity, firstWeekIds.moves.cinemaStay);
+		expect(
+			oldCity.currentProject.simulation.characterKnowledge.some(
+				item =>
+					item.characterId === playerId &&
+					item.claimId === firstWeekIds.claims.cinemaFutureContested
+			)
+		).toBe(true);
+
+		oldCity = waitUntil(oldCity, 6, 18 * 60 + 45);
+		oldCity = travel(oldCity, firstWeekIds.routes.cinemaToMarketWalk);
+		oldCity = travel(oldCity, firstWeekIds.routes.marketToDormBus);
+		oldCity = waitUntil(oldCity, 8, 17 * 60 + 44);
+		oldCity = travel(oldCity, computerClubCycleIds.routes.dormToClub);
+		oldCity = story(oldCity, computerClubCycleIds.story.entry);
+
+		expect(
+			deriveNarrativePlayerPresentation(oldCity.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: computerClubCycleIds.moves.referenceCinema,
+					state: 'ready'
+				})
+			])
+		);
+
+		oldCity = action(oldCity, computerClubCycleIds.moves.referenceCinema);
+		expect(oldCity.currentProject.relationships).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					fromCharacterId: computerClubCycleIds.characters.clubWorker,
+					toCharacterId: playerId,
+					values: expect.objectContaining({familiarity: 0.04})
+				})
+			])
+		);
+		expect(
+			oldCity.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('a67-continuity') &&
+					memory.tags.includes('computer-club')
+			)
+		).toBe(true);
 	});
 
 
