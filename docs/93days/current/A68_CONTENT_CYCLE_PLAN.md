@@ -161,6 +161,83 @@ A68-C1 is accepted when:
 9. ordinary edits remain authorable through canonical tools;
 10. playtest can explain why the cross-place consequence happened.
 
+## A68-C1 implementation checklist
+
+This checklist is intentionally concrete enough to begin implementation after the A67 manual UX gate, while still avoiding premature biographies or a new architecture.
+
+### Reuse map
+
+- **Home / student anchor:** `arrival-student-dormitory`.
+- **Existing adjacent social space:** `a60-dorm-courtyard`.
+- **Existing Old City contacts:** `a67-old-market`, `a67-old-cinema`, `a67-camera-student`.
+- **Existing provenance history that may affect C1:** A60 meeting accepted/declined plus A61 kept/missed/declined claims.
+- **Existing relationship/provenance mechanics:** ordinary Narrative Moves, `character-learns-claim`, relationship adjustments, memories and Story state effects.
+- **Existing travel model:** explicit authored routes; no pathfinding system is required.
+- **Existing offscreen consequence pattern:** scheduled Story work / authored NPC-only occurrence, as already used in A63/A67.
+- **Existing phone/social layer:** reuse only where content calls for it; Computer Club online identity must not create a parallel state model.
+
+### Proposed C1 canonical IDs
+
+Exact IDs may change during implementation, but keep one cohesive namespace:
+
+- location: `a68-computer-club`;
+- scene: `a68-computer-club:main-room`;
+- characters:
+  - `a68-club-worker`;
+  - `a68-club-regular`;
+- routes:
+  - dorm ↔ computer club;
+  - optional club ↔ Old City route only if content timing needs it;
+- Story sequence:
+  - first introduction / practical entry;
+  - second encounter with source ambiguity;
+  - cross-place consequence;
+  - repeated bridge-NPC follow-up.
+
+### First content proof
+
+The first implementation should prefer a compact 3-event chain:
+
+1. **Entry event** — the Player reaches the club through an existing contact or practical need.
+2. **Source split** — the same underlying proposition can be encountered through two explicit sources, e.g. in-person statement versus attributed forum/chat message.
+3. **Cross-place echo** — the proposition changes a later dorm/Old City interaction, while the runtime preserves who told the Player what.
+
+The proposition should concern an ordinary social/city matter, not a conspiracy or mandatory investigation hook.
+
+### A67 continuity hook
+
+At least one of these existing histories must matter in C1:
+
+- the Player kept the early meeting;
+- missed it after accepting;
+- declined in advance;
+- developed familiarity with the camera student;
+- chose the Old City Day 6 line;
+- chose the dorm Day 6 line.
+
+C1 does not need all six. It needs one clearly testable continuity dependency and should avoid combinatorial branching until the basic cycle is proven.
+
+### Likely first technical tests
+
+- Computer Club project still compiles through the canonical runtime artifact compiler.
+- Cold Player can reach the club by authored travel.
+- New NPC routines produce expected Scheduled Presence / Actual Presence behavior.
+- One Claim reaches the Player with distinct source provenance across two histories.
+- One prior A67 state changes an available Move or outcome.
+- One club-originating consequence is observed later in another location.
+- Save/continue preserves the new cross-place state.
+
+### Stop conditions
+
+Open a tooling/runtime sub-slice only if implementation demonstrates one of these concrete blockers:
+
+- current authoring cannot represent the required Story/Move/Claim/routine change;
+- existing provenance cannot distinguish the required source cases;
+- existing scheduled/offscreen work cannot express the consequence;
+- Player presentation cannot make the cause/effect understandable without exposing internal state.
+
+Do not open a new subsystem merely because a more generic abstraction would be aesthetically attractive.
+
 ## A68-C2 — next cluster, not yet committed
 
 After C1 proves the pattern, choose one second cluster from current MASTER-backed options.
