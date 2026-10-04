@@ -574,9 +574,9 @@ function daySevenMoves(): NarrativeMoveDefinition[] {
 		targetCharacterIds: [],
 		guards: [
 			storyStateGuard(
-				id + ':week-available',
+				id + ':week-active',
 				ids.story.daySevenWeekEcho,
-				'available'
+				'active'
 			),
 			knowsClaimGuard(id + ':branch', playerId, claimId)
 		],
@@ -902,7 +902,12 @@ export function create93DaysFirstWeekProject(): NarrativeProject {
 				minuteOfDay: 11 * 60,
 				locationId: arrivalCorridorIds.locations.studentDormitory
 			},
-			activationState: 'dormant'
+			activationState: 'dormant',
+			runtimePolicy: {
+				occurrenceMode: 'one-shot',
+				durationMinutes: 15,
+				missAfterMinutes: 180
+			}
 		},
 		{
 			id: ids.story.daySevenCameraArrival,

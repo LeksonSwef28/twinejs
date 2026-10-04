@@ -35,6 +35,7 @@ const reportWorkId = 'story-node:' + rumorSocialEchoIds.story.contactReportsToDo
 const dayFiveWorkId = 'story-node:' + firstWeekIds.story.dayFiveMarketIntroduction;
 const daySixCinemaWorkId = 'story-node:' + firstWeekIds.story.daySixCinema;
 const daySixDormWorkId = 'story-node:' + firstWeekIds.story.daySixDormCounterline;
+const daySevenWeekWorkId = 'story-node:' + firstWeekIds.story.daySevenWeekEcho;
 
 function compileFixture(): NarrativeRuntimeArtifactV1 {
 	const compiled = compileNarrativeRuntimeArtifact(create93DaysFirstWeekProject());
@@ -100,6 +101,14 @@ function story(
 
 function action(session: NarrativePlayerSession, moveId: string) {
 	const result = executeNarrativePlayerAction(session, moveId, playerId);
+	if (result.status !== 'applied') {
+		throw new Error(result.summary);
+	}
+	return result.session;
+}
+
+function travel(session: NarrativePlayerSession, routeId: string) {
+	const result = executeNarrativePlayerTravel(session, routeId, playerId);
 	if (result.status !== 'applied') {
 		throw new Error(result.summary);
 	}
@@ -265,6 +274,137 @@ describe('A67-W1 first-week content skeleton', () => {
 			);
 		}
 		expect(compiled.artifact.authored.projectId).toBe(firstWeekProjectId);
+	});
+
+
+	test('reaches the Day Seven Old City closure from cold start using canonical Player controls only', () => {
+		let session = start(compileFixture());
+
+		// Day 1: physically reach the dorm through authored travel routes.
+		session = travel(session, arrivalCorridorIds.routes.stationToSquareWalk);
+		session = travel(session, arrivalCorridorIds.routes.squareToStopWalk);
+		session = travel(session, arrivalCorridorIds.routes.stopToDormCityBus);
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[playerId]
+		).toBe(arrivalCorridorIds.locations.studentDormitory);
+
+		// Day 2-3: create the declined-meeting provenance through Player Story/Move.
+		session = waitUntil(session, 2, 10 * 60 + 30);
+		session = story(session, smsWorkId, 'execute');
+		session = action(session, phoneSocialLoopIds.moves.decline);
+		session = waitUntil(session, 3, 8 * 60 + 15);
+		expect(
+			session.currentProject.runtimeOccurrences.some(
+				item =>
+					item.type === 'move-outcome' &&
+					item.moveId === rumorSocialEchoIds.moves.reportDeclined
+			)
+		).toBe(true);
+
+		// Day 5: leave the dorm at the right time; segmented travel lets the
+		// camera student's authored 17:20 arrival run before the Player arrives.
+		session = waitUntil(session, 5, 17 * 60 + 6);
+		session = travel(session, firstWeekIds.routes.dormToMarketBus);
+		expect(session.currentProject.simulation).toMatchObject({
+			day: 5,
+			minuteOfDay: 17 * 60 + 30
+		});
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[playerId]
+		).toBe(firstWeekIds.locations.oldMarket);
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[
+				firstWeekIds.characters.cameraStudent
+			]
+		).toBe(firstWeekIds.locations.oldMarket);
+
+		session = story(session, dayFiveWorkId, 'execute');
+		session = action(session, firstWeekIds.moves.marketDeclined);
+		expect(playerKnows(session, firstWeekIds.claims.cinemaInvitation)).toBe(true);
+
+		// Day 6: reach the cinema by the authored walking route, attend the
+		// Old City line, then return to the dorm through authored routes.
+		session = waitUntil(session, 6, 17 * 60 + 52);
+		session = travel(session, firstWeekIds.routes.marketToCinemaWalk);
+		expect(session.currentProject.simulation).toMatchObject({
+			day: 6,
+			minuteOfDay: 18 * 60
+		});
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[playerId]
+		).toBe(firstWeekIds.locations.oldCinema);
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[
+				firstWeekIds.characters.cameraStudent
+			]
+		).toBe(firstWeekIds.locations.oldCinema);
+
+		session = story(session, daySixCinemaWorkId, 'execute');
+		session = action(session, firstWeekIds.moves.cinemaStay);
+		expect(
+			playerKnows(session, firstWeekIds.claims.cinemaFutureContested)
+		).toBe(true);
+
+		session = waitUntil(session, 6, 18 * 60 + 45);
+		session = travel(session, firstWeekIds.routes.cinemaToMarketWalk);
+		session = travel(session, firstWeekIds.routes.marketToDormBus);
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[playerId]
+		).toBe(arrivalCorridorIds.locations.studentDormitory);
+
+		// Day 7: authored 11:00 timing is respected before the reflection begins.
+		session = waitUntil(session, 7, 10 * 60 + 59);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).not.toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({id: firstWeekIds.moves.weekOldCity})
+			])
+		);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).storyOpportunities
+		).not.toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({id: daySevenWeekWorkId})
+			])
+		);
+
+		session = wait(session, 1);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).storyOpportunities
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: daySevenWeekWorkId,
+					state: 'ready'
+				})
+			])
+		);
+		session = story(session, daySevenWeekWorkId, 'execute');
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: firstWeekIds.moves.weekOldCity,
+					state: 'ready'
+				})
+			])
+		);
+		session = action(session, firstWeekIds.moves.weekOldCity);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				firstWeekIds.story.daySevenWeekEcho
+			]
+		).toBe('completed');
+		expect(
+			session.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('first-week') &&
+					memory.summary.includes('старый рынок')
+			)
+		).toBe(true);
 	});
 
 	test('preserves inherited A63 exact-time Day Three NPC delivery', () => {
@@ -455,6 +595,7 @@ describe('A67-W1 first-week content skeleton', () => {
 			playerId,
 			arrivalCorridorIds.locations.studentDormitory
 		);
+		session = story(session, daySevenWeekWorkId, 'execute');
 		expect(
 			deriveNarrativePlayerPresentation(session.currentProject).actions
 		).toEqual(
@@ -580,6 +721,7 @@ describe('A67-W1 first-week content skeleton', () => {
 			playerId,
 			arrivalCorridorIds.locations.studentDormitory
 		);
+		oldCity = story(oldCity, daySevenWeekWorkId, 'execute');
 
 		let dorm = waitUntil(base, 6, 18 * 60 + 15);
 		dorm = place(
@@ -595,6 +737,7 @@ describe('A67-W1 first-week content skeleton', () => {
 		dorm = story(dorm, daySixDormWorkId, 'execute');
 		dorm = action(dorm, firstWeekIds.moves.dormStay);
 		dorm = waitUntil(dorm, 7, 11 * 60);
+		dorm = story(dorm, daySevenWeekWorkId, 'execute');
 
 		expect(
 			deriveNarrativePlayerPresentation(oldCity.currentProject).actions
@@ -789,6 +932,7 @@ describe('A67-W1 first-week content skeleton', () => {
 		).toBe('blocked');
 
 		session = waitUntil(session, 7, 11 * 60);
+		session = story(session, daySevenWeekWorkId, 'execute');
 		expect(
 			deriveNarrativePlayerPresentation(session.currentProject).actions
 		).toEqual(
@@ -852,6 +996,7 @@ describe('A67-W1 first-week content skeleton', () => {
 		).toBe('available');
 
 		session = waitUntil(session, 7, 11 * 60);
+		session = story(session, daySevenWeekWorkId, 'execute');
 		expect(
 			deriveNarrativePlayerPresentation(session.currentProject).actions
 		).toEqual(
