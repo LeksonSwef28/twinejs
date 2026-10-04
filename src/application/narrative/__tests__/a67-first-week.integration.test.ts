@@ -35,6 +35,7 @@ const reportWorkId = 'story-node:' + rumorSocialEchoIds.story.contactReportsToDo
 const dayFiveWorkId = 'story-node:' + firstWeekIds.story.dayFiveMarketIntroduction;
 const daySixCinemaWorkId = 'story-node:' + firstWeekIds.story.daySixCinema;
 const daySixDormWorkId = 'story-node:' + firstWeekIds.story.daySixDormCounterline;
+const daySevenWeekWorkId = 'story-node:' + firstWeekIds.story.daySevenWeekEcho;
 
 function compileFixture(): NarrativeRuntimeArtifactV1 {
 	const compiled = compileNarrativeRuntimeArtifact(create93DaysFirstWeekProject());
@@ -354,6 +355,7 @@ describe('A67-W1 first-week content skeleton', () => {
 		// Day 7: the week-end reflection is reached without any direct presence
 		// mutation in this history.
 		session = waitUntil(session, 7, 11 * 60);
+		session = story(session, daySevenWeekWorkId, 'execute');
 		expect(
 			deriveNarrativePlayerPresentation(session.currentProject).actions
 		).toEqual(
@@ -568,6 +570,7 @@ describe('A67-W1 first-week content skeleton', () => {
 			playerId,
 			arrivalCorridorIds.locations.studentDormitory
 		);
+		session = story(session, daySevenWeekWorkId, 'execute');
 		expect(
 			deriveNarrativePlayerPresentation(session.currentProject).actions
 		).toEqual(
@@ -693,6 +696,7 @@ describe('A67-W1 first-week content skeleton', () => {
 			playerId,
 			arrivalCorridorIds.locations.studentDormitory
 		);
+		oldCity = story(oldCity, daySevenWeekWorkId, 'execute');
 
 		let dorm = waitUntil(base, 6, 18 * 60 + 15);
 		dorm = place(
@@ -708,6 +712,7 @@ describe('A67-W1 first-week content skeleton', () => {
 		dorm = story(dorm, daySixDormWorkId, 'execute');
 		dorm = action(dorm, firstWeekIds.moves.dormStay);
 		dorm = waitUntil(dorm, 7, 11 * 60);
+		dorm = story(dorm, daySevenWeekWorkId, 'execute');
 
 		expect(
 			deriveNarrativePlayerPresentation(oldCity.currentProject).actions
@@ -902,6 +907,7 @@ describe('A67-W1 first-week content skeleton', () => {
 		).toBe('blocked');
 
 		session = waitUntil(session, 7, 11 * 60);
+		session = story(session, daySevenWeekWorkId, 'execute');
 		expect(
 			deriveNarrativePlayerPresentation(session.currentProject).actions
 		).toEqual(
@@ -965,6 +971,7 @@ describe('A67-W1 first-week content skeleton', () => {
 		).toBe('available');
 
 		session = waitUntil(session, 7, 11 * 60);
+		session = story(session, daySevenWeekWorkId, 'execute');
 		expect(
 			deriveNarrativePlayerPresentation(session.currentProject).actions
 		).toEqual(
