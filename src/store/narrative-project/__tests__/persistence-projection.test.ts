@@ -197,6 +197,45 @@ describe('A35/A38/A41 persistence projections', () => {
 		expect(loaded.simulation.bodyByCharacter).toEqual({});
 	});
 
+	test('round-trips mediated knowledge provenance through repository hydration', () => {
+		const project = createNarrativeProject(
+			hostStoryId,
+			'Mediated provenance',
+			ninetyThreeDaysTemplate
+		);
+		project.simulation.characterKnowledge = [
+			{
+				id: 'knowledge:player:claim-event',
+				characterId: 'player',
+				claimId: 'claim-event',
+				attitude: 'believes',
+				confidence: 0.7,
+				source: {
+					type: 'mediated',
+					medium: 'forum',
+					attribution: 'north_bridge',
+					sourceEventId: 'club-forum'
+				},
+				timesHeard: 1
+			}
+		];
+
+		const repository = createLocalStorageNarrativeProjectRepository(
+			hostStoryId,
+			'Mediated provenance',
+			ninetyThreeDaysTemplate
+		);
+		repository.save(project);
+		const loaded = repository.load();
+
+		expect(loaded.simulation.characterKnowledge[0]?.source).toEqual({
+			type: 'mediated',
+			medium: 'forum',
+			attribution: 'north_bridge',
+			sourceEventId: 'club-forum'
+		});
+	});
+
 	test('hydrates additive schema-v3 travel routes with an empty compatibility default', () => {
 		const project = createNarrativeProject(
 			hostStoryId,

@@ -155,6 +155,101 @@ describe('Narrative knowledge runtime bridge', () => {
 		expect(result.traces[0].claimId).toBe('claim-key');
 	});
 
+	test('resolves a move target as the explicit speaker source', () => {
+		const move: NarrativeMoveDefinition = {
+			id: 'move-ask',
+			storyNodeId: 'dialogue-a',
+			kind: 'ask',
+			label: 'Спросить администратора',
+			actorCharacterId: 'player',
+			targetCharacterIds: ['worker'],
+			guards: [],
+			resolution: {type: 'automatic', outcomeId: 'answered'},
+			outcomes: [
+				{
+					id: 'answered',
+					key: 'continue',
+					label: 'Администратор ответил',
+					effectStoryNodeIds: [],
+					effects: [
+						{
+							id: 'learn-answer',
+							type: 'character-learns-claim',
+							recipient: {type: 'character', characterId: 'player'},
+							claim: {type: 'claim', claimId: 'claim-event'},
+							attitude: 'believes',
+							confidence: 0.85,
+							source: {type: 'move-target', targetIndex: 0}
+						}
+					]
+				}
+			]
+		};
+
+		const result = applyNarrativeOutcomeKnowledgeEffects(
+			move,
+			move.outcomes[0],
+			[],
+			{moment: {day: 8, minuteOfDay: 1080}, sourceEventId: 'club-entry'}
+		);
+
+		expect(result.characterKnowledge[0].source).toEqual({
+			type: 'told',
+			sourceCharacterId: 'worker',
+			sourceEventId: 'club-entry'
+		});
+	});
+
+	test('preserves mediated channel and attribution provenance', () => {
+		const move: NarrativeMoveDefinition = {
+			id: 'move-read-forum',
+			storyNodeId: 'club-forum',
+			kind: 'observe',
+			label: 'Прочитать сообщение на форуме',
+			actorCharacterId: 'player',
+			targetCharacterIds: [],
+			guards: [],
+			resolution: {type: 'automatic', outcomeId: 'read'},
+			outcomes: [
+				{
+					id: 'read',
+					key: 'continue',
+					label: 'Сообщение прочитано',
+					effectStoryNodeIds: [],
+					effects: [
+						{
+							id: 'learn-forum',
+							type: 'character-learns-claim',
+							recipient: {type: 'character', characterId: 'player'},
+							claim: {type: 'claim', claimId: 'claim-event'},
+							attitude: 'believes',
+							confidence: 0.65,
+							source: {
+								type: 'mediated',
+								medium: 'forum',
+								attribution: 'north_bridge'
+							}
+						}
+					]
+				}
+			]
+		};
+
+		const result = applyNarrativeOutcomeKnowledgeEffects(
+			move,
+			move.outcomes[0],
+			[],
+			{moment: {day: 8, minuteOfDay: 1085}, sourceEventId: 'club-forum'}
+		);
+
+		expect(result.characterKnowledge[0].source).toEqual({
+			type: 'mediated',
+			medium: 'forum',
+			attribution: 'north_bridge',
+			sourceEventId: 'club-forum'
+		});
+	});
+
 	test('hearing a claim again reinforces the same runtime knowledge state', () => {
 		const move: NarrativeMoveDefinition = {
 			id: 'move-repeat',

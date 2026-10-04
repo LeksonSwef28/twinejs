@@ -259,6 +259,26 @@ function resolveKnowledgeEffectSource(
 				sourceCharacterId: move.actorCharacterId,
 				sourceEventId: context.sourceEventId
 			};
+		case 'move-target': {
+			const sourceCharacterId = move.targetCharacterIds[effect.source.targetIndex];
+			if (!sourceCharacterId) {
+				throw new Error(
+					'Narrative knowledge effect points to a missing move target source.'
+				);
+			}
+			return {
+				type: 'told',
+				sourceCharacterId,
+				sourceEventId: context.sourceEventId
+			};
+		}
+		case 'mediated':
+			return {
+				type: 'mediated',
+				medium: effect.source.medium,
+				attribution: effect.source.attribution,
+				sourceEventId: context.sourceEventId
+			};
 		case 'observed':
 			return {type: 'observed', sourceEventId: context.sourceEventId};
 		case 'inferred':
