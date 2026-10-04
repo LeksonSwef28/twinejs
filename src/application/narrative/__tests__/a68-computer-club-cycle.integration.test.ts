@@ -682,6 +682,73 @@ describe('A68-C1 Computer Club topology', () => {
 	});
 
 
+	test('presents the dorm consequence with enough structural causality for the Player', () => {
+		let session = start();
+
+		session = travel(session, arrivalCorridorIds.routes.stationToSquareWalk);
+		session = travel(session, arrivalCorridorIds.routes.squareToStopWalk);
+		session = travel(session, arrivalCorridorIds.routes.stopToDormCityBus);
+		session = waitUntil(session, 8, 17 * 60 + 44);
+		session = travel(session, computerClubCycleIds.routes.dormToClub);
+		session = story(session, computerClubCycleIds.story.entry);
+		session = action(session, computerClubCycleIds.moves.askWorker);
+		session = wait(session, 30);
+		session = travel(session, computerClubCycleIds.routes.clubToDorm);
+		session = waitUntil(session, 9, 19 * 60);
+
+		const beforeStory =
+			deriveNarrativePlayerPresentation(session.currentProject);
+		expect(beforeStory).toMatchObject({
+			day: 9,
+			minuteOfDay: 19 * 60,
+			locationState: 'resolved',
+			location: {
+				id: arrivalCorridorIds.locations.studentDormitory,
+				name: 'Студенческое общежитие'
+			}
+		});
+		expect(beforeStory.localCharacters).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: arrivalCorridorIds.characters.dormDuty,
+					name: 'Дежурная общежития'
+				})
+			])
+		);
+		expect(beforeStory.storyOpportunities).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: 'story-node:' + computerClubCycleIds.story.dormEcho,
+					storyNodeId: computerClubCycleIds.story.dormEcho,
+					title: 'Девятый день: клубная новость возвращается в общежитие',
+					scheduledDay: 9,
+					scheduledMinuteOfDay: 19 * 60,
+					locationName: 'Студенческое общежитие',
+					state: 'ready'
+				})
+			])
+		);
+
+		session = story(session, computerClubCycleIds.story.dormEcho);
+		const activeStory =
+			deriveNarrativePlayerPresentation(session.currentProject);
+		expect(activeStory.actions).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: computerClubCycleIds.moves.tellDormDuty,
+					label:
+						'Рассказать дежурной, что услышал о завтрашнем вечере в клубе',
+					storyNodeId: computerClubCycleIds.story.dormEcho,
+					storyTitle:
+						'Девятый день: клубная новость возвращается в общежитие',
+					dialogue: true,
+					state: 'ready'
+				})
+			])
+		);
+	});
+
+
 	test('carries a club-originating claim into a later dorm conversation without auto-spread', () => {
 		let session = start();
 
