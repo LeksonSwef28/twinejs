@@ -22,6 +22,10 @@ const arrivalCharacterAndLocationByWorkId: Record<
 	[`story-node:${ids.story.regularArrival}`]: {
 		characterId: ids.characters.clubRegular,
 		locationId: ids.locations.computerClub
+	},
+	[`story-node:${ids.story.workerReturn}`]: {
+		characterId: ids.characters.clubWorker,
+		locationId: ids.locations.computerClub
 	}
 };
 
@@ -59,8 +63,8 @@ function workCanRun(
 /**
  * A68-C1 deterministic authored arrivals only.
  *
- * Routine Rules remain Scheduled Presence. These two exact NPC-only Story work
- * items are the explicit bridge into Actual Presence for the first club entry.
+ * Routine Rules remain Scheduled Presence. These exact NPC-only Story work
+ * items are the explicit bridge into Actual Presence for authored club arrivals.
  * This is deliberately not a generic NPC scheduler.
  */
 export function deliverA68ComputerClubDueWork(
