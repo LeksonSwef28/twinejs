@@ -281,4 +281,72 @@ describe('A68-C1 Computer Club topology', () => {
 		);
 	});
 
+
+	test('carries a club-originating claim into a later dorm conversation without auto-spread', () => {
+		let session = start();
+
+		session = travel(session, arrivalCorridorIds.routes.stationToSquareWalk);
+		session = travel(session, arrivalCorridorIds.routes.squareToStopWalk);
+		session = travel(session, arrivalCorridorIds.routes.stopToDormCityBus);
+		session = waitUntil(session, 8, 17 * 60 + 44);
+		session = travel(session, computerClubCycleIds.routes.dormToClub);
+		session = story(session, computerClubCycleIds.story.entry);
+		session = action(session, computerClubCycleIds.moves.readForum);
+
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				computerClubCycleIds.story.dormEcho
+			]
+		).toBe('available');
+		expect(
+			session.currentProject.simulation.characterKnowledge.some(
+				item =>
+					item.characterId === arrivalCorridorIds.characters.dormDuty &&
+					item.claimId === computerClubCycleIds.claims.nightSession
+			)
+		).toBe(false);
+
+		session = travel(session, computerClubCycleIds.routes.clubToDorm);
+		session = waitUntil(session, 9, 19 * 60);
+		session = story(session, computerClubCycleIds.story.dormEcho);
+
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: computerClubCycleIds.moves.tellDormDuty,
+					state: 'ready'
+				})
+			])
+		);
+
+		session = action(session, computerClubCycleIds.moves.tellDormDuty);
+
+		const dormKnowledge =
+			session.currentProject.simulation.characterKnowledge.find(
+				item =>
+					item.characterId === arrivalCorridorIds.characters.dormDuty &&
+					item.claimId === computerClubCycleIds.claims.nightSession
+			);
+		expect(dormKnowledge?.source).toEqual({
+			type: 'told',
+			sourceCharacterId: playerId,
+			sourceEventId: computerClubCycleIds.story.dormEcho
+		});
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				computerClubCycleIds.story.dormEcho
+			]
+		).toBe('completed');
+		expect(
+			session.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('cross-place') &&
+					memory.tags.includes('computer-club')
+			)
+		).toBe(true);
+	});
+
 });

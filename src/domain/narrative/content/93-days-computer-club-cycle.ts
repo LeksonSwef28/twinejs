@@ -37,11 +37,13 @@ export const computerClubCycleIds = {
 	story: {
 		workerArrival: 'a68-day8-club-worker-arrival',
 		regularArrival: 'a68-day8-club-regular-arrival',
-		entry: 'a68-day8-club-entry'
+		entry: 'a68-day8-club-entry',
+		dormEcho: 'a68-day9-dorm-club-echo'
 	},
 	moves: {
 		askWorker: 'a68-day8-club-entry:ask-worker',
-		readForum: 'a68-day8-club-entry:read-forum'
+		readForum: 'a68-day8-club-entry:read-forum',
+		tellDormDuty: 'a68-day9-dorm-club-echo:tell-duty'
 	}
 } as const;
 
@@ -86,7 +88,7 @@ function sourceSplitMoves(): NarrativeMoveDefinition[] {
 					id: directId + ':outcome',
 					key: 'heard-directly',
 					label: 'Администратор коротко объясняет, что планируется вечером.',
-					effectStoryNodeIds: [],
+					effectStoryNodeIds: [ids.story.dormEcho],
 					effects: [
 						{
 							id: directId + ':learn',
@@ -96,6 +98,12 @@ function sourceSplitMoves(): NarrativeMoveDefinition[] {
 							attitude: 'believes',
 							confidence: 0.88,
 							source: {type: 'move-target', targetIndex: 0}
+						},
+						{
+							id: directId + ':open-dorm-echo',
+							type: 'story-node-set-state',
+							storyNodeId: ids.story.dormEcho,
+							state: 'available'
 						}
 					]
 				}
@@ -115,7 +123,7 @@ function sourceSplitMoves(): NarrativeMoveDefinition[] {
 					id: forumId + ':outcome',
 					key: 'read-mediated',
 					label: 'Сообщение описывает тот же план, но через сетевую атрибуцию.',
-					effectStoryNodeIds: [],
+					effectStoryNodeIds: [ids.story.dormEcho],
 					effects: [
 						{
 							id: forumId + ':learn',
@@ -129,12 +137,102 @@ function sourceSplitMoves(): NarrativeMoveDefinition[] {
 								medium: 'forum',
 								attribution: 'north_bridge'
 							}
+						},
+						{
+							id: forumId + ':open-dorm-echo',
+							type: 'story-node-set-state',
+							storyNodeId: ids.story.dormEcho,
+							state: 'available'
 						}
 					]
 				}
 			]
 		}
 	];
+}
+
+function dormEchoMove(): NarrativeMoveDefinition {
+	const ids = computerClubCycleIds;
+	const id = ids.moves.tellDormDuty;
+	return {
+		id,
+		storyNodeId: ids.story.dormEcho,
+		kind: 'inform',
+		label: 'Рассказать дежурной, что услышал о завтрашнем вечере в клубе',
+		actorCharacterId: playerId,
+		targetCharacterIds: [arrivalCorridorIds.characters.dormDuty],
+		communicatedClaimId: ids.claims.nightSession,
+		communicationIntent: 'honest',
+		guards: [
+			storyActiveGuard(id + ':echo-active', ids.story.dormEcho),
+			{
+				id: id + ':player-knows',
+				condition: {
+					type: 'character-knows-claim',
+					characterId: playerId,
+					claimId: ids.claims.nightSession
+				}
+			},
+			{
+				id: id + ':same-place',
+				condition: {
+					type: 'characters-share-location',
+					characterIds: [
+						playerId,
+						arrivalCorridorIds.characters.dormDuty
+					]
+				}
+			}
+		],
+		resolution: {type: 'automatic', outcomeId: id + ':outcome'},
+		outcomes: [
+			{
+				id: id + ':outcome',
+				key: 'shared-at-dorm',
+				label: 'Информация из клуба становится частью обычного разговора в общежитии.',
+				effectStoryNodeIds: [],
+				effects: [
+					{
+						id: id + ':learn',
+						type: 'character-learns-claim',
+						recipient: {type: 'move-target', targetIndex: 0},
+						claim: {type: 'communicated-claim'},
+						attitude: 'believes',
+						confidence: 0.72,
+						source: {type: 'move-actor'}
+					},
+					{
+						id: id + ':goodwill',
+						type: 'relationship-adjust',
+						from: {
+							type: 'character',
+							characterId: arrivalCorridorIds.characters.dormDuty
+						},
+						to: {type: 'move-actor'},
+						axis: 'goodwill',
+						delta: 0.02
+					},
+					{
+						id: id + ':memory',
+						type: 'character-remembers',
+						character: {type: 'move-actor'},
+						summary:
+							'Разговор из компьютерного клуба не остался отдельным эпизодом: на следующий вечер я сам принёс эту историю обратно в общежитие.',
+						importance: 0.48,
+						baseStrength: 0.54,
+						tags: ['a68', 'computer-club', 'dorm', 'cross-place'],
+						source: {type: 'current-move'}
+					},
+					{
+						id: id + ':complete',
+						type: 'story-node-set-state',
+						storyNodeId: ids.story.dormEcho,
+						state: 'completed'
+					}
+				]
+			}
+		]
+	};
 }
 
 /**
@@ -319,12 +417,36 @@ export function create93DaysComputerClubCycleProject(): NarrativeProject {
 				durationMinutes: 30,
 				missAfterMinutes: 120
 			}
+		},
+		{
+			id: ids.story.dormEcho,
+			kind: 'dialogue',
+			title: 'Девятый день: клубная новость возвращается в общежитие',
+			description:
+				'Cross-place consequence появляется только если игрок сам унёс информацию из клуба и позже поделился ею в общежитии.',
+			primaryCharacterId: arrivalCorridorIds.characters.dormDuty,
+			participantIds: [
+				playerId,
+				arrivalCorridorIds.characters.dormDuty
+			],
+			placement: {
+				day: 9,
+				minuteOfDay: 19 * 60,
+				locationId: arrivalCorridorIds.locations.studentDormitory
+			},
+			activationState: 'dormant',
+			runtimePolicy: {
+				occurrenceMode: 'one-shot',
+				durationMinutes: 15,
+				missAfterMinutes: 180
+			}
 		}
 	];
 
 	project.narrativeMoves = [
 		...project.narrativeMoves,
-		...sourceSplitMoves()
+		...sourceSplitMoves(),
+		dormEchoMove()
 	];
 
 	// Keep the existing A67 Old City content intact. The first C1 bridge Story
