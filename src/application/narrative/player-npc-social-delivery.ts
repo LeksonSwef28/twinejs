@@ -21,10 +21,18 @@ import {
 	a63ContactArrivalStoryId,
 	a63ContactTravelLocationId
 } from '../../domain/narrative/content/93-days-player-npc-social-delivery';
+import {firstWeekProjectId} from '../../domain/narrative/content/93-days-first-week';
 import {
 	rumorSocialEchoIds
 } from '../../domain/narrative/content/93-days-rumor-social-echo';
 import {NarrativePlayerTimeDueWorkHandlingResult} from './player-time';
+
+export function playerNpcSocialDeliveryIsEnabled(projectId: string) {
+	return (
+		projectId === playerNpcSocialDeliveryProjectId ||
+		projectId === firstWeekProjectId
+	);
+}
 
 const reportStoryId = rumorSocialEchoIds.story.contactReportsToDormDuty;
 const arrivalWorkId = 'story-node:' + a63ContactArrivalStoryId;
@@ -44,7 +52,7 @@ export function deliverA63NpcSocialDueWork(
 	project: NarrativeProject,
 	dueWork: SimulationScheduledWork[]
 ): NarrativePlayerTimeDueWorkHandlingResult {
-	if (project.projectId !== playerNpcSocialDeliveryProjectId) {
+	if (!playerNpcSocialDeliveryIsEnabled(project.projectId)) {
 		return {project, handledWorkIds: []};
 	}
 	let current = project;

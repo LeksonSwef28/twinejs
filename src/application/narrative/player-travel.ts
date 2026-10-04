@@ -3,8 +3,10 @@ import {
 	replaceNarrativePlayerSessionProject
 } from './player-runtime';
 import {executeNarrativeTravel, NarrativeTravelRejectionReason} from './travel';
-import {deliverA63NpcSocialDueWork} from './player-npc-social-delivery';
-import {playerNpcSocialDeliveryProjectId} from '../../domain/narrative/content/93-days-player-npc-social-delivery';
+import {
+	deliverNarrativeProductionDueWork,
+	narrativeProductionDueWorkIsEnabled
+} from './player-production-due-work';
 
 export type NarrativePlayerTravelExecutionResult =
 	| {
@@ -39,8 +41,8 @@ export function executeNarrativePlayerTravel(
 		session.currentProject,
 		routeId,
 		playerCharacterId,
-		session.currentProject.projectId === playerNpcSocialDeliveryProjectId
-			? deliverA63NpcSocialDueWork
+		narrativeProductionDueWorkIsEnabled(session.currentProject.projectId)
+			? deliverNarrativeProductionDueWork
 			: undefined
 	);
 	if (travelled.status === 'rejected') {
