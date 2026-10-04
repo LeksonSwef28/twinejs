@@ -3,6 +3,7 @@ import {
 	firstWeekIds,
 	firstWeekProjectId
 } from '../../domain/narrative/content/93-days-first-week';
+import {computerClubCycleProjectId} from '../../domain/narrative/content/93-days-computer-club-cycle';
 import {effectiveStoryNodeActivationState} from '../../domain/narrative/runtime-story';
 import {storyWorkWasConsumed} from '../../domain/narrative/runtime-execution';
 import {SimulationScheduledWork} from '../../domain/narrative/simulation-kernel';
@@ -24,7 +25,10 @@ const arrivalWorkById: Record<string, string> = {
 const aftermathWorkId = `story-node:${ids.story.daySixCinemaAftermath}`;
 
 export function firstWeekDueWorkIsEnabled(projectId: string) {
-	return projectId === firstWeekProjectId;
+	return (
+		projectId === firstWeekProjectId ||
+		projectId === computerClubCycleProjectId
+	);
 }
 
 function workCanRun(

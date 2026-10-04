@@ -22,6 +22,7 @@ import {
 	a63ContactTravelLocationId
 } from '../../domain/narrative/content/93-days-player-npc-social-delivery';
 import {firstWeekProjectId} from '../../domain/narrative/content/93-days-first-week';
+import {computerClubCycleProjectId} from '../../domain/narrative/content/93-days-computer-club-cycle';
 import {
 	rumorSocialEchoIds
 } from '../../domain/narrative/content/93-days-rumor-social-echo';
@@ -30,7 +31,8 @@ import {NarrativePlayerTimeDueWorkHandlingResult} from './player-time';
 export function playerNpcSocialDeliveryIsEnabled(projectId: string) {
 	return (
 		projectId === playerNpcSocialDeliveryProjectId ||
-		projectId === firstWeekProjectId
+		projectId === firstWeekProjectId ||
+		projectId === computerClubCycleProjectId
 	);
 }
 
