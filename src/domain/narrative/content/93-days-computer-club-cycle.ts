@@ -72,7 +72,7 @@ function knowsClaimGuard(id: string, characterId: string, claimId: string) {
 	};
 }
 
-function sourceSplitMoves(): NarrativeMoveDefinition[] {
+function clubEntryMoves(): NarrativeMoveDefinition[] {
 	const ids = computerClubCycleIds;
 	const directId = ids.moves.askWorker;
 	const forumId = ids.moves.readForum;
@@ -313,8 +313,9 @@ function dormEchoMove(): NarrativeMoveDefinition {
  * This layer expands the already proven first-week project with one MASTER-backed
  * central/student social space. It intentionally adds only ordinary canonical
  * content data: a Computer Club location, two NPC roles, routine intent,
- * explicit travel routes and a first source-aware Story entry. Cross-place
- * consequences and deeper relationship continuity remain later C1 slices.
+ * explicit travel routes and a source-aware Story entry. Cross-place
+ * consequence and A67 continuity are now explicit; repeated bridge
+ * relationship and save/continue remain later C1 slices.
  */
 export function create93DaysComputerClubCycleProject(): NarrativeProject {
 	const project = create93DaysFirstWeekProject();
@@ -517,7 +518,7 @@ export function create93DaysComputerClubCycleProject(): NarrativeProject {
 
 	project.narrativeMoves = [
 		...project.narrativeMoves,
-		...sourceSplitMoves(),
+		...clubEntryMoves(),
 		dormEchoMove()
 	];
 
