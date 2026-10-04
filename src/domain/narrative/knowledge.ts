@@ -31,6 +31,12 @@ export type KnowledgeSource =
 			sourceCharacterId?: EntityId;
 			sourceEventId?: EntityId;
 	  }
+	| {
+			type: 'mediated';
+			medium: string;
+			attribution?: string;
+			sourceEventId?: EntityId;
+	  }
 	| {type: 'inferred'; sourceEventId?: EntityId}
 	| {type: 'authored'};
 
@@ -73,6 +79,41 @@ export function characterKnowledgeStateId(characterId: EntityId, claimId: Entity
 
 export function knowledgeConfidenceIsValid(confidence: number) {
 	return Number.isFinite(confidence) && confidence >= 0 && confidence <= 1;
+}
+
+export function knowledgeSourceIsValid(source: unknown): source is KnowledgeSource {
+	if (!source || typeof source !== 'object' || Array.isArray(source)) {
+		return false;
+	}
+	const candidate = source as Record<string, unknown>;
+	const eventIdValid =
+		candidate.sourceEventId === undefined ||
+		typeof candidate.sourceEventId === 'string';
+
+	switch (candidate.type) {
+		case 'observed':
+		case 'inferred':
+			return eventIdValid;
+		case 'authored':
+			return true;
+		case 'told':
+			return (
+				eventIdValid &&
+				(candidate.sourceCharacterId === undefined ||
+					typeof candidate.sourceCharacterId === 'string')
+			);
+		case 'mediated':
+			return (
+				eventIdValid &&
+				typeof candidate.medium === 'string' &&
+				Boolean(candidate.medium.trim()) &&
+				(candidate.attribution === undefined ||
+					(typeof candidate.attribution === 'string' &&
+						Boolean(candidate.attribution.trim())))
+			);
+		default:
+			return false;
+	}
 }
 
 /**

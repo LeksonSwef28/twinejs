@@ -8,12 +8,17 @@ import {
 	deliverA67FirstWeekDueWork,
 	firstWeekDueWorkIsEnabled
 } from './player-first-week-due-work';
+import {
+	computerClubDueWorkIsEnabled,
+	deliverA68ComputerClubDueWork
+} from './player-computer-club-due-work';
 import {NarrativePlayerTimeDueWorkHandlingResult} from './player-time';
 
 export function narrativeProductionDueWorkIsEnabled(projectId: string) {
 	return (
 		playerNpcSocialDeliveryIsEnabled(projectId) ||
-		firstWeekDueWorkIsEnabled(projectId)
+		firstWeekDueWorkIsEnabled(projectId) ||
+		computerClubDueWorkIsEnabled(projectId)
 	);
 }
 
@@ -28,10 +33,15 @@ export function deliverNarrativeProductionDueWork(
 ): NarrativePlayerTimeDueWorkHandlingResult {
 	const a63 = deliverA63NpcSocialDueWork(project, dueWork);
 	const a67 = deliverA67FirstWeekDueWork(a63.project, dueWork);
+	const a68 = deliverA68ComputerClubDueWork(a67.project, dueWork);
 	return {
-		project: a67.project,
+		project: a68.project,
 		handledWorkIds: [
-			...new Set([...a63.handledWorkIds, ...a67.handledWorkIds])
+			...new Set([
+				...a63.handledWorkIds,
+				...a67.handledWorkIds,
+				...a68.handledWorkIds
+			])
 		]
 	};
 }

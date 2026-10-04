@@ -18,7 +18,13 @@ type EffectMode =
 
 type KnowledgeRecipientMode = 'character' | 'move-target';
 type KnowledgeClaimMode = 'claim' | 'communicated-claim';
-type KnowledgeSourceMode = 'authored' | 'move-actor' | 'observed' | 'inferred';
+type KnowledgeSourceMode =
+	| 'authored'
+	| 'move-actor'
+	| 'move-target'
+	| 'observed'
+	| 'inferred'
+	| 'mediated';
 type ItemDestination = 'unplaced' | 'character' | 'location';
 type MemorySourceMode =
 	| 'current-move'
@@ -58,6 +64,11 @@ export const OutcomeEffectsPanel: React.FC = () => {
 	const [knowledgeConfidence, setKnowledgeConfidence] = React.useState(0.75);
 	const [knowledgeSource, setKnowledgeSource] =
 		React.useState<KnowledgeSourceMode>('authored');
+	const [knowledgeSourceTargetIndex, setKnowledgeSourceTargetIndex] =
+		React.useState(0);
+	const [knowledgeSourceMedium, setKnowledgeSourceMedium] = React.useState('');
+	const [knowledgeSourceAttribution, setKnowledgeSourceAttribution] =
+		React.useState('');
 	const [fromCharacterReference, setFromCharacterReference] = React.useState('');
 	const [toCharacterReference, setToCharacterReference] = React.useState('');
 	const [relationshipAxis, setRelationshipAxis] = React.useState('trust');
@@ -91,6 +102,7 @@ export const OutcomeEffectsPanel: React.FC = () => {
 		const selectedMove = project.narrativeMoves.find(candidate => candidate.id === moveId);
 		setOutcomeId(selectedMove?.outcomes[0]?.id ?? '');
 		setKnowledgeTargetIndex(0);
+		setKnowledgeSourceTargetIndex(0);
 		if (!selectedMove?.communicatedClaimId) {
 			setKnowledgeClaimMode('claim');
 		}
@@ -116,6 +128,10 @@ export const OutcomeEffectsPanel: React.FC = () => {
 					(knowledgeClaimMode === 'claim' && !knowledgeClaimId) ||
 					(knowledgeClaimMode === 'communicated-claim' && !move.communicatedClaimId) ||
 					(knowledgeSource === 'move-actor' && !move.actorCharacterId) ||
+					(knowledgeSource === 'move-target' &&
+						!move.targetCharacterIds[knowledgeSourceTargetIndex]) ||
+					(knowledgeSource === 'mediated' &&
+						!knowledgeSourceMedium.trim()) ||
 					!Number.isFinite(knowledgeConfidence) ||
 					knowledgeConfidence < 0 ||
 					knowledgeConfidence > 1
@@ -135,7 +151,20 @@ export const OutcomeEffectsPanel: React.FC = () => {
 							: {type: 'communicated-claim'},
 					attitude: knowledgeAttitude,
 					confidence: knowledgeConfidence,
-					source: {type: knowledgeSource}
+					source:
+						knowledgeSource === 'move-target'
+							? {
+									type: 'move-target',
+									targetIndex: knowledgeSourceTargetIndex
+							  }
+							: knowledgeSource === 'mediated'
+								? {
+										type: 'mediated',
+										medium: knowledgeSourceMedium.trim(),
+										attribution:
+											knowledgeSourceAttribution.trim() || undefined
+								  }
+								: {type: knowledgeSource}
 				};
 				break;
 			case 'relationship-adjust': {
@@ -380,9 +409,46 @@ export const OutcomeEffectsPanel: React.FC = () => {
 							<option value="move-actor" disabled={!move.actorCharacterId}>
 								Актор текущего Move
 							</option>
+							<option value="move-target" disabled={move.targetCharacterIds.length === 0}>
+								Цель текущего Move
+							</option>
 							<option value="observed">Наблюдение</option>
 							<option value="inferred">Вывод персонажа</option>
+							<option value="mediated">Опосредованный источник / канал</option>
 						</select>
+						{knowledgeSource === 'move-target' && (
+							<select
+								aria-label="Цель Move как источник знания"
+								value={knowledgeSourceTargetIndex}
+								onChange={event =>
+									setKnowledgeSourceTargetIndex(Number(event.target.value))
+								}
+							>
+								{move.targetCharacterIds.map((characterId, index) => (
+									<option key={`${characterId}:source:${index}`} value={index}>
+										Источник {index + 1}:{' '}
+										{project.characters.find(character => character.id === characterId)?.name ??
+											characterId}
+									</option>
+								))}
+							</select>
+						)}
+						{knowledgeSource === 'mediated' && (
+							<>
+								<input
+									aria-label="Канал mediated knowledge source"
+									value={knowledgeSourceMedium}
+									onChange={event => setKnowledgeSourceMedium(event.target.value)}
+									placeholder="forum / chat / note"
+								/>
+								<input
+									aria-label="Атрибуция mediated knowledge source"
+									value={knowledgeSourceAttribution}
+									onChange={event => setKnowledgeSourceAttribution(event.target.value)}
+									placeholder="ник / подпись / источник"
+								/>
+							</>
+						)}
 					</>
 				)}
 

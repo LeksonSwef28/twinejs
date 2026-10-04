@@ -20,7 +20,8 @@ import {
 } from '../../domain/narrative/items';
 import {
 	CharacterKnowledgeState,
-	knowledgeConfidenceIsValid
+	knowledgeConfidenceIsValid,
+	knowledgeSourceIsValid
 } from '../../domain/narrative/knowledge';
 import {
 	NarrativeProject,
@@ -253,7 +254,7 @@ function hydrateCharacterKnowledge(value: unknown): CharacterKnowledgeState[] {
 			attitudes.has(raw.attitude) &&
 			finiteNumber(raw.confidence) &&
 			knowledgeConfidenceIsValid(raw.confidence) &&
-			isRecord(raw.source) &&
+			knowledgeSourceIsValid(raw.source) &&
 			finiteNumber(raw.timesHeard) &&
 			Number.isInteger(raw.timesHeard) &&
 			raw.timesHeard >= 0

@@ -93,8 +93,10 @@ export type NarrativeClaimReferenceDefinition =
 export type NarrativeKnowledgeEffectSourceDefinition =
 	| {type: 'authored'}
 	| {type: 'move-actor'}
+	| {type: 'move-target'; targetIndex: number}
 	| {type: 'observed'}
-	| {type: 'inferred'};
+	| {type: 'inferred'}
+	| {type: 'mediated'; medium: string; attribution?: string};
 
 export interface NarrativeKnowledgeEffectDefinition {
 	id: EntityId;
@@ -364,7 +366,25 @@ function narrativeEffectIsStructurallyValid(effect: NarrativeEffectDefinition) {
 			) {
 				return false;
 			}
-			return effect.claim.type !== 'claim' || Boolean(effect.claim.claimId);
+			if (effect.claim.type === 'claim' && !effect.claim.claimId) {
+				return false;
+			}
+			if (
+				effect.source.type === 'move-target' &&
+				(!Number.isInteger(effect.source.targetIndex) ||
+					effect.source.targetIndex < 0)
+			) {
+				return false;
+			}
+			if (
+				effect.source.type === 'mediated' &&
+				(!effect.source.medium.trim() ||
+					(effect.source.attribution !== undefined &&
+						!effect.source.attribution.trim()))
+			) {
+				return false;
+			}
+			return true;
 		case 'relationship-adjust':
 			return (
 				characterReferenceIsStructurallyValid(effect.from) &&
