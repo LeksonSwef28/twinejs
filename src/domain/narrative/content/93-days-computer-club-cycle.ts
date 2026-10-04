@@ -38,13 +38,16 @@ export const computerClubCycleIds = {
 		workerArrival: 'a68-day8-club-worker-arrival',
 		regularArrival: 'a68-day8-club-regular-arrival',
 		entry: 'a68-day8-club-entry',
-		dormEcho: 'a68-day9-dorm-club-echo'
+		dormEcho: 'a68-day9-dorm-club-echo',
+		workerReturn: 'a68-day10-club-worker-return',
+		bridgeFollowup: 'a68-day10-club-followup'
 	},
 	moves: {
 		askWorker: 'a68-day8-club-entry:ask-worker',
 		readForum: 'a68-day8-club-entry:read-forum',
 		referenceCinema: 'a68-day8-club-entry:reference-old-cinema',
-		tellDormDuty: 'a68-day9-dorm-club-echo:tell-duty'
+		tellDormDuty: 'a68-day9-dorm-club-echo:tell-duty',
+		bridgeFollowup: 'a68-day10-club-followup:ask-result'
 	}
 } as const;
 
@@ -113,9 +116,23 @@ function clubEntryMoves(): NarrativeMoveDefinition[] {
 							source: {type: 'move-target', targetIndex: 0}
 						},
 						{
+							id: directId + ':familiarity',
+							type: 'relationship-adjust',
+							from: {type: 'move-target', targetIndex: 0},
+							to: {type: 'move-actor'},
+							axis: 'familiarity',
+							delta: 0.03
+						},
+						{
 							id: directId + ':open-dorm-echo',
 							type: 'story-node-set-state',
 							storyNodeId: ids.story.dormEcho,
+							state: 'available'
+						},
+						{
+							id: directId + ':open-bridge-followup',
+							type: 'story-node-set-state',
+							storyNodeId: ids.story.bridgeFollowup,
 							state: 'available'
 						}
 					]
@@ -223,6 +240,77 @@ function clubEntryMoves(): NarrativeMoveDefinition[] {
 	];
 }
 
+function bridgeFollowupMove(): NarrativeMoveDefinition {
+	const ids = computerClubCycleIds;
+	const id = ids.moves.bridgeFollowup;
+	return {
+		id,
+		storyNodeId: ids.story.bridgeFollowup,
+		kind: 'ask',
+		label: 'Спросить, удалось ли собрать людей на позднюю игру',
+		actorCharacterId: playerId,
+		targetCharacterIds: [ids.characters.clubWorker],
+		guards: [
+			storyActiveGuard(id + ':followup-active', ids.story.bridgeFollowup),
+			knowsClaimGuard(id + ':player-knows-plan', playerId, ids.claims.nightSession),
+			{
+				id: id + ':known-by-worker',
+				condition: {
+					type: 'relationship-at-least',
+					fromCharacterId: ids.characters.clubWorker,
+					toCharacterId: playerId,
+					axis: 'familiarity',
+					value: 0.03
+				}
+			},
+			{
+				id: id + ':same-place',
+				condition: {
+					type: 'characters-share-location',
+					characterIds: [playerId, ids.characters.clubWorker]
+				}
+			}
+		],
+		resolution: {type: 'automatic', outcomeId: id + ':outcome'},
+		outcomes: [
+			{
+				id: id + ':outcome',
+				key: 'recognized-return',
+				label:
+					'Администратор узнаёт игрока и продолжает разговор с того места, где они остановились.',
+				effectStoryNodeIds: [],
+				effects: [
+					{
+						id: id + ':familiarity',
+						type: 'relationship-adjust',
+						from: {type: 'move-target', targetIndex: 0},
+						to: {type: 'move-actor'},
+						axis: 'familiarity',
+						delta: 0.04
+					},
+					{
+						id: id + ':memory',
+						type: 'character-remembers',
+						character: {type: 'move-actor'},
+						summary:
+							'Через два дня администратор компьютерного клуба узнал меня и продолжил наш прошлый разговор, а не начал знакомство заново.',
+						importance: 0.54,
+						baseStrength: 0.6,
+						tags: ['a68', 'computer-club', 'repeated-contact', 'relationship'],
+						source: {type: 'current-move'}
+					},
+					{
+						id: id + ':complete',
+						type: 'story-node-set-state',
+						storyNodeId: ids.story.bridgeFollowup,
+						state: 'completed'
+					}
+				]
+			}
+		]
+	};
+}
+
 function dormEchoMove(): NarrativeMoveDefinition {
 	const ids = computerClubCycleIds;
 	const id = ids.moves.tellDormDuty;
@@ -314,8 +402,8 @@ function dormEchoMove(): NarrativeMoveDefinition {
  * central/student social space. It intentionally adds only ordinary canonical
  * content data: a Computer Club location, two NPC roles, routine intent,
  * explicit travel routes and a source-aware Story entry. Cross-place
- * consequence and A67 continuity are now explicit; repeated bridge
- * relationship and save/continue remain later C1 slices.
+ * consequence, A67 continuity and one repeated bridge relationship are
+ * explicit; broader save/continue coverage remains a later C1 slice.
  */
 export function create93DaysComputerClubCycleProject(): NarrativeProject {
 	const project = create93DaysFirstWeekProject();
@@ -513,13 +601,50 @@ export function create93DaysComputerClubCycleProject(): NarrativeProject {
 				durationMinutes: 15,
 				missAfterMinutes: 180
 			}
+		},
+		{
+			id: ids.story.workerReturn,
+			kind: 'event',
+			title: 'Десятый день: администратор снова приходит в компьютерный клуб',
+			description:
+				'Повторное authored arrival подтверждает, что новый NPC существует за пределами первой сцены знакомства.',
+			primaryCharacterId: ids.characters.clubWorker,
+			participantIds: [ids.characters.clubWorker],
+			placement: {
+				day: 10,
+				minuteOfDay: 18 * 60 + 20,
+				locationId: ids.locations.computerClub
+			},
+			activationState: 'available',
+			runtimePolicy: {occurrenceMode: 'one-shot', durationMinutes: 0}
+		},
+		{
+			id: ids.story.bridgeFollowup,
+			kind: 'dialogue',
+			title: 'Десятый день: знакомый разговор у стойки',
+			description:
+				'Повторная встреча читает накопленные знание и familiarity вместо одноразовой экспозиции.',
+			primaryCharacterId: ids.characters.clubWorker,
+			participantIds: [playerId, ids.characters.clubWorker],
+			placement: {
+				day: 10,
+				minuteOfDay: 18 * 60 + 30,
+				locationId: ids.locations.computerClub
+			},
+			activationState: 'dormant',
+			runtimePolicy: {
+				occurrenceMode: 'one-shot',
+				durationMinutes: 15,
+				missAfterMinutes: 120
+			}
 		}
 	];
 
 	project.narrativeMoves = [
 		...project.narrativeMoves,
 		...clubEntryMoves(),
-		dormEchoMove()
+		dormEchoMove(),
+		bridgeFollowupMove()
 	];
 
 	// Keep the existing A67 Old City content intact. The first C1 bridge Story

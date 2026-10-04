@@ -2,6 +2,10 @@ import {compileNarrativeRuntimeArtifact} from '../export-compiler';
 import {executeNarrativePlayerAction} from '../player-action';
 import {deriveNarrativePlayerPresentation} from '../player-presentation';
 import {
+	restoreNarrativePlayerSaveJson,
+	serializeNarrativePlayerSave
+} from '../player-save';
+import {
 	materializeNarrativePlayerSession,
 	NarrativePlayerSession
 } from '../player-runtime';
@@ -30,8 +34,8 @@ function compileFixture() {
 	return compiled.artifact;
 }
 
-function start() {
-	const materialized = materializeNarrativePlayerSession(compileFixture());
+function start(artifact = compileFixture()) {
+	const materialized = materializeNarrativePlayerSession(artifact);
 	if (materialized.status !== 'ready') {
 		throw new Error(materialized.summary);
 	}
@@ -380,6 +384,126 @@ describe('A68-C1 Computer Club topology', () => {
 					memory.tags.includes('computer-club')
 			)
 		).toBe(true);
+	});
+
+
+	test('repeats the club worker relationship across days and save/restore', () => {
+		const artifact = compileFixture();
+		let session = start(artifact);
+
+		session = travel(session, arrivalCorridorIds.routes.stationToSquareWalk);
+		session = travel(session, arrivalCorridorIds.routes.squareToStopWalk);
+		session = travel(session, arrivalCorridorIds.routes.stopToDormCityBus);
+		session = waitUntil(session, 8, 17 * 60 + 44);
+		session = travel(session, computerClubCycleIds.routes.dormToClub);
+		session = story(session, computerClubCycleIds.story.entry);
+		session = action(session, computerClubCycleIds.moves.askWorker);
+
+		expect(
+			session.currentProject.simulation.characterKnowledge.some(
+				item =>
+					item.characterId === playerId &&
+					item.claimId === computerClubCycleIds.claims.nightSession
+			)
+		).toBe(true);
+		expect(session.currentProject.relationships).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					fromCharacterId: computerClubCycleIds.characters.clubWorker,
+					toCharacterId: playerId,
+					values: expect.objectContaining({familiarity: 0.03})
+				})
+			])
+		);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				computerClubCycleIds.story.bridgeFollowup
+			]
+		).toBe('available');
+
+		const serialized = serializeNarrativePlayerSave(session);
+		const restored = restoreNarrativePlayerSaveJson(
+			start(artifact),
+			serialized
+		);
+		expect(restored.status).toBe('restored');
+		if (restored.status !== 'restored') {
+			throw new Error('Expected A68 repeated-bridge save to restore.');
+		}
+		session = restored.session;
+
+		expect(session.currentProject.relationships).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					fromCharacterId: computerClubCycleIds.characters.clubWorker,
+					toCharacterId: playerId,
+					values: expect.objectContaining({familiarity: 0.03})
+				})
+			])
+		);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				computerClubCycleIds.story.bridgeFollowup
+			]
+		).toBe('available');
+
+		session = travel(session, computerClubCycleIds.routes.clubToDorm);
+		session = waitUntil(session, 10, 18 * 60 + 14);
+		session = travel(session, computerClubCycleIds.routes.dormToClub);
+
+		expect(session.currentProject.simulation).toMatchObject({
+			day: 10,
+			minuteOfDay: 18 * 60 + 30
+		});
+		expect(
+			session.currentProject.runtimeOccurrences.filter(
+				item =>
+					item.type === 'story-work' &&
+					item.storyNodeId === computerClubCycleIds.story.workerReturn &&
+					item.result === 'executed'
+			)
+		).toHaveLength(1);
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[
+				computerClubCycleIds.characters.clubWorker
+			]
+		).toBe(computerClubCycleIds.locations.computerClub);
+
+		session = story(session, computerClubCycleIds.story.bridgeFollowup);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: computerClubCycleIds.moves.bridgeFollowup,
+					state: 'ready'
+				})
+			])
+		);
+
+		session = action(session, computerClubCycleIds.moves.bridgeFollowup);
+		expect(session.currentProject.relationships).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					fromCharacterId: computerClubCycleIds.characters.clubWorker,
+					toCharacterId: playerId,
+					values: expect.objectContaining({familiarity: 0.07})
+				})
+			])
+		);
+		expect(
+			session.currentProject.memories.some(
+				memory =>
+					memory.characterId === playerId &&
+					memory.tags.includes('repeated-contact') &&
+					memory.tags.includes('relationship')
+			)
+		).toBe(true);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				computerClubCycleIds.story.bridgeFollowup
+			]
+		).toBe('completed');
 	});
 
 
