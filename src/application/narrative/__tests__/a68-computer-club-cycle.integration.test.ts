@@ -507,6 +507,181 @@ describe('A68-C1 Computer Club topology', () => {
 	});
 
 
+	test('restores the first club interaction and continues the dorm echo exactly once', () => {
+		const artifact = compileFixture();
+		let session = start(artifact);
+
+		session = travel(session, arrivalCorridorIds.routes.stationToSquareWalk);
+		session = travel(session, arrivalCorridorIds.routes.squareToStopWalk);
+		session = travel(session, arrivalCorridorIds.routes.stopToDormCityBus);
+		session = waitUntil(session, 8, 17 * 60 + 44);
+		session = travel(session, computerClubCycleIds.routes.dormToClub);
+		session = story(session, computerClubCycleIds.story.entry);
+		session = action(session, computerClubCycleIds.moves.askWorker);
+		session = wait(session, 30);
+
+		const beforeSaveKnowledge =
+			session.currentProject.simulation.characterKnowledge.find(
+				item =>
+					item.characterId === playerId &&
+					item.claimId === computerClubCycleIds.claims.nightSession
+			);
+		expect(session.currentProject.simulation).toMatchObject({
+			day: 8,
+			minuteOfDay: 18 * 60 + 30
+		});
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[playerId]
+		).toBe(computerClubCycleIds.locations.computerClub);
+		expect(beforeSaveKnowledge?.source).toEqual({
+			type: 'told',
+			sourceCharacterId: computerClubCycleIds.characters.clubWorker,
+			sourceEventId: computerClubCycleIds.story.entry
+		});
+		expect(session.currentProject.relationships).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					fromCharacterId: computerClubCycleIds.characters.clubWorker,
+					toCharacterId: playerId,
+					values: expect.objectContaining({familiarity: 0.03})
+				})
+			])
+		);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				computerClubCycleIds.story.entry
+			]
+		).toBe('completed');
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				computerClubCycleIds.story.dormEcho
+			]
+		).toBe('available');
+		expect(
+			session.currentProject.runtimeOccurrences.filter(
+				item =>
+					item.type === 'story-work' &&
+					item.storyNodeId === computerClubCycleIds.story.entry &&
+					item.result === 'executed'
+			)
+		).toHaveLength(1);
+
+		const serialized = serializeNarrativePlayerSave(session);
+		const restored = restoreNarrativePlayerSaveJson(
+			start(artifact),
+			serialized
+		);
+		expect(restored.status).toBe('restored');
+		if (restored.status !== 'restored') {
+			throw new Error('Expected A68 cross-place save to restore.');
+		}
+		session = restored.session;
+
+		const restoredKnowledge =
+			session.currentProject.simulation.characterKnowledge.find(
+				item =>
+					item.characterId === playerId &&
+					item.claimId === computerClubCycleIds.claims.nightSession
+			);
+		expect(session.currentProject.simulation).toMatchObject({
+			day: 8,
+			minuteOfDay: 18 * 60 + 30
+		});
+		expect(
+			session.currentProject.simulation.actualLocationByCharacter[playerId]
+		).toBe(computerClubCycleIds.locations.computerClub);
+		expect(restoredKnowledge?.source).toEqual(beforeSaveKnowledge?.source);
+		expect(session.currentProject.relationships).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					fromCharacterId: computerClubCycleIds.characters.clubWorker,
+					toCharacterId: playerId,
+					values: expect.objectContaining({familiarity: 0.03})
+				})
+			])
+		);
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				computerClubCycleIds.story.entry
+			]
+		).toBe('completed');
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				computerClubCycleIds.story.dormEcho
+			]
+		).toBe('available');
+		expect(
+			session.currentProject.runtimeOccurrences.filter(
+				item =>
+					item.type === 'story-work' &&
+					item.storyNodeId === computerClubCycleIds.story.entry &&
+					item.result === 'executed'
+			)
+		).toHaveLength(1);
+
+		session = travel(session, computerClubCycleIds.routes.clubToDorm);
+		session = waitUntil(session, 9, 19 * 60);
+		session = story(session, computerClubCycleIds.story.dormEcho);
+		expect(
+			deriveNarrativePlayerPresentation(session.currentProject).actions
+		).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					id: computerClubCycleIds.moves.tellDormDuty,
+					state: 'ready'
+				})
+			])
+		);
+		session = action(session, computerClubCycleIds.moves.tellDormDuty);
+		session = wait(session, 15);
+
+		const dormKnowledge =
+			session.currentProject.simulation.characterKnowledge.find(
+				item =>
+					item.characterId === arrivalCorridorIds.characters.dormDuty &&
+					item.claimId === computerClubCycleIds.claims.nightSession
+			);
+		expect(dormKnowledge?.source).toEqual({
+			type: 'told',
+			sourceCharacterId: playerId,
+			sourceEventId: computerClubCycleIds.story.dormEcho
+		});
+		expect(
+			session.currentProject.storyNodeStateOverrides[
+				computerClubCycleIds.story.dormEcho
+			]
+		).toBe('completed');
+		expect(
+			session.currentProject.runtimeOccurrences.filter(
+				item =>
+					item.type === 'story-work' &&
+					item.storyNodeId === computerClubCycleIds.story.dormEcho &&
+					item.result === 'executed'
+			)
+		).toHaveLength(1);
+
+		const repeated = executeNarrativePlayerStoryWork(
+			session,
+			'story-node:' + computerClubCycleIds.story.dormEcho,
+			'execute',
+			playerId
+		);
+		expect(repeated.status).toBe('rejected');
+		if (repeated.status !== 'rejected') {
+			throw new Error('Expected the one-shot dorm echo to reject replay.');
+		}
+		expect(repeated.reason).toBe('runtime-rejected');
+		expect(
+			repeated.session.currentProject.runtimeOccurrences.filter(
+				item =>
+					item.type === 'story-work' &&
+					item.storyNodeId === computerClubCycleIds.story.dormEcho &&
+					item.result === 'executed'
+			)
+		).toHaveLength(1);
+	});
+
+
 	test('carries a club-originating claim into a later dorm conversation without auto-spread', () => {
 		let session = start();
 
