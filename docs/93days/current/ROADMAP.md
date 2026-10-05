@@ -1,7 +1,7 @@
 # 93 Days — CURRENT ROADMAP
 
 Status: **CURRENT**
-Updated: **2026-10-03**
+Updated: **2026-10-05**
 
 This file reconciles the post-A52 production roadmap, the 2026-09-28 v14 proposed A64+ roadmap,
 the actual A64-A67 implementation history, and the current stable repository.
@@ -20,7 +20,7 @@ the actual A64-A67 implementation history, and the current stable repository.
 | A67-D2 | authored item placement | DONE | enabling work |
 | A67-D3 | Schedule Exception authoring | DONE | enabling work |
 | **A67** | **first coherent playable week** | **ENGINEERING PASS / HUMAN UX PLAYTEST PENDING** | one manual Player UX/pacing walkthrough |
-| **A68** | second social/city content cycle + playtest | **PREPARED / BLOCKED ON A67 HUMAN UX WALKTHROUGH** | C1 Computer Club bridge batch prepared |
+| **A68** | second social/city content cycle + playtest | **C1 ENGINEERING PASS / HUMAN UX WALKTHROUGH PENDING** | run human C1 walkthrough; choose C2 only from observed pressure |
 | **A69** | production-scale authoring/performance gate | **PROPOSED / FOUNDATION READY** | validate on real A68-scale graph |
 | Post-A69 | 93-day production + endings | **UNPLANNED AS EXECUTION PLAN** | weekly/season plan + ending matrix |
 
@@ -91,18 +91,20 @@ A67 is done when:
 
 ## 3. A68 — Second content and social cycle
 
-Status: **PREPARED; production implementation remains blocked until the A67 human UX/pacing walkthrough has no P0/P1 blocker.**
+Status: **C1 ENGINEERING ACCEPTANCE PASS / HUMAN UX WALKTHROUGH PENDING. C2 NOT SELECTED.**
 
 ### Goal
 
 Expand from one week to a broader social/city network using the established provenance/runtime model,
 not a second relationship or rumor engine.
 
-### Prepared first batch
+### Implemented first batch
 
-See `docs/93days/current/A68_CONTENT_CYCLE_PLAN.md`.
+See `docs/93days/current/A68_CONTENT_CYCLE_PLAN.md` and `docs/93days/current/A68_C1_ACCEPTANCE_CONTRACT.md`.
 
-A68-C1 is grounded in MASTER v31 around the Computer Club / central-student transition. It should add two new NPC roles, reconnect at least one A67 character, and prove cross-place provenance consequences without a new internet/rumor engine.
+A68-C1 is implemented around the Computer Club / central-student transition. It adds two new NPC roles, preserves explicit direct-vs-mediated provenance, carries one A67 history into the new cluster, produces a Player-carried cross-place dorm consequence, evolves a repeated relationship, and remains inside the existing relationship/knowledge/runtime architecture.
+
+PR #62 also moved the normal Editor → Export → Canonical Player production starter onto the current A68-C1 composition, so the remaining human walkthrough can run through the same production boundary used by current engineering evidence.
 
 ### Expected scope
 
@@ -128,11 +130,20 @@ Do not dump 1871-2026 research into year-2000 dialogue or NPC metadata.
 
 ### A68 gate
 
-- the broader network creates consequences across NPCs/places without hidden auto-spread;
-- at least one cross-group relationship evolves over repeated events;
-- playtesters can explain why a major social consequence happened;
-- content remains authorable through canonical tools;
-- findings are converted into focused defects, not architecture rewrites by default.
+C1 engineering evidence already proves:
+
+- a consequence crosses from Computer Club to dorm without hidden auto-spread;
+- one bridge relationship evolves across repeated events;
+- direct and mediated source provenance remain distinct;
+- save/continue and canonical authoring remain green;
+- Player presentation exposes the structural cause/effect chain.
+
+Still required before selecting C2:
+
+- one real human Canonical Player walkthrough;
+- classification of any observed CONTENT / PRESENTATION / TOOLING / RUNTIME issues;
+- fix only P0/P1 blockers before choosing the next cluster;
+- use actual C1 playtest pressure to choose C2 rather than prebuilding all candidate hubs.
 
 ## 4. A69 — Production scale gate
 
