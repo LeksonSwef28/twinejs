@@ -1,9 +1,12 @@
+import {compileNarrativeRuntimeArtifact} from '../export-compiler';
 import {createNarrativeProject} from '../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../domain/narrative/templates/93-days';
+import {a63ContactArrivalStoryId} from '../../../domain/narrative/content/93-days-player-npc-social-delivery';
+import {firstWeekIds} from '../../../domain/narrative/content/93-days-first-week';
 import {
-	a63ContactArrivalStoryId,
-	playerNpcSocialDeliveryProjectId
-} from '../../../domain/narrative/content/93-days-player-npc-social-delivery';
+	computerClubCycleIds,
+	computerClubCycleProjectId
+} from '../../../domain/narrative/content/93-days-computer-club-cycle';
 import {
 	create93DaysProductionProjectForCurrentHost,
 	narrativeProjectCanLoad93DaysProductionStarter
@@ -32,17 +35,33 @@ describe('A64 production project bootstrap', () => {
 		expect(narrativeProjectCanLoad93DaysProductionStarter(project)).toBe(false);
 	});
 
-	test('rebinds the A63 content to the current host without losing A63 identity', () => {
+	test('rebinds the current A68 composition to the host and keeps prior slices playable', () => {
 		const current = blankProject();
 		const production = create93DaysProductionProjectForCurrentHost(current);
 
-		expect(production.projectId).toBe(playerNpcSocialDeliveryProjectId);
+		expect(production.projectId).toBe(computerClubCycleProjectId);
 		expect(production.hostStoryId).toBe(current.hostStoryId);
 		expect(production.name).toBe(current.name);
 		expect(production.createdAt).toBe(current.createdAt);
 		expect(
 			production.storyNodes.some(node => node.id === a63ContactArrivalStoryId)
 		).toBe(true);
+		expect(
+			production.storyNodes.some(
+				node => node.id === firstWeekIds.story.daySevenReflection
+			)
+		).toBe(true);
+		expect(
+			production.locations.some(
+				location => location.id === computerClubCycleIds.locations.computerClub
+			)
+		).toBe(true);
+		expect(
+			production.storyNodes.some(
+				node => node.id === computerClubCycleIds.story.dormEcho
+			)
+		).toBe(true);
+		expect(compileNarrativeRuntimeArtifact(production).status).toBe('compiled');
 		expect(narrativeProjectCanLoad93DaysProductionStarter(production)).toBe(false);
 	});
 });
