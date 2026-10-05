@@ -2,7 +2,7 @@
 
 Status: **READY / HUMAN EXECUTION PENDING**
 Updated: **2026-10-05**
-Required stable baseline: `93-days-editor@9a0b48894dce343046ae10a68ffe066451365271`
+Required stable baseline: `93-days-editor@15ef305ceb926824de21e90237adf536102ef468`
 Production project: `93-days-computer-club-cycle-v1`
 
 ## Purpose
