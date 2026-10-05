@@ -12,7 +12,7 @@ import {
 	prepareNarrativeStoryExport
 } from '../../../application/narrative/export-story-adapter';
 import {storyCanvasViewportForNode} from '../../../domain/narrative/workspace-navigation';
-import {playerNpcSocialDeliveryProjectId} from '../../../domain/narrative/content/93-days-player-npc-social-delivery';
+import {computerClubCycleProjectId} from '../../../domain/narrative/content/93-days-computer-club-cycle';
 import {narrativeRuntimeProofFilenameExtension} from '../../../application/narrative/runtime-proof';
 import {storyFileName} from '../../../electron/shared';
 import {launchNarrativePlayerDevelopment} from '../../../player/development-handoff';
@@ -81,9 +81,9 @@ export const NarrativeExportPanel: React.FC = () => {
 	const advisoryCount = diagnostics.filter(
 		diagnostic => diagnostic.disposition === 'advisory'
 	).length;
-	const isA63ProductionProject =
-		project.projectId === playerNpcSocialDeliveryProjectId;
-	const canLoadA63ProductionStarter =
+	const isCurrentProductionProject =
+		project.projectId === computerClubCycleProjectId;
+	const canLoadCurrentProductionStarter =
 		!recovery &&
 		narrativeProjectCanLoad93DaysProductionStarter(project);
 
@@ -143,8 +143,8 @@ export const NarrativeExportPanel: React.FC = () => {
 		});
 	}
 
-	function loadA63ProductionStarter() {
-		if (!canLoadA63ProductionStarter) {
+	function loadCurrentProductionStarter() {
+		if (!canLoadCurrentProductionStarter) {
 			return;
 		}
 		resetOperationFeedback();
@@ -153,13 +153,13 @@ export const NarrativeExportPanel: React.FC = () => {
 				create93DaysProductionProjectForCurrentHost(project)
 			);
 			setOperationStatus(
-				'A63 production project загружен в текущий host Story.'
+				'A68-C1 production project загружен в текущий host Story.'
 			);
 		} catch (error) {
 			setOperationError(
 				error instanceof Error
 					? error.message
-					: 'Не удалось загрузить A63 production project.'
+					: 'Не удалось загрузить A68-C1 production project.'
 			);
 		}
 	}
@@ -295,25 +295,25 @@ export const NarrativeExportPanel: React.FC = () => {
 			<p className="narrative-workspace__export-note">
 				Production target:{' '}
 				<strong>
-					{isA63ProductionProject
-						? `A63 · ${playerNpcSocialDeliveryProjectId}`
+					{isCurrentProductionProject
+						? `A68-C1 · ${computerClubCycleProjectId}`
 						: `текущий projectId · ${project.projectId}`}
 				</strong>
 			</p>
-			{!isA63ProductionProject && (
+			{!isCurrentProductionProject && (
 				<div className="narrative-workspace__export-actions">
-					{canLoadA63ProductionStarter ? (
+					{canLoadCurrentProductionStarter ? (
 						<div className="narrative-workspace__export-action-buttons">
 							<button
 								type="button"
-								onClick={loadA63ProductionStarter}
+								onClick={loadCurrentProductionStarter}
 							>
-								Загрузить A63 production project
+								Загрузить A68-C1 production project
 							</button>
 						</div>
 					) : (
 						<small>
-							Автозагрузка A63 отключена: текущий проект уже содержит
+							Автозагрузка A68-C1 отключена: текущий проект уже содержит
 							 authored data или требует recovery. Данные автора не
 							 перезаписываются автоматически.
 						</small>
