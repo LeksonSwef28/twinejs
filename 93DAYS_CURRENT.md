@@ -1,8 +1,8 @@
 # 93 Days — CURRENT PROJECT CONTEXT
 
 Status: **CURRENT SOURCE OF TRUTH**
-Updated: **2026-10-03**
-Stable baseline before this docs rebase: `93-days-editor@2860c316e99f831b0bb6ee4cc3118d626028e608`
+Updated: **2026-10-05**
+Stable baseline for this docs rebase: `93-days-editor@9a0b48894dce343046ae10a68ffe066451365271`
 
 > Start here for current 93 Days work.
 >
@@ -48,25 +48,33 @@ Non-negotiable boundaries:
 A53-A66 established the canonical Player, vertical slice, social provenance loop,
 editor-to-Player continuity and a real authoring workflow.
 
-A67 was originally proposed as **the first coherent playable week**.
-During A67, three concrete authoring gaps were discovered and closed first:
+A67 now has an **engineering-complete first-week proof** through canonical Player controls:
 
-- **A67-D1** — shared author focus / contextual navigation — DONE.
-- **A67-D2** — authored ItemInstance placement — DONE.
-- **A67-D3** — Schedule Exception authoring — DONE, merged in PR #48.
+- Day 1-4 foundation remains green;
+- Day 5-7 content is implemented;
+- two legitimate histories diverge in knowledge/relationship/event state;
+- save/continue and canonical authoring regressions pass;
+- the remaining A67 closure item is one **human Player UX/pacing walkthrough**.
 
-These D1-D3 changes are enabling work for A67. They do **not** by themselves complete
-the original A67 milestone.
+A68-C1 is also implemented on stable:
 
-Current authored production content is clearly continuous through approximately Day 1-4.
-A coherent Day 5-7 content batch is not yet present as a canonical production milestone.
+- Computer Club location/routes and two new NPC roles;
+- direct and mediated provenance for the same Claim;
+- an A67 continuity hook;
+- cross-place dorm consequence;
+- repeated relationship contact across days;
+- save/continue, presentation-causality and canonical-authoring acceptance tests;
+- source-neutral wording fix from the engineering causality walkthrough.
+
+PR #62 additionally rebased the normal Editor → Export → Canonical Player production starter
+onto the current A68-C1 composition, so a human walkthrough can exercise the same current artifact
+that the automated acceptance tests use.
 
 Therefore:
 
-**A67 FIRST WEEK = PARTIAL / ACTIVE.**
-
-Do not open an arbitrary D4 merely because another editor feature can be imagined.
-The next tooling slice must be justified by a concrete Day 5-7 authoring/content need.
+- **A67 = ENGINEERING PASS / HUMAN UX WALKTHROUGH PENDING.**
+- **A68-C1 = ENGINEERING ACCEPTANCE PASS / HUMAN UX WALKTHROUGH PENDING.**
+- **A68-C2 = NOT SELECTED.** Choose it only from real C1 playtest pressure.
 
 ## 4. Current roadmap
 
@@ -74,8 +82,9 @@ See: `docs/93days/current/ROADMAP.md`
 
 Short version:
 
-- **A67 — First coherent week:** ACTIVE / PARTIAL. Finish Day 5-7 content while keeping Day 1-4 regression green.
-- **A68 — Second content/social cycle:** PROPOSED, blocked on A67 proof.
+- **A67 — First coherent week:** ENGINEERING PASS / HUMAN UX WALKTHROUGH PENDING.
+- **A68-C1 — Computer Club bridge batch:** ENGINEERING ACCEPTANCE PASS / HUMAN UX WALKTHROUGH PENDING.
+- **A68-C2:** NOT SELECTED; choose from actual C1 human playtest pressure.
 - **A69 — Production scale gate:** PROPOSED; synthetic scale foundation exists, production-scale proof does not.
 - **Post-A69:** build a separate 93-day production plan by week/season and an ending matrix.
 
@@ -90,7 +99,10 @@ Known current content chain:
 - Day 2-3: phone/SMS social loop.
 - Day 3: rumor/social echo and NPC-to-NPC delivery.
 - Day 3-4: firsthand repair and Day Four follow-up.
-- Day 5-7: not yet a coherent canonical production batch.
+- Day 5-7: coherent A67 first-week continuation with Old City/dorm social lines and delayed/offscreen consequences.
+- Day 8: Computer Club entry with direct-vs-mediated provenance split and A67 continuity hook.
+- Day 9: explicit Player-carried dorm echo; no hidden auto-spread.
+- Day 10: repeated Computer Club relationship follow-up.
 
 ## 6. Product principles recovered from recent source packs
 
@@ -170,7 +182,9 @@ In brief:
 - `docs/93days/current/SYSTEM_STATUS.md` — implementation-backed DONE/PARTIAL/DEFERRED/MISSING system audit.
 - `docs/93days/current/A67_FIRST_WEEK_PLAN.md` — active A67 Day 5–7 completion gate and slice order.
 - `docs/93days/current/A68_CONTENT_CYCLE_PLAN.md` — prepared A68 second social/city cycle, beginning with the Computer Club bridge batch.
-- `docs/93days/current/A68_C1_ACCEPTANCE_CONTRACT.md` — executable C1 test contract for travel, provenance, continuity, cross-place consequence, save and authoring.
+- `docs/93days/current/A68_C1_ACCEPTANCE_CONTRACT.md` — implemented C1 acceptance contract for travel, provenance, continuity, cross-place consequence, save and authoring.
+- `docs/93days/current/A68_PLAYTEST_FINDINGS.md` — engineering causality findings; human UX closure remains pending.
+- `docs/93days/current/A68_HUMAN_WALKTHROUGH_PROTOCOL.md` — reproducible manual Canonical Player walkthrough for the remaining human gate.
 
 ## 9. Historical documentation policy
 
