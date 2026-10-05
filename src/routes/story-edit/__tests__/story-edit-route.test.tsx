@@ -1,4 +1,4 @@
-import {act, render, screen} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {createMemoryHistory} from 'history';
 import {axe} from 'jest-axe';
 import * as React from 'react';
@@ -13,11 +13,6 @@ import {
 	StoryInspector
 } from '../../../test-util';
 import {InnerStoryEditRoute} from '../story-edit-route';
-import {useZoomShortcuts} from '../use-zoom-shortcuts';
-
-jest.mock('../toolbar/story-edit-toolbar');
-jest.mock('../use-zoom-shortcuts');
-jest.mock('../../../components/passage/passage-map/passage-map');
 
 const TestStoryEditRoute: React.FC = () => {
 	const {stories} = useStoriesContext();
@@ -37,7 +32,7 @@ const TestStoryEditRoute: React.FC = () => {
 };
 
 describe('<StoryEditRoute>', () => {
-	const useZoomShortcutsMock = useZoomShortcuts as jest.Mock;
+	beforeEach(() => window.localStorage.clear());
 
 	async function renderComponent(
 		story: Story,
@@ -66,7 +61,6 @@ describe('<StoryEditRoute>', () => {
 
 		jest.useRealTimers();
 
-		// Need this because of <PromptButton>
 		await act(async () => Promise.resolve());
 		return result;
 	}
@@ -78,19 +72,199 @@ describe('<StoryEditRoute>', () => {
 		expect(Helmet.peek().title).toBe(story.name);
 	});
 
-	it('displays the toolbar', async () => {
-		await renderComponent(fakeStory());
-		expect(screen.getByTestId('mock-story-edit-toolbar')).toBeInTheDocument();
+	it('opens the narrative workspace for the story', async () => {
+		const story = fakeStory();
+
+		await renderComponent(story);
+		expect(screen.getByText(/Narrative Editor/)).toBeInTheDocument();
+		expect(screen.getByRole('heading', {name: story.name})).toBeInTheDocument();
+		expect(screen.getByText(/93 Days/)).toBeInTheDocument();
+		expect(screen.getAllByText(/День 1/).length).toBeGreaterThan(0);
 	});
 
-	it('displays a passage map', async () => {
+	it('shows the 93 Days period controls', async () => {
 		await renderComponent(fakeStory());
-		expect(screen.getByTestId('mock-passage-map')).toBeInTheDocument();
+		expect(screen.getByRole('button', {name: 'Утро'})).toBeInTheDocument();
+		expect(screen.getByRole('button', {name: 'День'})).toBeInTheDocument();
+		expect(screen.getByRole('button', {name: 'Вечер'})).toBeInTheDocument();
+		expect(screen.getByRole('button', {name: 'Ночь'})).toBeInTheDocument();
 	});
 
-	it('sets up zoom keyboard shortcuts', async () => {
+	it('jumps the View Cursor directly without moving the Simulation Playhead', async () => {
 		await renderComponent(fakeStory());
-		expect(useZoomShortcutsMock).toHaveBeenCalled();
+
+		const navigator = screen.getByLabelText('Точный навигатор истории');
+		const viewMoment = screen.getByText('Просмотр').parentElement!;
+		const simulationPlayhead = screen.getByText('Симуляция').parentElement!;
+
+		const initialSimulation = simulationPlayhead.textContent;
+		expect(viewMoment).toHaveTextContent('День 1');
+		expect(viewMoment).toHaveTextContent('06:00');
+
+		fireEvent.change(within(navigator).getByLabelText('День просмотра'), {
+			target: {value: '37'}
+		});
+		fireEvent.change(within(navigator).getByLabelText('Время просмотра'), {
+			target: {value: '18:40'}
+		});
+		fireEvent.click(within(navigator).getByRole('button', {name: 'Перейти'}));
+
+		expect(viewMoment).toHaveTextContent('День 37');
+		expect(viewMoment).toHaveTextContent('18:40');
+		expect(simulationPlayhead.textContent).toBe(initialSimulation);
+	});
+
+	it('rejects an out-of-range direct moment without moving either cursor', async () => {
+		await renderComponent(fakeStory());
+
+		const navigator = screen.getByLabelText('Точный навигатор истории');
+		const viewMoment = screen.getByText('Просмотр').parentElement!;
+		const simulationPlayhead = screen.getByText('Симуляция').parentElement!;
+		const initialView = viewMoment.textContent;
+		const initialSimulation = simulationPlayhead.textContent;
+
+		fireEvent.change(within(navigator).getByLabelText('День просмотра'), {
+			target: {value: '94'}
+		});
+		fireEvent.change(within(navigator).getByLabelText('Время просмотра'), {
+			target: {value: '18:40'}
+		});
+		fireEvent.click(within(navigator).getByRole('button', {name: 'Перейти'}));
+
+		expect(within(navigator).getByRole('alert')).toHaveTextContent(/1.*93/);
+		expect(viewMoment.textContent).toBe(initialView);
+		expect(simulationPlayhead.textContent).toBe(initialSimulation);
+	});
+
+	it('centers WORLD/TIME on a directly entered View Cursor moment without moving the Simulation Playhead', async () => {
+		await renderComponent(fakeStory());
+
+		fireEvent.click(screen.getByRole('tab', {name: 'Время и мир'}));
+		const worldTime = screen
+			.getByRole('heading', {name: '93 дня как единая карта'})
+			.closest('section');
+		if (!worldTime) {
+			throw new Error('Expected WORLD/TIME workspace');
+		}
+		const worldControls = worldTime.querySelector(
+			'.narrative-workspace__world-controls'
+		);
+		const viewportBanner = worldTime.querySelector(
+			'.narrative-workspace__viewport-banner'
+		);
+		if (!worldControls || !viewportBanner) {
+			throw new Error('Expected WORLD/TIME controls and viewport banner');
+		}
+
+		for (let index = 0; index < 8; index += 1) {
+			fireEvent.click(
+				within(worldControls as HTMLElement).getByRole('button', {name: '+'})
+			);
+		}
+
+		const navigator = within(worldTime as HTMLElement).getByLabelText(
+			'Точный навигатор времени'
+		);
+		const viewMoment = screen.getByText('Просмотр').parentElement!;
+		const simulationPlayhead = screen.getByText('Симуляция').parentElement!;
+		const initialSimulation = simulationPlayhead.textContent;
+		const initialBanner = viewportBanner.textContent;
+		const initialScale = within(viewportBanner as HTMLElement).getByText(
+			/масштаб/
+		).textContent;
+
+		fireEvent.change(within(navigator).getByLabelText('День просмотра'), {
+			target: {value: '37'}
+		});
+		fireEvent.change(within(navigator).getByLabelText('Время просмотра'), {
+			target: {value: '18:40'}
+		});
+		fireEvent.click(within(navigator).getByRole('button', {name: 'Перейти'}));
+
+		expect(viewMoment).toHaveTextContent('День 37');
+		expect(viewMoment).toHaveTextContent('18:40');
+		expect(simulationPlayhead.textContent).toBe(initialSimulation);
+		expect(
+			within(viewportBanner as HTMLElement).getByText(/масштаб/).textContent
+		).toBe(initialScale);
+		expect(viewportBanner.textContent).not.toBe(initialBanner);
+		expect(viewportBanner.textContent).toMatch(/Д3[5-8]/);
+	});
+
+	it('rejects an invalid direct WORLD/TIME moment without moving the view, viewport or Simulation Playhead', async () => {
+		await renderComponent(fakeStory());
+
+		fireEvent.click(screen.getByRole('tab', {name: 'Время и мир'}));
+		const worldTime = screen
+			.getByRole('heading', {name: '93 дня как единая карта'})
+			.closest('section');
+		if (!worldTime) {
+			throw new Error('Expected WORLD/TIME workspace');
+		}
+		const viewportBanner = worldTime.querySelector(
+			'.narrative-workspace__viewport-banner'
+		);
+		if (!viewportBanner) {
+			throw new Error('Expected WORLD/TIME viewport banner');
+		}
+
+		const navigator = within(worldTime as HTMLElement).getByLabelText(
+			'Точный навигатор времени'
+		);
+		const viewMoment = screen.getByText('Просмотр').parentElement!;
+		const simulationPlayhead = screen.getByText('Симуляция').parentElement!;
+		const initialView = viewMoment.textContent;
+		const initialSimulation = simulationPlayhead.textContent;
+		const initialBanner = viewportBanner.textContent;
+
+		fireEvent.change(within(navigator).getByLabelText('День просмотра'), {
+			target: {value: '94'}
+		});
+		fireEvent.change(within(navigator).getByLabelText('Время просмотра'), {
+			target: {value: '18:40'}
+		});
+		fireEvent.click(within(navigator).getByRole('button', {name: 'Перейти'}));
+
+		expect(within(navigator).getByRole('alert')).toHaveTextContent(/1.*93/);
+		expect(viewMoment.textContent).toBe(initialView);
+		expect(viewportBanner.textContent).toBe(initialBanner);
+		expect(simulationPlayhead.textContent).toBe(initialSimulation);
+	});
+
+	it('opens Narrative export as a panel instead of another workspace', async () => {
+		await renderComponent(fakeStory());
+		expect(screen.queryByRole('region', {name: 'Narrative export'})).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole('button', {name: 'Экспорт'}));
+
+		expect(screen.getByRole('region', {name: 'Narrative export'})).toBeInTheDocument();
+		expect(screen.getByRole('tab', {name: 'История'})).toBeInTheDocument();
+		expect(screen.getByRole('tab', {name: 'Время и мир'})).toBeInTheDocument();
+	});
+
+	it('loads the current A68-C1 production project into a blank editor host', async () => {
+		const story = fakeStory();
+		await renderComponent(story);
+
+		fireEvent.click(screen.getByRole('button', {name: 'Экспорт'}));
+		fireEvent.click(
+			screen.getByRole('button', {name: 'Загрузить A68-C1 production project'})
+		);
+
+		await waitFor(() =>
+			expect(
+				screen.getByText(
+					/A68-C1 · 93-days-computer-club-cycle-v1/
+				)
+			).toBeInTheDocument()
+		);
+		expect(screen.getByText('Готово к сборке')).toBeInTheDocument();
+		expect(
+			screen.queryByRole('button', {
+				name: 'Загрузить A68-C1 production project'
+			})
+		).not.toBeInTheDocument();
+		expect(screen.getByRole('button', {name: 'Открыть Player'})).toBeEnabled();
 	});
 
 	it('is accessible', async () => {

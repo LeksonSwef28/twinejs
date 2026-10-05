@@ -1,0 +1,93 @@
+.narrative-workspace__node {
+	content-visibility: auto;
+	contain: layout paint style;
+	contain-intrinsic-size: 220px 112px;
+}
+
+.narrative-workspace__timeline-row {
+	content-visibility: auto;
+	contain: layout paint style;
+	contain-intrinsic-size: auto 54px;
+}
+
+.narrative-workspace__project-search {
+	display: grid;
+	gap: 0.75rem;
+	padding: 0.9rem;
+	border: 1px solid var(--color-divider, #d6d6d6);
+	border-radius: 0.55rem;
+}
+
+.narrative-workspace__project-search-controls,
+.narrative-workspace__bulk-authoring {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.narrative-workspace__project-search-controls input {
+	min-width: min(32rem, 100%);
+	flex: 1 1 20rem;
+}
+
+.narrative-workspace__project-search-results {
+	display: grid;
+	grid-template-columns: minmax(0, 2fr) minmax(14rem, 1fr);
+	gap: 0.75rem;
+	min-height: 0;
+}
+
+.narrative-workspace__project-search-result-list {
+	display: grid;
+	gap: 0.35rem;
+	max-height: 24rem;
+	overflow: auto;
+}
+
+.narrative-workspace__project-search-result {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr) auto auto;
+	gap: 0.5rem;
+	align-items: center;
+	padding: 0.45rem;
+	border: 1px solid transparent;
+	border-radius: 0.4rem;
+	content-visibility: auto;
+	contain-intrinsic-size: auto 48px;
+}
+
+.narrative-workspace__project-search-result.is-active {
+	border-color: currentColor;
+}
+
+.narrative-workspace__project-search-result > div,
+.narrative-workspace__project-search-references {
+	display: grid;
+	gap: 0.2rem;
+	min-width: 0;
+}
+
+.narrative-workspace__project-search-result strong,
+.narrative-workspace__project-search-result small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.narrative-workspace__project-search-references {
+	align-content: start;
+	gap: 0.4rem;
+	max-height: 24rem;
+	overflow: auto;
+}
+
+.narrative-workspace__project-search-references button {
+	text-align: left;
+}
+
+@media (max-width: 900px) {
+	.narrative-workspace__project-search-results {
+		grid-template-columns: 1fr;
+	}
+}
