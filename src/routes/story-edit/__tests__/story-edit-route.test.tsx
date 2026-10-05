@@ -242,25 +242,27 @@ describe('<StoryEditRoute>', () => {
 		expect(screen.getByRole('tab', {name: 'Время и мир'})).toBeInTheDocument();
 	});
 
-	it('loads the A63 production project into a blank editor host', async () => {
+	it('loads the current A68-C1 production project into a blank editor host', async () => {
 		const story = fakeStory();
 		await renderComponent(story);
 
 		fireEvent.click(screen.getByRole('button', {name: 'Экспорт'}));
 		fireEvent.click(
-			screen.getByRole('button', {name: 'Загрузить A63 production project'})
+			screen.getByRole('button', {name: 'Загрузить A68-C1 production project'})
 		);
 
 		await waitFor(() =>
 			expect(
 				screen.getByText(
-					/A63 · 93-days-player-npc-social-delivery-v1/
+					/A68-C1 · 93-days-computer-club-cycle-v1/
 				)
 			).toBeInTheDocument()
 		);
 		expect(screen.getByText('Готово к сборке')).toBeInTheDocument();
 		expect(
-			screen.queryByRole('button', {name: 'Загрузить A63 production project'})
+			screen.queryByRole('button', {
+				name: 'Загрузить A68-C1 production project'
+			})
 		).not.toBeInTheDocument();
 		expect(screen.getByRole('button', {name: 'Открыть Player'})).toBeEnabled();
 	});

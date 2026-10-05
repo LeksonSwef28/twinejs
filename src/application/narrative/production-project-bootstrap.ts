@@ -1,8 +1,8 @@
 import {NarrativeProject} from '../../domain/narrative/project';
 import {
-	create93DaysPlayerNpcSocialDeliveryProject,
-	playerNpcSocialDeliveryProjectId
-} from '../../domain/narrative/content/93-days-player-npc-social-delivery';
+	computerClubCycleProjectId,
+	create93DaysComputerClubCycleProject
+} from '../../domain/narrative/content/93-days-computer-club-cycle';
 
 /**
  * A64 production bootstrap is intentionally narrower than import/migration.
@@ -34,7 +34,7 @@ export function narrativeProjectCanLoad93DaysProductionStarter(
 	];
 
 	return (
-		project.projectId !== playerNpcSocialDeliveryProjectId &&
+		project.projectId !== computerClubCycleProjectId &&
 		project.playerStart === undefined &&
 		project.economy === undefined &&
 		authoredCollections.every(collection => collection.length === 0)
@@ -42,14 +42,14 @@ export function narrativeProjectCanLoad93DaysProductionStarter(
 }
 
 /**
- * Rebind the verified A63 production content to the currently edited Twine
- * host Story without changing the A63 project identity that opts into its
- * Player-time orchestration.
+ * Rebind the current verified 93 Days production composition to the edited
+ * Twine host Story. The Computer Club project composes the earlier A63/A67
+ * slices and its identity opts into all matching Player-time orchestration.
  */
 export function create93DaysProductionProjectForCurrentHost(
 	currentProject: NarrativeProject
 ): NarrativeProject {
-	const production = create93DaysPlayerNpcSocialDeliveryProject();
+	const production = create93DaysComputerClubCycleProject();
 	return {
 		...production,
 		hostStoryId: currentProject.hostStoryId,
