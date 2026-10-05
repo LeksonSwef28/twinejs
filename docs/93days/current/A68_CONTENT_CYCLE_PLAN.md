@@ -1,8 +1,8 @@
 # A68 — SECOND SOCIAL / CITY CONTENT CYCLE
 
-Status: **PREPARED / BLOCKED ON A67 HUMAN UX WALKTHROUGH**
-Updated: **2026-10-04**
-Base stable: `bed7aa73b829f73fa2d4fb921a92b0408be127fb`
+Status: **C1 ENGINEERING ACCEPTANCE PASS / HUMAN UX WALKTHROUGH PENDING / C2 NOT SELECTED**
+Updated: **2026-10-05**
+Base stable: `9a0b48894dce343046ae10a68ffe066451365271`
 
 ## Purpose
 
@@ -26,7 +26,7 @@ Research social-atlas group nodes are used only as idea/evidence support. Candid
 
 ## Source-grounded first cluster
 
-The first A68 cluster should be the **Computer Club / central-student transition**.
+The first A68 cluster is the **Computer Club / central-student transition**.
 
 MASTER v31 supports this choice:
 
@@ -163,9 +163,9 @@ A68-C1 is accepted when:
 
 Implementation acceptance tests are specified in `docs/93days/current/A68_C1_ACCEPTANCE_CONTRACT.md`.
 
-## A68-C1 implementation checklist
+## A68-C1 implementation record
 
-This checklist is intentionally concrete enough to begin implementation after the A67 manual UX gate, while still avoiding premature biographies or a new architecture.
+C1 is implemented on stable. The record below is retained as a concise reuse/traceability map rather than a future implementation checklist.
 
 ### Reuse map
 
@@ -178,9 +178,9 @@ This checklist is intentionally concrete enough to begin implementation after th
 - **Existing offscreen consequence pattern:** scheduled Story work / authored NPC-only occurrence, as already used in A63/A67.
 - **Existing phone/social layer:** reuse only where content calls for it; Computer Club online identity must not create a parallel state model.
 
-### Proposed C1 canonical IDs
+### Implemented C1 canonical IDs
 
-Exact IDs may change during implementation, but keep one cohesive namespace:
+The stable implementation uses one cohesive namespace:
 
 - location: `a68-computer-club`;
 - scene: `a68-computer-club:main-room`;
@@ -196,13 +196,14 @@ Exact IDs may change during implementation, but keep one cohesive namespace:
   - cross-place consequence;
   - repeated bridge-NPC follow-up.
 
-### First content proof
+### Implemented content proof
 
-The first implementation should prefer a compact 3-event chain:
+The stable C1 proof uses a compact multi-day chain:
 
-1. **Entry event** — the Player reaches the club through an existing contact or practical need.
-2. **Source split** — the same underlying proposition can be encountered through two explicit sources, e.g. in-person statement versus attributed forum/chat message.
-3. **Cross-place echo** — the proposition changes a later dorm/Old City interaction, while the runtime preserves who told the Player what.
+1. **Entry event** — the Player reaches the club through canonical authored travel.
+2. **Source split** — the same Claim can be learned directly from the administrator or through an attributed forum source.
+3. **Cross-place echo** — the Player can carry the proposition into a later dorm interaction; there is no hidden auto-spread.
+4. **Repeated relationship** — the club worker returns on Day 10 and the follow-up reads prior knowledge and familiarity.
 
 The proposition should concern an ordinary social/city matter, not a conspiracy or mandatory investigation hook.
 
@@ -219,15 +220,18 @@ At least one of these existing histories must matter in C1:
 
 C1 does not need all six. It needs one clearly testable continuity dependency and should avoid combinatorial branching until the basic cycle is proven.
 
-### Likely first technical tests
+### Implemented technical acceptance
 
-- Computer Club project still compiles through the canonical runtime artifact compiler.
+- Computer Club project compiles through the canonical runtime artifact compiler.
 - Cold Player can reach the club by authored travel.
 - New NPC routines produce expected Scheduled Presence / Actual Presence behavior.
 - One Claim reaches the Player with distinct source provenance across two histories.
-- One prior A67 state changes an available Move or outcome.
+- One prior A67 state changes an available Move/outcome.
 - One club-originating consequence is observed later in another location.
-- Save/continue preserves the new cross-place state.
+- Repeated relationship state survives save/restore and matters later.
+- Player presentation exposes the structural cause/effect chain.
+- Ordinary A68 edits pass canonical authoring edit → undo → redo → compile.
+- The normal Editor → Export → Canonical Player starter now loads the current A68-C1 composition.
 
 ### Stop conditions
 
@@ -262,8 +266,17 @@ A68 as a whole should eventually prove:
 - canonical authoring;
 - focused fixes instead of architecture rewrite by default.
 
-## Current blocker
+## Current gate
 
-A67 engineering closure passes, but its current docs still require one manual Player UX/pacing walkthrough.
+C1 engineering acceptance is complete and the canonical production starter now points at the A68-C1 composition.
 
-A68 preparation may proceed now. Production implementation should begin after that walkthrough confirms no P0/P1 first-week blocker.
+The remaining gate is one **real human Canonical Player walkthrough** covering:
+
+- whether Day 8 → Day 9 → Day 10 pacing reads naturally;
+- whether the Player can explain the source → learned plan → chose to tell → dorm reaction chain without debug state;
+- whether direct and forum provenance feel understandable rather than invisible;
+- whether any P0/P1 CONTENT / PRESENTATION / TOOLING / RUNTIME issue blocks continuation.
+
+Use `docs/93days/current/A68_HUMAN_WALKTHROUGH_PROTOCOL.md`.
+
+Do not select or build C2 until that walkthrough produces evidence.
