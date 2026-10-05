@@ -6,9 +6,9 @@ Base stable: `9ad85cc12a289dfe80073be5a0a5c119189ec746`
 
 ## Purpose
 
-Translate the approved A68-C1 Computer Club plan into concrete acceptance histories that can be implemented directly as tests after the remaining A67 manual UX/pacing gate.
+Define the concrete acceptance histories used to verify the approved A68-C1 Computer Club content on the canonical Player/runtime path.
 
-This file does not add production content and does not change runtime behavior.
+This contract documents acceptance behavior and closure evidence; it does not itself add production content or change runtime behavior.
 
 ## Existing production APIs to reuse
 
