@@ -720,7 +720,7 @@ describe('A68-C1 Computer Club topology', () => {
 				expect.objectContaining({
 					id: 'story-node:' + computerClubCycleIds.story.dormEcho,
 					storyNodeId: computerClubCycleIds.story.dormEcho,
-					title: 'Девятый день: клубная новость возвращается в общежитие',
+					title: 'Девятый день: рассказать в общежитии о планах компьютерного клуба',
 					scheduledDay: 9,
 					scheduledMinuteOfDay: 19 * 60,
 					locationName: 'Студенческое общежитие',
@@ -737,10 +737,10 @@ describe('A68-C1 Computer Club topology', () => {
 				expect.objectContaining({
 					id: computerClubCycleIds.moves.tellDormDuty,
 					label:
-						'Рассказать дежурной, что услышал о завтрашнем вечере в клубе',
+						'Рассказать дежурной, что узнал о завтрашней игре в клубе',
 					storyNodeId: computerClubCycleIds.story.dormEcho,
 					storyTitle:
-						'Девятый день: клубная новость возвращается в общежитие',
+						'Девятый день: рассказать в общежитии о планах компьютерного клуба',
 					dialogue: true,
 					state: 'ready'
 				})
@@ -783,6 +783,7 @@ describe('A68-C1 Computer Club topology', () => {
 			expect.arrayContaining([
 				expect.objectContaining({
 					id: computerClubCycleIds.moves.tellDormDuty,
+					label: 'Рассказать дежурной, что узнал о завтрашней игре в клубе',
 					state: 'ready'
 				})
 			])
@@ -806,14 +807,15 @@ describe('A68-C1 Computer Club topology', () => {
 				computerClubCycleIds.story.dormEcho
 			]
 		).toBe('completed');
-		expect(
-			session.currentProject.memories.some(
-				memory =>
-					memory.characterId === playerId &&
-					memory.tags.includes('cross-place') &&
-					memory.tags.includes('computer-club')
-			)
-		).toBe(true);
+		const dormEchoMemory = session.currentProject.memories.find(
+			memory =>
+				memory.characterId === playerId &&
+				memory.tags.includes('cross-place') &&
+				memory.tags.includes('computer-club')
+		);
+		expect(dormEchoMemory?.summary).toContain(
+			'То, что я узнал в компьютерном клубе'
+		);
 	});
 
 });
