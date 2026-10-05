@@ -11,6 +11,7 @@ import {
 	create93DaysProductionProjectForCurrentHost,
 	narrativeProjectCanLoad93DaysProductionStarter
 } from '../production-project-bootstrap';
+import {narrativeProductionDueWorkIsEnabled} from '../player-production-due-work';
 
 describe('A64 production project bootstrap', () => {
 	function blankProject() {
@@ -62,6 +63,7 @@ describe('A64 production project bootstrap', () => {
 			)
 		).toBe(true);
 		expect(compileNarrativeRuntimeArtifact(production).status).toBe('compiled');
+		expect(narrativeProductionDueWorkIsEnabled(production.projectId)).toBe(true);
 		expect(narrativeProjectCanLoad93DaysProductionStarter(production)).toBe(false);
 	});
 });
