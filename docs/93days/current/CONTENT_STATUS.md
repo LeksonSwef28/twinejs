@@ -1,7 +1,7 @@
 # 93 Days — CONTENT STATUS
 
 Status: **CURRENT**
-Updated: **2026-10-03**
+Updated: **2026-10-05**
 
 This file tracks what the canonical production content actually covers.
 It intentionally distinguishes implemented content from research/concept material.
@@ -17,6 +17,8 @@ It intentionally distinguishes implemented content from research/concept materia
 | `93-days-rumor-social-echo.ts` | Day 3 | NPC-to-NPC report, source trust, social echo |
 | `93-days-firsthand-social-repair.ts` | Day 3-4 | direct answer/silence and Day Four follow-up |
 | `93-days-player-npc-social-delivery.ts` | Day 3 delivery orchestration | exact-time NPC movement/report delivery in Player time |
+| `93-days-first-week.ts` | Day 5-7 first-week continuation | Old City/dorm routes, missable events, later evidence, divergent week-end histories |
+| `93-days-computer-club-cycle.ts` | Day 8-10 A68-C1 | Computer Club routes/NPCs, source split, cross-place dorm echo, repeated bridge relationship |
 
 ## 2. Day coverage
 
@@ -52,9 +54,30 @@ Strongest current vertical-slice foundation:
 
 ### Day 5-7
 
-**GAP:** no coherent canonical first-week production batch is currently present.
+Implemented A67 first-week continuation:
 
-This is the primary content gap for A67.
+- Old City market/cinema social line;
+- dorm alternative;
+- missable/offscreen events with later evidence;
+- delayed consequences across days;
+- multiple legitimate week-end histories;
+- canonical save/continue and authoring coverage.
+
+Engineering proof is complete; one manual week-level Player UX/pacing walkthrough remains pending.
+
+### Day 8-10
+
+Implemented A68-C1 Computer Club bridge batch:
+
+- Day 8 Computer Club entry through explicit travel;
+- two new NPC roles with authored presence/routines;
+- same semantic Claim available through direct administrator provenance or mediated forum provenance;
+- one prior A67 history changes a club interaction;
+- Day 9 Player-carried dorm echo without hidden auto-spread;
+- Day 10 repeated contact with the club worker using prior relationship/knowledge state;
+- save/continue, Player-presentation causality and canonical-authoring acceptance coverage.
+
+Engineering acceptance passes. Human C1 UX/pacing walkthrough remains pending.
 
 ## 3. Recovered narrative/world principles that should guide new content
 
@@ -113,20 +136,17 @@ The following must not be copied directly into game state without a content deci
 
 The social atlas describes likely intersections, not deterministic relationships.
 
-## 5. A67 content target
+## 5. Next content gate
 
-The first week should add content, not merely editor capabilities.
+A67 and A68-C1 engineering content targets are now implemented.
 
-Minimum target:
+The next content decision is intentionally gated by human observation:
 
-- coherent Day 5-7 flow;
-- at least one new social hub;
-- meaningful NPC schedule use;
-- overlapping social threads;
-- one missable event with later information/consequence;
-- one delayed consequence spanning days;
-- one autonomous NPC result that is player-visible later;
-- multiple legitimate week-end histories.
+- run the A68-C1 Canonical Player walkthrough;
+- classify any findings as CONTENT / PRESENTATION / TOOLING / RUNTIME;
+- fix only P0/P1 blockers;
+- choose A68-C2 from actual playtest pressure between the current MASTER-backed candidates;
+- do not open a generic subsystem or prebuild multiple hubs without evidence.
 
-Any missing editor/runtime capability discovered while authoring this should become a small,
+Any missing editor/runtime capability discovered by that walkthrough should become a small,
 evidence-backed sub-slice rather than replacing the content milestone.
