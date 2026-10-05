@@ -1168,13 +1168,13 @@ test('A65 authoring pilot creates, previews, exports and plays one branching sce
 
 	await createA65AuthoringStory(page);
 
-	// Start from the same production project that A64 proved in the Player.
+	// Start from the current production composition exposed by the editor.
 	await page.getByRole('button', {name: 'Экспорт'}).click();
 	await page
-		.getByRole('button', {name: 'Загрузить A63 production project'})
+		.getByRole('button', {name: 'Загрузить A68-C1 production project'})
 		.click();
 	await expect(page.getByRole('status')).toContainText(
-		'A63 production project загружен'
+		'A68-C1 production project загружен'
 	);
 	await page.getByRole('button', {name: 'Закрыть экспорт'}).click();
 
