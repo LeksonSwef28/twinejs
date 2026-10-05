@@ -23,3 +23,10 @@ Directory groups:
 
 Do not infer current priority/status from a historical document without reconciling it with
 `93DAYS_CURRENT.md`.
+
+Recovered before stale-PR closure on 2026-10-05:
+
+- `roadmaps/93DAYS_TWINEJS_FIRST_POST_A63_GATE0.md` — preserved from superseded PR #37.
+- `milestones/93DAYS_A67_WORLD_AUTHORING_PILOT_CONTRACT.md` — preserved from superseded PR #45.
+
+The original closed PRs remain available in GitHub history; these copies make the useful design provenance discoverable from the repository itself.
