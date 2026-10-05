@@ -11,7 +11,10 @@ import {prepareNarrativeRuntimeProof} from '../../../../application/narrative/ru
 import {fakeAppInfo} from '../../../../test-util';
 import {createNarrativeProject} from '../../../../domain/narrative/project-factory';
 import {ninetyThreeDaysTemplate} from '../../../../domain/narrative/templates/93-days';
-import {playerNpcSocialDeliveryProjectId} from '../../../../domain/narrative/content/93-days-player-npc-social-delivery';
+import {
+	computerClubCycleProjectId,
+	create93DaysComputerClubCycleProject
+} from '../../../../domain/narrative/content/93-days-computer-club-cycle';
 import {launchNarrativePlayerDevelopment} from '../../../../player/development-handoff';
 import {Story} from '../../../../store/stories';
 import {saveHtml, saveJson} from '../../../../util/save-file';
@@ -171,31 +174,51 @@ describe('<NarrativeExportPanel>', () => {
 		expect(mockExecute).not.toHaveBeenCalled();
 	});
 
-	test('loads the explicit A63 production starter into a blank host project', () => {
+	test('loads the explicit current A68 production starter into a blank host project', () => {
 		render(<NarrativeExportPanel />);
 
 		fireEvent.click(
-			screen.getByRole('button', {name: 'Загрузить A63 production project'})
+			screen.getByRole('button', {name: 'Загрузить A68-C1 production project'})
 		);
 
 		expect(mockReplaceProjectFromStarter).toHaveBeenCalledTimes(1);
 		const [production] = mockReplaceProjectFromStarter.mock.calls[0];
-		expect(production.projectId).toBe(playerNpcSocialDeliveryProjectId);
+		expect(production.projectId).toBe(computerClubCycleProjectId);
 		expect(production.hostStoryId).toBe(mockProject.hostStoryId);
 		expect(production.name).toBe(mockProject.name);
 		expect(production.storyNodes.length).toBeGreaterThan(0);
 		expect(screen.getByRole('status')).toHaveTextContent(
-			'A63 production project загружен'
+			'A68-C1 production project загружен'
 		);
 		expect(mockExecute).not.toHaveBeenCalled();
 	});
 
-	test('never offers automatic A63 replacement over authored content', () => {
+	test('recognizes A68-C1 as the current production target', () => {
+		const production = create93DaysComputerClubCycleProject();
+		mockProject = {
+			...production,
+			hostStoryId: 'export-host',
+			name: 'Canonical Export Story'
+		};
+		render(<NarrativeExportPanel />);
+
+		expect(
+			screen.getByText(`A68-C1 · ${computerClubCycleProjectId}`)
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole('button', {
+				name: 'Загрузить A68-C1 production project'
+			})
+		).not.toBeInTheDocument();
+		expect(screen.queryByText(/Автозагрузка A68-C1 отключена/)).not.toBeInTheDocument();
+	});
+
+	test('never offers automatic current-production replacement over authored content', () => {
 		mockProject.locations = [{id: 'author-location', name: 'Авторская локация'}];
 		render(<NarrativeExportPanel />);
 
 		expect(
-			screen.queryByRole('button', {name: 'Загрузить A63 production project'})
+			screen.queryByRole('button', {name: 'Загрузить A68-C1 production project'})
 		).not.toBeInTheDocument();
 		expect(screen.getByText(/Данные автора не перезаписываются автоматически/))
 			.toBeInTheDocument();
