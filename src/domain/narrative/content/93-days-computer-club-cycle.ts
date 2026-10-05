@@ -318,7 +318,7 @@ function dormEchoMove(): NarrativeMoveDefinition {
 		id,
 		storyNodeId: ids.story.dormEcho,
 		kind: 'inform',
-		label: 'Рассказать дежурной, что услышал о завтрашнем вечере в клубе',
+		label: 'Рассказать дежурной, что узнал о завтрашней игре в клубе',
 		actorCharacterId: playerId,
 		targetCharacterIds: [arrivalCorridorIds.characters.dormDuty],
 		communicatedClaimId: ids.claims.nightSession,
@@ -377,7 +377,7 @@ function dormEchoMove(): NarrativeMoveDefinition {
 						type: 'character-remembers',
 						character: {type: 'move-actor'},
 						summary:
-							'Разговор из компьютерного клуба не остался отдельным эпизодом: на следующий вечер я сам принёс эту историю обратно в общежитие.',
+							'То, что я узнал в компьютерном клубе, не осталось отдельным эпизодом: на следующий вечер я сам принёс эту историю обратно в общежитие.',
 						importance: 0.48,
 						baseStrength: 0.54,
 						tags: ['a68', 'computer-club', 'dorm', 'cross-place'],
@@ -582,9 +582,9 @@ export function create93DaysComputerClubCycleProject(): NarrativeProject {
 		{
 			id: ids.story.dormEcho,
 			kind: 'dialogue',
-			title: 'Девятый день: клубная новость возвращается в общежитие',
+			title: 'Девятый день: рассказать в общежитии о планах компьютерного клуба',
 			description:
-				'Cross-place consequence появляется только если игрок сам унёс информацию из клуба и позже поделился ею в общежитии.',
+				'На следующий вечер игрок может сам перенести узнанное в клубе в обычный разговор с дежурной общежития.',
 			primaryCharacterId: arrivalCorridorIds.characters.dormDuty,
 			participantIds: [
 				playerId,
