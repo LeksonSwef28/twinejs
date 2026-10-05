@@ -2,7 +2,7 @@
 
 Status: **CURRENT SOURCE OF TRUTH**
 Updated: **2026-10-05**
-Stable baseline for this docs rebase: `93-days-editor@9a0b48894dce343046ae10a68ffe066451365271`
+Current verified stable baseline: `93-days-editor@15ef305ceb926824de21e90237adf536102ef468`
 
 > Start here for current 93 Days work.
 >
