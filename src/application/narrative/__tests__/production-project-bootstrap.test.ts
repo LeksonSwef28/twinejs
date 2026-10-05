@@ -49,7 +49,7 @@ describe('A64 production project bootstrap', () => {
 		).toBe(true);
 		expect(
 			production.storyNodes.some(
-				node => node.id === firstWeekIds.story.daySevenReflection
+				node => node.id === firstWeekIds.story.daySevenWeekEcho
 			)
 		).toBe(true);
 		expect(
