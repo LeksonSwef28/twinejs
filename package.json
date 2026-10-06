@@ -116,7 +116,7 @@
 		"build": "run-s clean build:electron",
 		"build:docs": "cd docs/en && mdbook build",
 		"build:web": "tsc && vite build",
-		"postbuild:web": "cpy --cwd 'dist/web' './**' '../../electron-build/renderer'; cd dist && cross-replace zip -r twine-$npm_package_version-web.zip web && cd ..",
+		"postbuild:web": "node scripts/postbuild-web.cjs",
 		"build:electron": "npm-run-all --parallel build:web build:electron-main --serial build:electron-bundle",
 		"build:electron-main": "tsc --project tsconfig.electron.json",
 		"build:electron-bundle": "electron-builder --config electron-builder.config.js --linux --mac --windows --publish=never",
