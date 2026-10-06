@@ -1,8 +1,11 @@
 # 93 Days — CURRENT PROJECT CONTEXT
 
 Status: **CURRENT SOURCE OF TRUTH**
-Updated: **2026-10-05**
-Current verified stable baseline: `93-days-editor@15ef305ceb926824de21e90237adf536102ef468`
+Updated: **2026-10-06**
+Current stable branch: `93-days-editor`
+Minimum verified A68-C1 gameplay/runtime baseline: `15ef305ceb926824de21e90237adf536102ef468`
+
+Docs-only commits may advance the branch tip without changing gameplay/runtime behavior; do not treat this minimum evidence SHA as the current branch tip.
 
 > Start here for current 93 Days work.
 >
