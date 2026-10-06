@@ -26,38 +26,29 @@ fs.cpSync(webDirectory, rendererDirectory, {
 const projectPackage = JSON.parse(
 	fs.readFileSync(path.join(repositoryRoot, 'package.json'), 'utf8')
 );
-const crossReplacePackagePath = path.join(
-	repositoryRoot,
-	'node_modules',
-	'cross-replace',
-	'package.json'
-);
-const crossReplacePackage = JSON.parse(
-	fs.readFileSync(crossReplacePackagePath, 'utf8')
-);
-const binDefinition = crossReplacePackage.bin;
-const binRelativePath =
-	typeof binDefinition === 'string'
-		? binDefinition
-		: binDefinition?.['cross-replace'] ?? Object.values(binDefinition ?? {})[0];
-
-if (typeof binRelativePath !== 'string') {
-	throw new Error('Unable to resolve the cross-replace executable.');
-}
-
-const crossReplaceExecutable = path.resolve(
-	path.dirname(crossReplacePackagePath),
-	binRelativePath
-);
 const archiveName = `twine-${projectPackage.version}-web.zip`;
-const archive = spawnSync(
-	process.execPath,
-	[crossReplaceExecutable, 'zip', '-r', archiveName, 'web'],
-	{
-		cwd: distDirectory,
-		stdio: 'inherit'
-	}
-);
+const archivePath = path.join(distDirectory, archiveName);
+fs.rmSync(archivePath, {force: true});
+
+const archive =
+	process.platform === 'win32'
+		? spawnSync(
+				'powershell.exe',
+				[
+					'-NoProfile',
+					'-NonInteractive',
+					'-Command',
+					`Compress-Archive -Path 'web' -DestinationPath '${archiveName}' -Force`
+				],
+				{
+					cwd: distDirectory,
+					stdio: 'inherit'
+				}
+			)
+		: spawnSync('zip', ['-r', archiveName, 'web'], {
+				cwd: distDirectory,
+				stdio: 'inherit'
+			});
 
 if (archive.error) {
 	throw archive.error;
