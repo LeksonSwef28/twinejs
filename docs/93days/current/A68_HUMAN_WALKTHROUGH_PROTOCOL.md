@@ -1,8 +1,9 @@
 # A68-C1 — HUMAN CANONICAL PLAYER WALKTHROUGH PROTOCOL
 
 Status: **READY / HUMAN EXECUTION PENDING**
-Updated: **2026-10-05**
-Required stable baseline: `93-days-editor@15ef305ceb926824de21e90237adf536102ef468`
+Updated: **2026-10-06**
+Execution target: current GREEN `93-days-editor`
+Minimum verified gameplay/runtime baseline: `15ef305ceb926824de21e90237adf536102ef468`
 Production project: `93-days-computer-club-cycle-v1`
 
 ## Purpose
@@ -15,7 +16,7 @@ The remaining question is whether a person can understand the sequence while act
 
 ## Preconditions
 
-1. Run the editor from the required stable baseline.
+1. Run the editor from the current GREEN `93-days-editor` tip. Do not use a revision older than the minimum verified gameplay/runtime baseline above; record the exact build SHA used in the findings.
 2. Open a Story and the Narrative workspace.
 3. Open **EXPORT / COMPILER**.
 4. If the current Narrative Project is replacement-safe and not already A68-C1, click:
