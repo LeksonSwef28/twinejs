@@ -84,7 +84,16 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v7
         with:
+          cache: npm
           node-version: 22.12.0
+      - name: Install dependencies
+        run: npm ci
+      - name: Build web application
+        run: npm run build:web
+      - name: Build standalone player host
+        run: npm run build:player
+      - name: Build Electron main process
+        run: npm run build:electron-main
       - name: Verify Windows Electron development launch contract
         shell: pwsh
         run: |
@@ -98,3 +107,26 @@ jobs:
           if ($outputText -notmatch 'NODE_ENV=development') {
             throw 'Portable Electron launcher did not report NODE_ENV=development.'
           }
+
+  macos-electron-launch-contract:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          cache: npm
+          node-version: 22.12.0
+      - name: Install dependencies
+        run: npm ci
+      - name: Build web application
+        run: npm run build:web
+      - name: Build standalone player host
+        run: npm run build:player
+      - name: Build Electron main process
+        run: npm run build:electron-main
+      - name: Verify macOS Electron development launch contract
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run start:electron -- --check 2>&1 | tee /tmp/93-days-electron-launch-check.log
+          grep -q 'NODE_ENV=development' /tmp/93-days-electron-launch-check.log
