@@ -1,8 +1,8 @@
 # 93 Days — CURRENT SYSTEM STATUS
 
 Status: **CURRENT AUDIT**
-Updated: **2026-10-03**
-Baseline: `93-days-editor@af1dbb7fad2849babb21aeff734aca43f7003d2b`
+Updated: **2026-10-07**
+Baseline: `93-days-editor@292ed41100220a8e7c4e8eeb5436f2dd95c52a6e`
 
 This matrix answers one question: **which planned game/editor systems are actually present now, which are partial, and which remain future work?**
 
@@ -12,7 +12,7 @@ It is implementation-facing. A system is not marked DONE because it appeared in 
 
 - **DONE** — canonical implementation exists and is exercised by tests/current content.
 - **PARTIAL** — useful implementation exists, but an explicitly planned layer remains missing.
-- **DEFERRED** — deliberately not required for the current A67 milestone.
+- **DEFERRED** — deliberately not required for the current active product gate.
 - **MISSING** — no current canonical implementation for the planned capability.
 
 ## Core runtime / player
@@ -47,8 +47,8 @@ Important correction to Architecture v11: Runtime Story State and occurrence his
 | Injury / pain / recovery | DONE | runtime injury model + simulation tests |
 | Carrying / containers | DONE | weight/volume/size/hands/container nesting |
 | Authored initial item placement | DONE | A67-D2 |
-| Rich location hierarchy | DEFERRED | flat canonical locations are sufficient for A67 |
-| Rich travel topology/pathfinding | DEFERRED | explicit authored routes are sufficient for A67 |
+| Rich location hierarchy | DEFERRED | flat canonical locations are sufficient for current A67/A68 content |
+| Rich travel topology/pathfinding | DEFERRED | explicit authored routes are sufficient for current A67/A68 content |
 
 ## Narrative / cognition / social systems
 
@@ -87,6 +87,15 @@ Important correction to Architecture v11: Runtime Story State and occurrence his
 | Reaction candidate authoring | DONE |
 | Large-production UX proof | PARTIAL | synthetic scale gates exist; real A67+A68 graph proof is A69 |
 
+## QA / distribution
+
+| System | Status | Current evidence / boundary |
+|---|---|---|
+| Cross-platform cloud build contracts | DONE | stable CI has Ubuntu full verification plus Windows/macOS clean build and Electron launcher contracts |
+| Packaged QA product/profile identity | MISSING | packaged Electron metadata/profile still inherit Twine identity; development isolation does not apply to packaged QA |
+| Packaged-app smoke | MISSING | CI does not yet launch and verify the final tester-facing distributable |
+| Legacy release workflow | PARTIAL / STALE | `create-release.yml` predates the current Node 22.12.0 / `npm ci` / 93 Days Branch Check path |
+
 ## Production/content state
 
 | Layer | Status |
@@ -96,26 +105,19 @@ Important correction to Architecture v11: Runtime Story State and occurrence his
 | Day 2→3 phone/social loop | DONE |
 | Day 3 rumor/NPC delivery | DONE |
 | Day 3→4 firsthand repair | DONE |
-| Day 5→7 coherent first-week batch | **MISSING — ACTIVE A67 WORK** |
-| Second city/social cycle | DEFERRED — A68 |
-| Real-content scale gate | DEFERRED — A69 |
+| Day 5→7 coherent first-week batch | **ENGINEERING DONE / HUMAN UX WALKTHROUGH PENDING — A67** |
+| Second city/social cycle | **A68-C1 ENGINEERING DONE / HUMAN UX WALKTHROUGH PENDING; C2 NOT SELECTED** |
+| Real-content scale gate | **PROPOSED / FOUNDATION READY — A69** |
 | Remaining 93-day production plan | DEFERRED — post-A69 |
 | Ending matrix | DEFERRED — after multi-week playtest evidence |
 
-## A67 decision
+## Current decision boundary
 
-No missing platform subsystem currently justifies replacing A67 content work with another architecture programme.
+A67 and A68-C1 have engineering evidence on the canonical Player/runtime path. Their remaining closure item is a real human UX walkthrough; A68-C2 stays unselected until those observations exist.
 
-A67 should now test the existing system by producing Day 5-7 content.
+No missing gameplay subsystem currently justifies replacing this content/playtest path with another architecture programme. The current engineering preparation gap is QA distribution: a tester-facing packaged identity/profile and packaged-app smoke still need proof.
 
-If Day 5-7 authoring proves a concrete blocker, open the smallest evidence-backed subsystem slice. Likely candidates are:
-
-- initial relationship authoring;
-- Character Inner World inspection/authoring;
-- a narrow NPC execution capability;
-- location/travel authoring friction.
-
-Do not implement any of these pre-emptively.
+Potential future subsystem work such as initial relationship authoring, Character Inner World authoring, broader NPC orchestration or richer location/travel tooling remains evidence-gated. Do not implement it pre-emptively.
 
 ## Known true future system gap
 
@@ -123,6 +125,6 @@ The clearest intentionally incomplete layer is **generic NPC opportunity schedul
 
 A43 already provides a canonical decision bridge once an explicit opportunity exists: it can rank candidates, choose an action, enforce budget/schedule/active-execution blockers, consume PendingReaction after execution, spend simulation time and apply the selected Move. What it does not do is autonomously decide *when* arbitrary NPCs receive decision opportunities or continuously schedule them across the city.
 
-A67 does not require a generic city-wide scheduler if its autonomous world consequences can be expressed as deterministic authored Story work or explicit A43 opportunities, as already proven by A63.
+A67 and A68-C1 do not require a generic city-wide scheduler: their autonomous world consequences are expressed through deterministic authored Story work or explicit canonical opportunities.
 
-A68 is the earliest milestone where broader opportunity scheduling may become justified by real content pressure.
+A68-C1 did not prove a need for broader opportunity scheduling. Revisit this gap only if A68-C2 or later production content demonstrates a concrete blocker.

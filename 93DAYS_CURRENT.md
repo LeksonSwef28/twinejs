@@ -1,7 +1,7 @@
 # 93 Days — CURRENT PROJECT CONTEXT
 
 Status: **CURRENT SOURCE OF TRUTH**
-Updated: **2026-10-06**
+Updated: **2026-10-07**
 Current stable branch: `93-days-editor`
 Minimum verified A68-C1 gameplay/runtime baseline: `15ef305ceb926824de21e90237adf536102ef468`
 
@@ -182,9 +182,9 @@ In brief:
 - `docs/93days/current/CONTENT_STATUS.md` — canonical content coverage/status.
 - `docs/93days/current/CONTEXT_SOURCES.md` — source precedence and recovered source decisions.
 - `docs/93days/current/PRODUCT_PRINCIPLES.md` — compact fixed/working/seed product principles recovered from current concept sources.
-- `docs/93days/current/SYSTEM_STATUS.md` — implementation-backed DONE/PARTIAL/DEFERRED/MISSING system audit.
-- `docs/93days/current/A67_FIRST_WEEK_PLAN.md` — active A67 Day 5–7 completion gate and slice order.
-- `docs/93days/current/A68_CONTENT_CYCLE_PLAN.md` — prepared A68 second social/city cycle, beginning with the Computer Club bridge batch.
+- `docs/93days/current/SYSTEM_STATUS.md` — implementation-backed system plus QA/distribution status audit.
+- `docs/93days/current/A67_FIRST_WEEK_PLAN.md` — engineering-complete first-week gate record; human UX closure remains pending.
+- `docs/93days/current/A68_CONTENT_CYCLE_PLAN.md` — active A68 cycle record: C1 engineering pass / human UX pending; C2 not selected.
 - `docs/93days/current/A68_C1_ACCEPTANCE_CONTRACT.md` — implemented C1 acceptance contract for travel, provenance, continuity, cross-place consequence, save and authoring.
 - `docs/93days/current/A68_PLAYTEST_FINDINGS.md` — engineering causality findings; human UX closure remains pending.
 - `docs/93days/current/A68_HUMAN_WALKTHROUGH_PROTOCOL.md` — reproducible manual Canonical Player walkthrough for the remaining human gate.
