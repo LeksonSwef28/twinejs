@@ -3,12 +3,14 @@ import {initApp} from './init-app';
 import {loadAppPrefs} from './app-prefs';
 import {applyDevelopmentProfile} from './development-profile';
 import {initHardwareAcceleration} from './hardware-acceleration';
+import {applyQaProfile} from './qa-profile';
 
 // We need to load prefs here *and block* because disabling hardware
 // acceleration has to happen before the app is ready.
 // @see https://github.com/electron/electron/issues/21370
 
 applyDevelopmentProfile();
+applyQaProfile();
 loadAppPrefs();
 initHardwareAcceleration();
 

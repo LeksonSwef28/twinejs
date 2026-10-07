@@ -92,7 +92,7 @@ Important correction to Architecture v11: Runtime Story State and occurrence his
 | System | Status | Current evidence / boundary |
 |---|---|---|
 | Cross-platform cloud build contracts | DONE | stable CI has Ubuntu full verification plus Windows/macOS clean build and Electron launcher contracts |
-| Packaged QA product/profile identity | MISSING | packaged Electron metadata/profile still inherit Twine identity; development isolation does not apply to packaged QA |
+| Packaged QA product/profile identity | PARTIAL | dedicated `93 Days QA` builder identity and packaged runtime profile isolation exist; final packaged-artifact proof is still pending |
 | Packaged-app smoke | MISSING | CI does not yet launch and verify the final tester-facing distributable |
 | Legacy release workflow | PARTIAL / STALE | `create-release.yml` predates the current Node 22.12.0 / `npm ci` / 93 Days Branch Check path |
 
@@ -115,7 +115,7 @@ Important correction to Architecture v11: Runtime Story State and occurrence his
 
 A67 and A68-C1 have engineering evidence on the canonical Player/runtime path. Their remaining closure item is a real human UX walkthrough; A68-C2 stays unselected until those observations exist.
 
-No missing gameplay subsystem currently justifies replacing this content/playtest path with another architecture programme. The current engineering preparation gap is QA distribution: a tester-facing packaged identity/profile and packaged-app smoke still need proof.
+No missing gameplay subsystem currently justifies replacing this content/playtest path with another architecture programme. QA distribution now has a dedicated identity/profile foundation, but the tester-facing packaged artifact and packaged-app smoke still need proof.
 
 Potential future subsystem work such as initial relationship authoring, Character Inner World authoring, broader NPC orchestration or richer location/travel tooling remains evidence-gated. Do not implement it pre-emptively.
 
