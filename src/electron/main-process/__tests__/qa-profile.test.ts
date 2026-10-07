@@ -10,7 +10,7 @@ import {
 jest.mock('electron');
 jest.mock('fs-extra');
 
-const qaBuilderConfig = require('../../../../electron-builder.qa.config.js');
+import qaBuilderConfig from '../../../../electron-builder.qa.config.js';
 
 function setPackaged(value: boolean) {
 	Object.defineProperty(app, 'isPackaged', {
