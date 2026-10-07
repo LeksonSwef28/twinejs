@@ -1,7 +1,7 @@
 # 93 Days — CONTEXT SOURCES AND PRECEDENCE
 
 Status: **CURRENT**
-Updated: **2026-10-03**
+Updated: **2026-10-07**
 
 This file prevents old roadmaps, research packs and engineering history from competing as equal truth.
 
@@ -92,8 +92,9 @@ Its A64-A69 numbering was explicitly **proposed**, not automatically official.
 This rebase preserves the useful intent while correcting it against actual implementation history:
 
 - A64-A66 are now completed history.
-- A67 remains the original first-week milestone, with D1-D3 treated as enabling gap closures.
-- A68/A69 remain proposed future milestones until their gates are opened.
+- A67 remains the original first-week milestone; its engineering gate is PASS and the human UX walkthrough remains pending.
+- A68 is now active: C1 has engineering acceptance evidence, its human UX walkthrough remains pending, and C2 is deliberately not selected yet.
+- A69 remains PROPOSED / FOUNDATION READY until the production-scale gate is opened.
 
 ## 7. Visual/Godot branch
 
