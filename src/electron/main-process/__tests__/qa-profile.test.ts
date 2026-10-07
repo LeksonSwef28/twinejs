@@ -9,6 +9,7 @@ import {
 
 jest.mock('electron');
 jest.mock('fs-extra');
+jest.mock('@electron/notarize', () => ({notarize: jest.fn()}));
 
 import qaBuilderConfig from '../../../../electron-builder.qa.config.js';
 
