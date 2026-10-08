@@ -37,6 +37,76 @@ const {chromium} = require('@playwright/test');
 		await player.getByRole('button', {name: 'Продолжить'}).click();
 		await player.getByText('Сохранение загружено').waitFor();
 		console.log('PACKAGED PLAYER PASS: A68-C1 canonical Player opened and save/continue completed.');
+
+		// A67/A68 production Day 1–10 UI acceptance routes. All time advancement,
+		// travel and Story execution stays on the actual packaged Canonical Player.
+		// No direct runtime mutation, debug data or Preview is used.
+		async function runCycle(source) {
+			const currentPlayer = source === 'direct' ? player : await (async () => {
+				await player.close();
+				const nextPopup = editor.waitForEvent('popup');
+				await editor.getByRole('button', {name: 'Открыть Player'}).click();
+				const fresh = await nextPopup;
+				await fresh.locator('[data-player-status="ready"]').waitFor();
+				return fresh;
+			})();
+			currentPlayer.setDefaultTimeout(25000);
+
+			async function minute() {
+				const text = await currentPlayer.locator('.narrative-player__clock').innerText();
+				const match = text.match(/День\s+(\d+)[\s\S]*?(\d{2}):(\d{2})/);
+				if (!match) throw new Error('Cannot parse Player clock: ' + text);
+				return (Number(match[1]) - 1) * 1440 + Number(match[2]) * 60 + Number(match[3]);
+			}
+			async function advance(day, hour, min) {
+				const target = (day - 1) * 1440 + hour * 60 + min;
+				let steps = 0;
+				while ((await minute()) < target) {
+					if (++steps > 1150) throw new Error('Day 1-10 Player UI wait bound exceeded');
+					const before = await minute();
+					const label = target - before >= 15 ? 'Подождать 15 минут' : 'Подождать 5 минут';
+					await currentPlayer.getByRole('button', {name: label}).click();
+					if ((await minute()) <= before) throw new Error('Player wait did not advance');
+				}
+			}
+			async function move(label) {
+				await currentPlayer.getByRole('button', {name: new RegExp(label)}).click();
+			}
+			async function event(title) {
+				const row = currentPlayer.locator('.narrative-player__story-opportunities li').filter({
+					hasText: title
+				});
+				await row.getByRole('button', {name: 'Участвовать'}).click();
+			}
+
+			// Day 1: the same authored station → dorm journey used by A67/A68.
+			await move('Выйти на транспортную площадь');
+			await move('Дойти до остановки');
+			await move('Ехать автобусом в сторону общежития');
+			await advance(8, 17, 44);
+			await move('Дойти от общежития до компьютерного клуба');
+			await event('Восьмой день: первый вечер в компьютерном клубе');
+			await move(source === 'direct'
+				? 'Спросить администратора, что сегодня обсуждают'
+				: 'Прочитать закреплённое сообщение на локальном форуме');
+			await currentPlayer.getByRole('button', {name: 'Сохранить'}).click();
+			await currentPlayer.getByText('Игра сохранена').waitFor();
+			await currentPlayer.getByRole('button', {name: 'Продолжить'}).click();
+			await currentPlayer.getByText('Сохранение загружено').waitFor();
+
+			await move('Вернуться от компьютерного клуба к общежитию');
+			await advance(9, 19, 0);
+			await event('Девятый день: рассказать в общежитии');
+			await move('Рассказать дежурной, что узнал о завтрашней игре в клубе');
+			await advance(10, 18, 14);
+			await move('Дойти от общежития до компьютерного клуба');
+			await event('Десятый день: знакомый разговор у стойки');
+			await move('Спросить, удалось ли собрать людей на позднюю игру');
+			console.log('PACKAGED DAY 1-10 PASS: ' + source + ' source, Day 9 consequence, Day 10 contact');
+			if (currentPlayer !== player) await currentPlayer.close();
+		}
+		await runCycle('direct');
+		await runCycle('forum');
 	} finally {
 		await browser.close();
 	}
