@@ -100,9 +100,20 @@ const {chromium} = require('@playwright/test');
 			await move('Рассказать дежурной, что узнал о завтрашней игре в клубе');
 			await advance(10, 18, 14);
 			await move('Дойти от общежития до компьютерного клуба');
-			await event('Десятый день: знакомый разговор у стойки');
-			await move('Спросить, удалось ли собрать людей на позднюю игру');
-			console.log('PACKAGED DAY 1-10 PASS: ' + source + ' source, Day 9 consequence, Day 10 contact');
+			if (source === 'direct') {
+				await event('Десятый день: знакомый разговор у стойки');
+				await move('Спросить, удалось ли собрать людей на позднюю игру');
+			} else {
+				// Forum provenance grants knowledge but does not establish a worker
+				// relationship or unlock the personal acquaintance follow-up.
+				const followup = currentPlayer.locator(
+					'.narrative-player__story-opportunities li'
+				).filter({hasText: 'Десятый день: знакомый разговор у стойки'});
+				if ((await followup.count()) !== 0) {
+					throw new Error('Forum-only history incorrectly opened personal Day 10 contact');
+				}
+			}
+			console.log('PACKAGED DAY 1-10 PASS: ' + source + ' source, Day 9 consequence, distinct Day 10 outcome');
 			if (currentPlayer !== player) await currentPlayer.close();
 		}
 		await runCycle('direct');
