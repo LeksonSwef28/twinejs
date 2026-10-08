@@ -2,13 +2,16 @@
 
 Status: **ENGINEERING PACKAGED SMOKE PASS / HUMAN UX WALKTHROUGH PENDING**
 Updated: **2026-10-08**
-Verified stable baseline: `93-days-editor@82a9bb711ae547fec8b6ec15b5bde107a775fc3e`
+Verified stable baseline: `93-days-editor@723636a43b378b9f7774ea4564dc677b1df040c3` (Branch Check #853)
 
 ## Evidence ledger
 
 - PR [#73](https://github.com/LeksonSwef28/twinejs/pull/73): merged; selected A68-C1 direct/forum packaged smoke.
 - [Branch Check #850](https://github.com/LeksonSwef28/twinejs/actions/runs/37744639271): exact PR head `eea3d279ed74de58ce81e03f9f40618439b875bd`, GREEN on all four CI jobs.
 - [Branch Check #851](https://github.com/LeksonSwef28/twinejs/actions/runs/37749146081): post-merge stable `82a9bb711ae547fec8b6ec15b5bde107a775fc3e`, GREEN on all four CI jobs.
+- PR [#74](https://github.com/LeksonSwef28/twinejs/pull/74): merged; QA evidence-hygiene-only follow-up, with no gameplay/runtime or CI execution-semantics change.
+- [Branch Check #852](https://github.com/LeksonSwef28/twinejs/actions/runs/37769609186): exact PR #74 head `04a2b6c688bcc468e1398ea8ef33b8bcb1cf879d`, GREEN on all four CI jobs.
+- [Branch Check #853](https://github.com/LeksonSwef28/twinejs/actions/runs/37770557932): post-merge stable `723636a43b378b9f7774ea4564dc677b1df040c3`, GREEN on all four CI jobs; published tester-facing artifact `93-days-qa-windows-portable` (artifact id `11548062040`, SHA-256 digest `bb7cc2d0d7ff9d076606257d946c5975df8aae93fc5730cc587768a5db10f418`).
 - Windows workflow job ID: `windows-qa-portable-smoke`. Its QA executable is built with `electron-builder.qa.config.js`, launched on a GitHub-hosted Windows runner and uploaded as the `93-days-qa-windows-portable` Actions artifact after smoke succeeds.
 - Entry points: `scripts/smoke-qa-portable.ps1` launches the packaged executable; `scripts/smoke-qa-player.cjs` connects to its actual Electron renderer and exercises the Canonical Player through UI controls.
 
@@ -39,4 +42,4 @@ The direct and forum histories are separately covered. This is a selected A68-C1
 - **A68-C2:** NOT SELECTED until findings from a real human C1 walkthrough.
 - **A69:** PROPOSED / FOUNDATION READY; production-scale measurement gate not executed.
 
-Download the QA artifact from the successful #851 Actions run while it remains available. Run the independent Windows human walkthrough using `A68_HUMAN_WALKTHROUGH_PROTOCOL.md`; record findings in `A68_PLAYTEST_FINDINGS.md`. Do not promote CI smoke logs into human UX evidence.
+For a human run, use the `93-days-qa-windows-portable` artifact from the **latest successful stable `93 Days Branch Check` whose `head_sha` exactly matches the current `93-days-editor` tip**. Do not pin the protocol operationally to an older run when a newer exact-stable artifact exists. At this evidence update, #853 / artifact `11548062040` is the verified handoff (GitHub retention expiry: 2026-10-15). Run the independent Windows walkthrough using `A68_HUMAN_WALKTHROUGH_PROTOCOL.md`; record findings in `A68_PLAYTEST_FINDINGS.md`. Do not promote CI smoke logs into human UX evidence.
