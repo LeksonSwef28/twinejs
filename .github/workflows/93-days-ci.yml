@@ -129,7 +129,7 @@ jobs:
       - name: Package Windows portable QA executable
         shell: pwsh
         run: npx electron-builder --config electron-builder.qa.config.js --win portable --x64 --publish=never
-      - name: Smoke packaged QA executable and isolated profile
+      - name: Smoke A68-C1 direct/forum packaged Player and QA profile
         shell: pwsh
         run: ./scripts/smoke-qa-portable.ps1
       - name: Upload tester-facing Windows QA portable executable

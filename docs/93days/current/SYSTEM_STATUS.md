@@ -1,8 +1,8 @@
 # 93 Days — CURRENT SYSTEM STATUS
 
 Status: **CURRENT AUDIT**
-Updated: **2026-10-07**
-Baseline: `93-days-editor@292ed41100220a8e7c4e8eeb5436f2dd95c52a6e`
+Updated: **2026-10-08**
+Evidence baseline: `93-days-editor@82a9bb711ae547fec8b6ec15b5bde107a775fc3e` (post-merge #851 GREEN)
 
 This matrix answers one question: **which planned game/editor systems are actually present now, which are partial, and which remain future work?**
 
@@ -92,8 +92,8 @@ Important correction to Architecture v11: Runtime Story State and occurrence his
 | System | Status | Current evidence / boundary |
 |---|---|---|
 | Cross-platform cloud build contracts | DONE | stable CI has Ubuntu full verification plus Windows/macOS clean build and Electron launcher contracts |
-| Packaged QA product/profile identity | PARTIAL | dedicated `93 Days QA` builder identity and packaged runtime profile isolation exist; final packaged-artifact proof is still pending |
-| Packaged-app smoke | MISSING | CI does not yet launch and verify the final tester-facing distributable |
+| Packaged QA product/profile identity | DONE for internal QA | independent `93 Days QA` appId/product name and userData/Documents roots; Windows packaged smoke verified isolated roots and Twine sentinels on hosted runner; independent tester evidence pending |
+| Packaged-app smoke | DONE for selected A68-C1 routes | PR #73 merged: exact-head #850 and post-merge #851 GREEN; hosted Windows QA portable executable opens Canonical Player, loads A68-C1, save/continue, and tests direct/forum Day 8→10 consequences; Days 2–7 are Player-wait-only, not a scene walkthrough |
 | Legacy release workflow | PARTIAL / STALE | `create-release.yml` predates the current Node 22.12.0 / `npm ci` / 93 Days Branch Check path |
 
 ## Production/content state
@@ -115,7 +115,7 @@ Important correction to Architecture v11: Runtime Story State and occurrence his
 
 A67 and A68-C1 have engineering evidence on the canonical Player/runtime path. Their remaining closure item is a real human UX walkthrough; A68-C2 stays unselected until those observations exist.
 
-No missing gameplay subsystem currently justifies replacing this content/playtest path with another architecture programme. QA distribution now has a dedicated identity/profile foundation, but the tester-facing packaged artifact and packaged-app smoke still need proof.
+No missing gameplay subsystem currently justifies replacing this content/playtest path with another architecture programme. The internal Windows packaged QA distribution and selected A68-C1 smoke are verified on GitHub runner, but independent Windows tester QA, the full human A67/A68-C1 walkthrough and public-release review remain pending.
 
 Potential future subsystem work such as initial relationship authoring, Character Inner World authoring, broader NPC orchestration or richer location/travel tooling remains evidence-gated. Do not implement it pre-emptively.
 

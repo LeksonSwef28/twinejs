@@ -1,7 +1,7 @@
 # 93 Days — CURRENT PROJECT CONTEXT
 
 Status: **CURRENT SOURCE OF TRUTH**
-Updated: **2026-10-07**
+Updated: **2026-10-08**
 Current stable branch: `93-days-editor`
 Minimum verified A68-C1 gameplay/runtime baseline: `15ef305ceb926824de21e90237adf536102ef468`
 
@@ -72,6 +72,14 @@ A68-C1 is also implemented on stable:
 PR #62 additionally rebased the normal Editor → Export → Canonical Player production starter
 onto the current A68-C1 composition, so a human walkthrough can exercise the same current artifact
 that the automated acceptance tests use.
+
+The separate internal Windows QA portable executable is now verified through a hosted
+packaged Canonical Player smoke: PR #73 merged at `82a9bb711ae547fec8b6ec15b5bde107a775fc3e`,
+exact-head #850 GREEN, post-merge #851 GREEN. This smoke traverses Day 1 arrival,
+waits through Days 2–7 using normal Player controls, and checks selected direct/forum
+Day 8–10 consequences. It is **not** a continuous A67 first-week scene walkthrough,
+a human UX verdict, or a public-release qualification. See
+`docs/93days/current/A68_PACKAGED_QA_EVIDENCE.md`.
 
 Therefore:
 
@@ -188,6 +196,7 @@ In brief:
 - `docs/93days/current/A68_C1_ACCEPTANCE_CONTRACT.md` — implemented C1 acceptance contract for travel, provenance, continuity, cross-place consequence, save and authoring.
 - `docs/93days/current/A68_PLAYTEST_FINDINGS.md` — engineering causality findings; human UX closure remains pending.
 - `docs/93days/current/A68_HUMAN_WALKTHROUGH_PROTOCOL.md` — reproducible manual Canonical Player walkthrough for the remaining human gate.
+- `docs/93days/current/A68_PACKAGED_QA_EVIDENCE.md` — exact CI / packaged QA smoke proof, coverage limits and independent tester boundary.
 
 ## 9. Historical documentation policy
 
