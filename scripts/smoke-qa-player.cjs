@@ -38,9 +38,10 @@ const {chromium} = require('@playwright/test');
 		await player.getByText('Сохранение загружено').waitFor();
 		console.log('PACKAGED PLAYER PASS: A68-C1 canonical Player opened and save/continue completed.');
 
-		// A67/A68 production Day 1–10 UI acceptance routes. All time advancement,
-		// travel and Story execution stays on the actual packaged Canonical Player.
-		// No direct runtime mutation, debug data or Preview is used.
+		// A68-C1 direct/forum packaged smoke: cold Day 1 arrival to dorm;
+		// Days 2-7 are advanced by Player wait controls, not played scene by scene.
+		// Days 8-10 exercise authored club/dorm choices and distinct consequences.
+		// No direct runtime mutation, debug data, Preview or human UX verdict.
 		async function runCycle(source) {
 			const currentPlayer = source === 'direct' ? player : await (async () => {
 				await player.close();
@@ -62,7 +63,7 @@ const {chromium} = require('@playwright/test');
 				const target = (day - 1) * 1440 + hour * 60 + min;
 				let steps = 0;
 				while ((await minute()) < target) {
-					if (++steps > 1150) throw new Error('Day 1-10 Player UI wait bound exceeded');
+					if (++steps > 1150) throw new Error('A68-C1 packaged smoke Player UI wait bound exceeded');
 					const before = await minute();
 					const label = target - before >= 15 ? 'Подождать 15 минут' : 'Подождать 5 минут';
 					await currentPlayer.getByRole('button', {name: label}).click();
@@ -113,9 +114,10 @@ const {chromium} = require('@playwright/test');
 					throw new Error('Forum-only history incorrectly opened personal Day 10 contact');
 				}
 			}
-			console.log('PACKAGED DAY 1-10 PASS: ' + source + ' source, Day 9 consequence, distinct Day 10 outcome');
+			console.log('A68-C1 PACKAGED SMOKE PASS: ' + source + ' source, Day 9 consequence, distinct Day 10 outcome');
 			if (currentPlayer !== player) await currentPlayer.close();
 		}
+		console.log('A68-C1 PACKAGED SMOKE SCOPE: Day 1 arrival/dorm; Days 2-7 Player wait-only (not scene walkthrough); Days 8-10 direct/forum consequence checks. Human UX pending.');
 		await runCycle('direct');
 		await runCycle('forum');
 	} finally {
