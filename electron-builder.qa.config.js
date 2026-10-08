@@ -2,9 +2,7 @@ const baseConfig = require('./electron-builder.config.js');
 
 const qaProductName = '93 Days QA';
 const qaAppId = 'io.github.leksonswef28.days93.qa';
-const qaBuildId = process.env.GITHUB_SHA
-	? process.env.GITHUB_SHA.slice(0, 12)
-	: 'local';
+const qaBuildId = (process.env.GITHUB_SHA || 'local').slice(0, 12);
 
 const config = {
 	...baseConfig,
