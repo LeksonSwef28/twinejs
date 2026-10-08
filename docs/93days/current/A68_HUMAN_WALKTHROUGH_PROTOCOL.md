@@ -1,7 +1,7 @@
 # A68-C1 — HUMAN CANONICAL PLAYER WALKTHROUGH PROTOCOL
 
 Status: **READY / HUMAN EXECUTION PENDING**
-Updated: **2026-10-06**
+Updated: **2026-10-08**
 Execution target: tester-facing `93-days-qa-windows-portable` artifact from the latest successful stable `93 Days Branch Check` whose `head_sha` exactly matches the current `93-days-editor` tip
 Minimum verified gameplay/runtime baseline: `15ef305ceb926824de21e90237adf536102ef468`
 Verified packaged handoff at this update: Branch Check #853, stable `723636a43b378b9f7774ea4564dc677b1df040c3`, artifact id `11548062040`
@@ -126,7 +126,7 @@ Priority:
 
 Record the result in `A68_PLAYTEST_FINDINGS.md` under a dated **Human walkthrough** section:
 
-- tester/date/build SHA;
+- tester/date/build SHA + Branch Check number + artifact id;
 - source path used: direct / forum / both;
 - completed Day 9 consequence: yes/no;
 - completed Day 10 repeated contact: yes/no;
