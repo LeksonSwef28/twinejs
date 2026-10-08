@@ -2,8 +2,9 @@
 
 Status: **READY / HUMAN EXECUTION PENDING**
 Updated: **2026-10-06**
-Execution target: current GREEN `93-days-editor`
+Execution target: tester-facing `93-days-qa-windows-portable` artifact from the latest successful stable `93 Days Branch Check` whose `head_sha` exactly matches the current `93-days-editor` tip
 Minimum verified gameplay/runtime baseline: `15ef305ceb926824de21e90237adf536102ef468`
+Verified packaged handoff at this update: Branch Check #853, stable `723636a43b378b9f7774ea4564dc677b1df040c3`, artifact id `11548062040`
 Production project: `93-days-computer-club-cycle-v1`
 
 ## Purpose
@@ -16,20 +17,23 @@ The remaining question is whether a person can understand the sequence while act
 
 ## Preconditions
 
-1. Run the editor from the current GREEN `93-days-editor` tip. Do not use a revision older than the minimum verified gameplay/runtime baseline above; record the exact build SHA used in the findings.
-2. Open a Story and the Narrative workspace.
-3. Open **EXPORT / COMPILER**.
-4. If the current Narrative Project is replacement-safe and not already A68-C1, click:
+1. Resolve the current `93-days-editor` tip, then use the latest successful stable **93 Days Branch Check** whose `head_sha` exactly equals that tip. Record the Branch Check number and exact SHA in the findings.
+2. Download its tester-facing artifact **`93-days-qa-windows-portable`**, extract the ZIP and launch `93-Days-QA-*-Windows.exe`. The acceptance path must not require a source checkout, Node.js, npm or Git.
+3. Confirm the packaged application identity is **93 Days QA**. If Windows warns because the internal QA executable is unsigned, record that separately; do not treat code signing as an A68-C1 UX finding.
+4. Open a clean/replacement-safe Story and the Narrative workspace, then open **EXPORT / COMPILER**.
+5. If the current Narrative Project is replacement-safe and not already A68-C1, click:
    **`Загрузить A68-C1 production project`**.
-5. Confirm the panel shows:
+6. Confirm the panel shows:
    - **Production target:** `A68-C1 · 93-days-computer-club-cycle-v1`;
    - **Готовность:** `Готово к сборке`;
    - no blocking diagnostics.
-6. Click **`Открыть Player`**.
-7. From this point, do not inspect project JSON, runtime state, test fixtures or source code while answering the UX questions.
+7. Click **`Открыть Player`**.
+8. From this point, do not inspect project JSON, runtime state, test fixtures or source code while answering the UX questions.
 
 If authored data already exists and the starter button is intentionally disabled, do not overwrite it automatically.
 Use a clean/replacement-safe Story for this walkthrough.
+
+If the newest successful exact-stable run has no non-expired `93-days-qa-windows-portable` artifact, stop the walkthrough and record an operational QA handoff blocker separately. Do not fall back silently to an older executable, because then the human evidence would no longer identify the tested stable SHA.
 
 ## Walkthrough A — direct source
 
