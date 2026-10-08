@@ -108,6 +108,34 @@ jobs:
             throw 'Portable Electron launcher did not report NODE_ENV=development.'
           }
 
+  windows-qa-portable-smoke:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          cache: npm
+          node-version: 22.12.0
+      - name: Install dependencies
+        run: npm ci
+      - name: Build QA renderer
+        run: npm run build:web
+      - name: Build QA Electron main
+        run: npm run build:electron-main
+      - name: Package Windows portable QA executable
+        shell: pwsh
+        run: npx electron-builder --config electron-builder.qa.config.js --win portable --x64 --publish=never
+      - name: Smoke packaged QA executable and isolated profile
+        shell: pwsh
+        run: ./scripts/smoke-qa-portable.ps1
+      - name: Upload tester-facing Windows QA portable executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: 93-days-qa-windows-portable
+          retention-days: 7
+          if-no-files-found: error
+          path: dist/electron-qa/93-Days-QA-*-Windows.exe
+
   macos-electron-launch-contract:
     runs-on: macos-latest
     steps:
