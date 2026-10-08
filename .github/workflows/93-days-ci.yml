@@ -120,6 +120,10 @@ jobs:
         run: npm ci
       - name: Build QA renderer
         run: npm run build:web
+      - name: Build packaged Canonical Player
+        run: npm run build:player
+      - name: Copy Canonical Player into QA renderer
+        run: node scripts/copy-qa-player.cjs
       - name: Build QA Electron main
         run: npm run build:electron-main
       - name: Package Windows portable QA executable

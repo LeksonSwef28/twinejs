@@ -14,7 +14,7 @@ Set-Content -Path $twineDocumentsMarker -Value 'do-not-touch-qa' -NoNewline
 if (Test-Path $qaRoot) { Remove-Item -Recurse -Force $qaRoot }
 if (Test-Path $qaDocuments) { Remove-Item -Recurse -Force $qaDocuments }
 Write-Output "Launching packaged QA executable: $($exe.Name)"
-$started = Start-Process -FilePath $exe.FullName -PassThru
+$started = Start-Process -FilePath $exe.FullName -ArgumentList '--remote-debugging-port=9222' -PassThru
 $deadline = (Get-Date).AddSeconds(150)
 $profileReady = $false
 $windowReady = $false
@@ -33,6 +33,8 @@ try {
   if ((Get-Content -Raw $twineMarker) -ne 'do-not-touch-qa') { throw 'Existing Twine userData marker changed.' }
   if ((Get-Content -Raw $twineDocumentsMarker) -ne 'do-not-touch-qa') { throw 'Existing Twine Documents marker changed.' }
   Write-Output 'Packaged QA smoke PASS: QA profile and window detected; Twine markers unchanged.'
+  node scripts/smoke-qa-player.cjs
+  if ($LASTEXITCODE -ne 0) { throw 'Packaged Canonical Player test failed.' }
 } finally {
   $started.Refresh()
   if (-not $started.HasExited) {
