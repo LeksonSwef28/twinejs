@@ -1,5 +1,7 @@
 import {app, BrowserWindow, dialog, screen, shell} from 'electron';
 import path from 'path';
+import {fileURLToPath} from 'url';
+import {qaProductName} from './qa-profile';
 import {initIpc} from './ipc';
 import {initLocales} from './locales';
 import {initMenuBar} from './menu-bar';
@@ -55,6 +57,33 @@ async function createWindow() {
 		event.preventDefault();
 	});
 	mainWindow.webContents.setWindowOpenHandler(({url}) => {
+		// QA production Player uses the same origin/profile as the editor for
+		// one-time artifact handoff. Never allow arbitrary file or web windows.
+		if (app.isPackaged && app.getName() === qaProductName) {
+			try {
+				const target = new URL(url);
+				const expected = path.resolve(
+					__dirname,
+					'../../../../renderer/player.html'
+				);
+				if (
+					target.protocol === 'file:' &&
+					target.hash === '#handoff=development' &&
+					fileURLToPath(target) === expected
+				) {
+					return {
+						action: 'allow',
+						overrideBrowserWindowOptions: {
+							width: 1100,
+							height: 800,
+							webPreferences: {sandbox: true}
+						}
+					};
+				}
+			} catch {
+				// Unknown targets retain the ordinary external-link policy.
+			}
+		}
 		shell.openExternal(url);
 		return {action: 'deny'};
 	});
