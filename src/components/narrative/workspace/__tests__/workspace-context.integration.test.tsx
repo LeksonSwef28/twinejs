@@ -345,7 +345,7 @@ describe('A67 workspace context integration', () => {
 		await waitFor(() => expect(
 			screen.getByLabelText('Narrative Move для условий')
 		).toHaveValue('followup-guarded'));
-		expect(screen.getByText('Персонаж знает Claim')).toBeInTheDocument();
+		expect(screen.getByText('story-node-state')).toBeInTheDocument();
 		expect(screen.getByTestId('simulation')).toHaveTextContent(before ?? '');
 	});
 
