@@ -67,12 +67,12 @@ describe('A83 relative Story continuation authoring UI', () => {
 			.toBeInTheDocument();
 		expect(screen.getByText(/План: день 11/)).toBeInTheDocument();
 		expect(screen.getByText(/а НЕ таймер/)).toBeInTheDocument();
-		expect(screen.getByTestId('clock')).toHaveTextContent('1:0');
+		expect(screen.getByTestId('clock')).toHaveTextContent('1:360');
 		fireEvent.click(screen.getByRole('button', {name: 'Назначить время продолжения'}));
 		await waitFor(() =>
 			expect(screen.getByTestId('timing')).toHaveTextContent('11:660')
 		);
-		expect(screen.getByTestId('clock')).toHaveTextContent('1:0');
+		expect(screen.getByTestId('clock')).toHaveTextContent('1:360');
 		await waitFor(() =>
 			expect(repository.load().storyNodes[1].placement).toEqual({day: 11, minuteOfDay: 660})
 		);
@@ -80,7 +80,7 @@ describe('A83 relative Story continuation authoring UI', () => {
 			.toBeDisabled();
 		fireEvent.click(screen.getByRole('button', {name: 'Отменить размещение'}));
 		expect(screen.getByTestId('timing')).toHaveTextContent('-:-');
-		expect(screen.getByTestId('clock')).toHaveTextContent('1:0');
+		expect(screen.getByTestId('clock')).toHaveTextContent('1:360');
 	});
 
 	test('does not offer an overwrite when target is already placed', () => {
