@@ -284,6 +284,68 @@ describe('<NarrativeExportPanel>', () => {
 		expect(saveJsonMock).not.toHaveBeenCalled();
 	});
 
+
+	test('previews and restores source snapshot only after explicit confirmation on the same blank host', async () => {
+		const saved = createProject();
+		saved.name = 'Снимок сценариста';
+		saved.storyNodes = [{
+			id: 'intro',
+			kind: 'dialogue',
+			title: 'Первые слова',
+			participantIds: [],
+			activationState: 'draft'
+		}];
+		render(<NarrativeExportPanel />);
+		const file = new File(
+			[serializeNarrativeSourceSnapshot(saved)],
+			'author.narrative-source.json',
+			{type: 'application/json'}
+		);
+		fireEvent.change(
+			screen.getByLabelText('Проверить исходный снимок перед восстановлением'),
+			{target: {files: [file]}}
+		);
+		expect(await screen.findByText(/Проверен снимок «Снимок сценариста»/))
+			.toBeInTheDocument();
+
+		const restore = screen.getByRole('button', {
+			name: 'Восстановить проверенный снимок'
+		});
+		expect(restore).toBeDisabled();
+		expect(mockReplaceProjectFromStarter).not.toHaveBeenCalled();
+		fireEvent.click(screen.getByLabelText(
+			'Подтверждаю восстановление в пустой проект текущей Story.'
+		));
+		expect(restore).toBeEnabled();
+		fireEvent.click(restore);
+		expect(mockReplaceProjectFromStarter).toHaveBeenCalledTimes(1);
+		expect(mockReplaceProjectFromStarter).toHaveBeenCalledWith(saved);
+		expect(mockExecute).not.toHaveBeenCalled();
+		expect(screen.getByRole('status')).toHaveTextContent('Снимок восстановлен');
+	});
+
+	test('rejects another host and never offers destructive restoration', async () => {
+		const fromOtherStory = createNarrativeProject(
+			'another-host', 'Чужой проект', ninetyThreeDaysTemplate
+		);
+		render(<NarrativeExportPanel />);
+		const file = new File(
+			[serializeNarrativeSourceSnapshot(fromOtherStory)],
+			'wrong.narrative-source.json',
+			{type: 'application/json'}
+		);
+		fireEvent.change(
+			screen.getByLabelText('Проверить исходный снимок перед восстановлением'),
+			{target: {files: [file]}}
+		);
+		expect(await screen.findByRole('alert'))
+			.toHaveTextContent(/другой host Twine Story/);
+		expect(screen.queryByRole('button', {
+			name: 'Восстановить проверенный снимок'
+		})).not.toBeInTheDocument();
+		expect(mockReplaceProjectFromStarter).not.toHaveBeenCalled();
+	});
+
 	test('downloads canonical runtime artifact JSON directly', () => {
 		const prepared = preparedForCurrentProject();
 		render(<NarrativeExportPanel />);

@@ -81,6 +81,16 @@ The Export/Compiler authoring UI now offers **`Снимок Narrative Project JS
 
 Verification contracts introduced: projection-preserving JSON round-trip, no mutation during serialization, compile-blocked download, and recovery disabled state. The remaining proof is a real download/file inspection on an independent authoring install.
 
+## 3b. A78 — guarded same-host source restore slice (2026-10-12)
+
+Status: **IMPLEMENTED ON FEATURE BRANCH / CI AND HUMAN FILE-ROUND-TRIP PENDING**.
+
+The A77 source snapshot can now be **selected, parsed and previewed in EXPORT / COMPILER**. The UI explicitly confirms the project name and counts, and requires a checked author confirmation before restoration. It refuses invalid JSON, compiler/runtime artifacts, incomplete projection envelopes, incompatible schema/template, different host Story identity, a nonblank authored project, or a blank project with nonempty Preview/runtime history.
+
+**Safety boundary:** restore is limited to a **blank Narrative Project already attached to the very same host Twine Story ID** and the same current schema/template; no auto-migration, cross-host import, silent overwrite or partial merge. It reuses the existing explicit project replacement boundary, which resets session undo history. If recovery is active, file selection is disabled. A78 therefore enables a useful narrow restore but **does not** close the general W6 portable-project round trip (host Story/passages are still outside the snapshot), named revisions, or full recovery from a damaged storage profile.
+
+Unit/UI tests cover preflight accept/reject, unchanged existing project, confirmation gate and correct replace callback. Independent manual source-file export/import and save/reopen verification is still required before changing the W6 evidence status.
+
 ## 4. First reproducible audit — author workflow trial
 
 Test on a **separate/replaceable Story or a backed-up copy**; never overwrite the user's real production story to run this experiment. Record app version, SHA, platform, project/host IDs, time spent, UI steps, errors, and whether manual TS/JSON edits were necessary.

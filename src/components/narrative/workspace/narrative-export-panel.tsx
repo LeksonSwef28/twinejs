@@ -18,7 +18,10 @@ import {storyFileName} from '../../../electron/shared';
 import {launchNarrativePlayerDevelopment} from '../../../player/development-handoff';
 import {useNarrativeProject} from '../../../store/narrative-project';
 import {
+	inspectNarrativeSourceSnapshot,
+	narrativeSourceRestoreTargetIsEmpty,
 	narrativeSourceSnapshotFilename,
+	NarrativeSourceSnapshotInspection,
 	serializeNarrativeSourceSnapshot
 } from '../../../store/narrative-project/author-snapshot';
 import {useNarrativePublishing} from '../../../store/use-narrative-publishing';
@@ -69,6 +72,9 @@ export const NarrativeExportPanel: React.FC = () => {
 	const [operationError, setOperationError] = React.useState<string>();
 	const [operationStatus, setOperationStatus] = React.useState<string>();
 	const [lastPublishedFile, setLastPublishedFile] = React.useState<string>();
+	const [sourceImport, setSourceImport] =
+		React.useState<NarrativeSourceSnapshotInspection>();
+	const [confirmSourceImport, setConfirmSourceImport] = React.useState(false);
 	const hostStory = React.useMemo(
 		() => stories.find(story => story.id === project.hostStoryId),
 		[project.hostStoryId, stories]
@@ -213,6 +219,67 @@ export const NarrativeExportPanel: React.FC = () => {
 				error instanceof Error
 					? error.message
 					: 'Не удалось подготовить снимок Narrative Project.'
+			);
+		}
+	}
+
+
+	function inspectSourceFile(event: React.ChangeEvent<HTMLInputElement>) {
+		const file = event.currentTarget.files?.[0];
+		event.currentTarget.value = '';
+		if (!file || recovery) {
+			return;
+		}
+		resetOperationFeedback();
+		setConfirmSourceImport(false);
+		setSourceImport(undefined);
+		if (file.size > 50 * 1024 * 1024) {
+			setSourceImport({
+				status: 'rejected',
+				reason: 'Файл превышает предел предварительной проверки 50 МБ.'
+			});
+			return;
+		}
+		const reader = new FileReader();
+		reader.onerror = () => {
+			setSourceImport({
+				status: 'rejected',
+				reason: 'Не удалось прочитать выбранный файл.'
+			});
+		};
+		reader.onload = () => {
+			setSourceImport(
+				inspectNarrativeSourceSnapshot(String(reader.result ?? ''), project)
+			);
+		};
+		reader.readAsText(file);
+	}
+
+	function restoreSourceSnapshot() {
+		if (
+			!sourceImport ||
+			sourceImport.status !== 'ready' ||
+			!confirmSourceImport ||
+			recovery ||
+			!hostStory ||
+			!narrativeSourceRestoreTargetIsEmpty(project) ||
+			sourceImport.project.hostStoryId !== project.hostStoryId
+		) {
+			return;
+		}
+		resetOperationFeedback();
+		try {
+			replaceProjectFromStarter(sourceImport.project);
+			setSourceImport(undefined);
+			setConfirmSourceImport(false);
+			setOperationStatus(
+				'Снимок восстановлен в пустую Narrative Project текущей Story. Состояние сохраняется редактором.'
+			);
+		} catch (error) {
+			setOperationError(
+				error instanceof Error
+					? error.message
+					: 'Не удалось восстановить снимок.'
 			);
 		}
 	}
@@ -405,6 +472,55 @@ export const NarrativeExportPanel: React.FC = () => {
 					 или автоматическое восстановление. Для полного переноса сохраните
 					 отдельно исходную Twine Story.
 				</small>
+			</div>
+
+			<div className="narrative-workspace__export-actions">
+				<label htmlFor="narrative-source-restore-file">
+					Проверить исходный снимок перед восстановлением
+				</label>
+				<input
+					id="narrative-source-restore-file"
+					type="file"
+					accept=".json,application/json"
+					disabled={Boolean(recovery)}
+					onChange={inspectSourceFile}
+				/>
+				<small>
+					Только файл .narrative-source.json, созданный для этой же Twine Story
+					и версии схемы. Импорт допускается исключительно в пустой проект.
+					Чужая Story, игровой runtime artifact и перезапись исключены.
+				</small>
+				{sourceImport?.status === 'rejected' && (
+					<p className="narrative-workspace__export-error" role="alert">
+						{sourceImport.reason}
+					</p>
+				)}
+				{sourceImport?.status === 'ready' && (
+					<div className="narrative-workspace__export-actions">
+						<p role="status">
+							Проверен снимок «{sourceImport.project.name}»:
+							{' '}{sourceImport.project.characters.length} персонажей,
+							{' '}{sourceImport.project.storyNodes.length} сюжетных блоков,
+							{' '}{sourceImport.project.narrativeMoves.length} действий.
+						</p>
+						<label>
+							<input
+								type="checkbox"
+								checked={confirmSourceImport}
+								onChange={event => setConfirmSourceImport(event.target.checked)}
+							/>
+							Подтверждаю восстановление в пустой проект текущей Story.
+						</label>
+						<button
+							type="button"
+							disabled={!confirmSourceImport || !hostStory ||
+								!narrativeSourceRestoreTargetIsEmpty(project)}
+							onClick={restoreSourceSnapshot}
+						>
+							Восстановить проверенный снимок
+						</button>
+					</div>
+				)}
 			</div>
 
 			<div className="narrative-workspace__export-actions">
