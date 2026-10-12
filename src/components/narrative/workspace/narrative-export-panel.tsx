@@ -17,6 +17,10 @@ import {narrativeRuntimeProofFilenameExtension} from '../../../application/narra
 import {storyFileName} from '../../../electron/shared';
 import {launchNarrativePlayerDevelopment} from '../../../player/development-handoff';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {
+	narrativeSourceSnapshotFilename,
+	serializeNarrativeSourceSnapshot
+} from '../../../store/narrative-project/author-snapshot';
 import {useNarrativePublishing} from '../../../store/use-narrative-publishing';
 import {useUndoableStoriesContext} from '../../../store/undoable-stories';
 import {saveHtml, saveJson} from '../../../util/save-file';
@@ -193,6 +197,26 @@ export const NarrativeExportPanel: React.FC = () => {
 		setLastPublishedFile(filename);
 	}
 
+	function downloadSourceSnapshot() {
+		// Recovery may be showing a fresh fallback rather than the damaged source.
+		// Never advertise that fallback as a backup of the author's original work.
+		if (recovery) {
+			return;
+		}
+		resetOperationFeedback();
+		try {
+			const filename = narrativeSourceSnapshotFilename(project);
+			saveJson(serializeNarrativeSourceSnapshot(project), filename);
+			setLastPublishedFile(filename);
+		} catch (error) {
+			setOperationError(
+				error instanceof Error
+					? error.message
+					: 'Не удалось подготовить снимок Narrative Project.'
+			);
+		}
+	}
+
 	function publishProof() {
 		if (!hostStory || preparation?.status !== 'ready') {
 			return;
@@ -363,6 +387,25 @@ export const NarrativeExportPanel: React.FC = () => {
 					</p>
 				)
 			)}
+
+			<div className="narrative-workspace__export-actions">
+				<div className="narrative-workspace__export-action-buttons">
+					<button
+						type="button"
+						disabled={Boolean(recovery)}
+						onClick={downloadSourceSnapshot}
+					>
+						Снимок Narrative Project JSON
+					</button>
+				</div>
+				<small>
+					Снимок редактируемых Narrative Project данных (authored/editor/runtime),
+					 не игровой Runtime artifact. Доступен даже при блокировках компиляции.
+					 НЕ включает host Twine Story/passages и пока не поддерживает импорт
+					 или автоматическое восстановление. Для полного переноса сохраните
+					 отдельно исходную Twine Story.
+				</small>
+			</div>
 
 			<div className="narrative-workspace__export-actions">
 				<div className="narrative-workspace__export-action-buttons">
