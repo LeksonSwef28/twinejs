@@ -270,6 +270,14 @@ export const SimulationDebugPanel: React.FC<SimulationDebugPanelProps> = ({
 											<strong>{occurrence.moveId} → {occurrence.outcomeId}</strong>{' '}
 											<span>effects: {occurrence.effectIds.join(', ') || 'none'}</span>
 										</>
+									) : occurrence.type === 'deferred-claim' ? (
+										<>
+											<strong>Claim: {occurrence.result} · {occurrence.effectId}</strong>{' '}
+											<span>
+												после Outcome {occurrence.moveId} → {occurrence.outcomeId};
+												 срок {momentLabel(occurrence.dueMoment.day, occurrence.dueMoment.minuteOfDay)}
+											</span>
+										</>
 									) : (
 										<strong>{occurrence.workId} · {occurrence.result}</strong>
 									)}{' '}
