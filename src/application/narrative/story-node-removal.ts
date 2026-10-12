@@ -4,6 +4,8 @@ export interface StoryNodeRemovalReference {
 	kind: string;
 	id: string;
 	label: string;
+	/** Canonical linked Story destination, if there is one. */
+	navigationStoryNodeId?: string;
 }
 
 export type StoryNodeRemovalInspection =
@@ -69,14 +71,44 @@ export function inspectStoryNodeRemoval(
 		}
 		return project.storyNodes.find(node => node.id === id)?.title ?? id;
 	};
-	fromCollection('story-connection', project.storyConnections, connection =>
-		`Связь «${storyTitle(connection.sourceNodeId)}» → «${storyTitle(connection.targetNodeId)}»`);
-	fromCollection('move', project.narrativeMoves, move =>
-		`Действие «${String(move.label ?? move.id ?? '')}»`);
+	for (const connection of project.storyConnections) {
+		if (
+			connection.sourceNodeId === storyNodeId ||
+			connection.targetNodeId === storyNodeId
+		) {
+			references.push({
+				kind: 'story-connection',
+				id: connection.id,
+				label: `Связь «${storyTitle(connection.sourceNodeId)}» → «${storyTitle(connection.targetNodeId)}»`,
+				navigationStoryNodeId:
+					connection.sourceNodeId === storyNodeId
+						? connection.targetNodeId
+						: connection.sourceNodeId
+			});
+		}
+	}
+	for (const move of project.narrativeMoves) {
+		if (visit(move)) {
+			references.push({
+				kind: 'move',
+				id: move.id,
+				label: `Действие «${move.label}»`,
+				navigationStoryNodeId: move.storyNodeId
+			});
+		}
+	}
 	fromCollection('reaction-set', project.reactionCandidateSets, set =>
 		`Набор реакций ${String(set.id ?? '')}`);
-	fromCollection('story-node', project.storyNodes.filter(node => node.id !== storyNodeId), node =>
-		`Сюжетный блок «${String(node.title ?? node.id ?? '')}»`);
+	for (const node of project.storyNodes) {
+		if (node.id !== storyNodeId && visit(node)) {
+			references.push({
+				kind: 'story-node',
+				id: node.id,
+				label: `Сюжетный блок «${node.title}»`,
+				navigationStoryNodeId: node.id
+			});
+		}
+	}
 
 	// Include all other authored and runtime collections that could carry
 	// provenance/state references. None may be silently changed by deletion.
