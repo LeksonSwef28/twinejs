@@ -230,6 +230,12 @@ Potential inputs:
 
 Do not freeze exact endings before real multi-week playtests show which state dimensions actually matter.
 
+## 6a. Editor authoring workflow audit (parallel product-quality gate, 2026-10-12)
+
+The immediate product goal is a usable **narrative authoring environment**; the 93-day story exercises its capabilities. The [current editor audit](EDITOR_AUTHORING_WORKFLOW_AUDIT.md) records independent feedback, existing owners (Story Brain, Project Search, authoring, persistence/recovery, export) and the W1–W7 reproducible author tasks.
+
+Prioritize proof of **UI-only authoring**, **reversible source-project persistence and transfer**, and **preflight impact for edits**; investigate documented partial character relationship/inner-world UI. The audit does **not** authorize a storage rewrite, duplicate engine, AI-autonomous canon, or new game subsystem. Only open focused changes for reproduced gaps. Do not confuse this authoring gate with the separate A67/A68 Player human UX gate or A69 real-scale evidence.
+
 ## 7. Tooling backlog policy
 
 Potential future gaps include Character Inner World authoring, initial relationship authoring,
