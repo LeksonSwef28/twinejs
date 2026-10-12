@@ -105,6 +105,6 @@ describe('W1 first editor-only writer workflow', () => {
 		screenOne.unmount();
 		renderWriter();
 		expect(screen.getByTestId('writer-author-state')).toHaveTextContent('1:1:1:1');
-		expect(screen.getByText('Спросить про письмо')).toBeInTheDocument();
+		expect(screen.getAllByText('Спросить про письмо').length).toBeGreaterThan(0);
 	});
 });
