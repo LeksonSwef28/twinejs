@@ -8,6 +8,7 @@ import {
 } from '../../../domain/narrative/story';
 import {useNarrativeProject} from '../../../store/narrative-project';
 import {StoryConnectionsPanel} from './story-connections-panel';
+import {planRelativeStoryFollowup} from '../../../application/narrative/relative-story-followup';
 
 const storyKindLabels: Record<StoryNodeKind, string> = {
 	beat: 'Сюжетный бит',
@@ -29,11 +30,19 @@ const activationStateLabels: Record<StoryNodeActivationState, string> = {
 export const StoryMetadataPanel: React.FC = () => {
 	const {project, execute} = useNarrativeProject();
 	const [nodeId, setNodeId] = React.useState('');
+	const [followupSourceId, setFollowupSourceId] = React.useState('');
+	const [followupDelay, setFollowupDelay] = React.useState('2');
 	const selectedNodeId =
 		nodeId && project.storyNodes.some(node => node.id === nodeId)
 			? nodeId
 			: project.storyNodes[0]?.id ?? '';
 	const node = project.storyNodes.find(candidate => candidate.id === selectedNodeId);
+	const followupPlan =
+		node && followupSourceId
+			? planRelativeStoryFollowup(
+				project, followupSourceId, node.id, Number(followupDelay)
+			)
+			: undefined;
 	const [title, setTitle] = React.useState('');
 	const [description, setDescription] = React.useState('');
 	const [kind, setKind] = React.useState<StoryNodeKind>('beat');
@@ -358,6 +367,78 @@ export const StoryMetadataPanel: React.FC = () => {
 						</fieldset>
 						<button type="submit">Сохранить Story metadata</button>
 					</form>
+					<section aria-label="Планирование продолжения через несколько дней">
+						<h3>Продолжение через N дней</h3>
+						<p>
+							Помогает расположить эту сцену через несколько дней после исходной.
+							Это план времени, а НЕ таймер: знания, отношения и Outcome effects
+							не выполняются автоматически при наступлении дня.
+						</p>
+						<label>
+							После какой сцены
+							<select
+								aria-label="Исходная сцена для продолжения"
+								value={followupSourceId}
+								onChange={event => setFollowupSourceId(event.target.value)}
+							>
+								<option value="">Выберите исходную сцену</option>
+								{project.storyNodes.filter(candidate => candidate.id !== node?.id).map(candidate => (
+									<option key={candidate.id} value={candidate.id}>
+										{candidate.title}
+									</option>
+								))}
+							</select>
+						</label>
+						<label>
+							Через сколько игровых дней
+							<input
+								aria-label="Задержка продолжения в днях"
+								type="number"
+								min={1}
+								step={1}
+								value={followupDelay}
+								onChange={event => setFollowupDelay(event.target.value)}
+							/>
+						</label>
+						{followupPlan?.status === 'blocked' && (
+							<p role="status">{followupPlan.reason}</p>
+						)}
+						{followupPlan?.status === 'ready' && (
+							<div role="status">
+								<p>
+									План: день {followupPlan.plannedDay}, {' '}
+									{Math.floor(followupPlan.plannedMinuteOfDay / 60).toString().padStart(2, '0')}:
+									{(followupPlan.plannedMinuteOfDay % 60).toString().padStart(2, '0')}.
+								</p>
+								<p>
+									{followupPlan.hasExplicitOutcomeUnlock
+										? 'В исходной сцене найден Outcome, открывающий это продолжение. Он срабатывает сразу при разрешении, не через N дней.'
+										: 'Исходная сцена не содержит Outcome, открывающий продолжение: пока это только размещение на календаре без причинной связи.'}
+								</p>
+							</div>
+						)}
+						<button
+							type="button"
+							disabled={followupPlan?.status !== 'ready'}
+							onClick={() => {
+								if (!node) {
+									return;
+								}
+								const current = planRelativeStoryFollowup(
+									project, followupSourceId, node.id, Number(followupDelay)
+								);
+								if (current.status === 'ready') {
+									execute({
+										type: 'story/setPlacement',
+										id: node.id,
+										placement: current.placement
+									});
+								}
+							}}
+						>
+							Назначить время продолжения
+						</button>
+					</section>
 				</>
 			)}
 			<StoryConnectionsPanel />
