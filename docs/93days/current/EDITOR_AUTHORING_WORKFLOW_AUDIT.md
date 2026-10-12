@@ -91,6 +91,16 @@ The A77 source snapshot can now be **selected, parsed and previewed in EXPORT / 
 
 Unit/UI tests cover preflight accept/reject, unchanged existing project, confirmation gate and correct replace callback. Independent manual source-file export/import and save/reopen verification is still required before changing the W6 evidence status.
 
+## 3c. A79 — safe Story node deletion preflight (2026-10-12)
+
+Status: **IMPLEMENTED ON FEATURE BRANCH / CI + HUMAN AUTHOR TRIAL PENDING**.
+
+The Story inspector checks canonical dependencies before allowing deletion of a Story node. It lists impacted connections, owned/other Moves (including guard/outcome references), reaction sets, authored definitions, and runtime occurrences/state references. References are resolved conservatively: a match blocks deletion rather than silently rewriting a different author's content. Duplicate Canvas representations of a canonical node are deliberately excluded from blockers and are removed together with the canonical node only when no dependencies exist.
+
+**Critical defense in depth:** `story/removeNode` checks the same preflight in the reducer, not only the button. A direct command cannot silently cascade-remove connected narrative data. A referenced node is preserved unchanged, with no undo-history entry. An isolated node is still deletable and undoable. This is a deliberately **strict interim policy**; it does not introduce a full safe-refactor/rewire wizard, and it does not imply the existing Project Search/Story Brain references are exhaustive.
+
+Verification: unit tests for isolated deletion, Story connections, other/owned Move dependencies, runtime overrides and missing-node no-op; UI integration checks that blocked deletion explains at least the linked Story to the author. Manual author trial W3 and detailed per-reference navigation remain open.
+
 ## 4. First reproducible audit — author workflow trial
 
 Test on a **separate/replaceable Story or a backed-up copy**; never overwrite the user's real production story to run this experiment. Record app version, SHA, platform, project/host IDs, time spent, UI steps, errors, and whether manual TS/JSON edits were necessary.
