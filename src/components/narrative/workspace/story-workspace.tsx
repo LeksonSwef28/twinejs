@@ -154,6 +154,7 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 		revision: number;
 	}>({revision: 0});
 	const [connectionSourceId, setConnectionSourceId] = React.useState<string>();
+	const [pendingDisconnectId, setPendingDisconnectId] = React.useState<string>();
 	const [connectionMode, setConnectionMode] =
 		React.useState<StoryEdgeMode>('reference');
 	const [dragState, setDragState] = React.useState<DragState>();
@@ -1038,6 +1039,44 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 										{storyDeletionInspection.references.map(reference => (
 											<li key={`${reference.kind}:${reference.id}`}>
 												{reference.label}
+												{reference.navigationStoryNodeId &&
+													reference.navigationStoryNodeId !== inspectedStoryNode.id && (
+														<button
+															type="button"
+															onClick={() => {
+																setPendingDisconnectId(undefined);
+																navigate({
+																	type: 'open-story-in-story',
+																	storyNodeId: reference.navigationStoryNodeId!
+																});
+															}}
+														>
+															Перейти к связанному блоку
+														</button>
+													)}
+												{reference.kind === 'story-connection' && (
+													<button
+														type="button"
+														onClick={() => {
+														if (pendingDisconnectId !== reference.id) {
+															setPendingDisconnectId(reference.id);
+															return;
+														}
+														if (project.storyConnections.some(
+															connection => connection.id === reference.id &&
+															(connection.sourceNodeId === inspectedStoryNode.id ||
+																connection.targetNodeId === inspectedStoryNode.id)
+														)) {
+															execute({type: 'story/disconnect', id: reference.id});
+														}
+														setPendingDisconnectId(undefined);
+													}}
+													>
+														{pendingDisconnectId === reference.id
+															? 'Подтвердить удаление этой связи'
+															: 'Отвязать эту связь'}
+													</button>
+												)}
 											</li>
 										))}
 									</ul>
