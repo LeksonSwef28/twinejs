@@ -133,6 +133,27 @@ describe('A84 canonical deferred Claim Outcome', () => {
 		]));
 	});
 
+	test('a forged or orphaned pending event cannot create character knowledge', () => {
+		const authored = fixture();
+		const resolved = resolveAndApplyNarrativeProjectMove(authored, 'talk').project;
+		const forged = {
+			...resolved,
+			runtimeOccurrences: resolved.runtimeOccurrences.map(event =>
+				event.type === 'deferred-claim'
+					? {...event, causeOccurrenceId: 'nonexistent-outcome'}
+					: event
+			)
+		};
+		const advanced = advanceNarrativeProjectSimulation(forged, 2880).project;
+		expect(advanced.simulation.characterKnowledge).toHaveLength(0);
+		expect(pendingDeferredClaims(advanced)).toHaveLength(0);
+		expect(advanced.runtimeOccurrences).toEqual(expect.arrayContaining([
+			expect.objectContaining({
+				type: 'deferred-claim', result: 'expired', reason: 'missing-definition'
+			})
+		]));
+	});
+
 	test('malformed day delays are rejected at authoring definition boundary', () => {
 		for (const invalid of [0, -2, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
 			const project = fixture(invalid);
