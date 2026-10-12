@@ -397,7 +397,7 @@ describe('narrative moves', () => {
 		expect(state.present.simulation.characterKnowledge).toEqual([]);
 	});
 
-	test('removing the owning Story node removes its authored moves', () => {
+	test('removing a Story node never silently cascades into owned Moves', () => {
 		let state = execute(projectWithStoryNode(), {
 			type: 'move/add',
 			id: 'move-owned',
@@ -405,8 +405,17 @@ describe('narrative moves', () => {
 			kind: 'ask',
 			label: 'Спросить'
 		});
+		const beforeDelete = state;
 		state = execute(state, {type: 'story/removeNode', id: 'scene-a'});
 
-		expect(state.present.narrativeMoves).toEqual([]);
+		expect(state).toBe(beforeDelete);
+		expect(state.present.narrativeMoves).toHaveLength(1);
+		expect(state.present.storyNodes.map(node => node.id)).toContain('scene-a');
+
+		// The author can remove the Move deliberately, then remove its empty Story.
+		state = execute(state, {type: 'move/remove', id: 'move-owned'});
+		expect(state.present.narrativeMoves).toHaveLength(0);
+		state = execute(state, {type: 'story/removeNode', id: 'scene-a'});
+		expect(state.present.storyNodes.map(node => node.id)).not.toContain('scene-a');
 	});
 });
