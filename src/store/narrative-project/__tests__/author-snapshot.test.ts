@@ -42,8 +42,8 @@ describe('author source checkpoint (W6)', () => {
 		expect(snapshot.authored.storyNodes).toEqual(project.storyNodes);
 		expect(snapshot.editor.selectedDay).toBe(8);
 		expect(snapshot.runtime.simulation.day).toBe(5);
-		expect(snapshot.authored.editor).toBeUndefined();
-		expect(snapshot.authored.simulation).toBeUndefined();
+		expect('editor' in snapshot.authored).toBe(false);
+		expect('simulation' in snapshot.authored).toBe(false);
 		expect(composeNarrativeProjectPersistence(snapshot)).toEqual(project);
 		expect(JSON.stringify(project)).toBe(unchanged);
 	});
