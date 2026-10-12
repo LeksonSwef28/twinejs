@@ -683,6 +683,19 @@ export function applyNarrativeProjectCommand(
 				]
 			});
 		}
+		case 'story/disconnect': {
+			if (!project.storyConnections.some(connection => connection.id === command.id)) {
+				return project;
+			}
+			// Explicitly remove only this author-selected edge, never its end nodes,
+			// Moves, conditions or runtime data. History reducer retains Undo.
+			return touched({
+				...project,
+				storyConnections: project.storyConnections.filter(
+					connection => connection.id !== command.id
+				)
+			});
+		}
 		case 'story/setConnectionMode': {
 			const connection = project.storyConnections.find(
 				candidate => candidate.id === command.id
