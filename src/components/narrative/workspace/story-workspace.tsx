@@ -248,6 +248,12 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 	}, [focus]);
 
 	React.useEffect(() => {
+		// Confirmation belongs to the currently inspected canonical Story node.
+		// Switching focus must never leave an old destructive action armed.
+		setPendingDisconnectId(undefined);
+	}, [inspectedStoryNode?.id]);
+
+	React.useEffect(() => {
 		if (
 			selectedLocalItemId &&
 			!itemInstancesById.has(selectedLocalItemId)
