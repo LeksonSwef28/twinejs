@@ -71,6 +71,16 @@ These observations are from the cited code at the audited SHA; **no manual GUI t
 - **UNKNOWN** is not a confirmed defect. Do not mark it P0 or implement a speculative subsystem.
 - The package/saving/impact review is **not** a substitute for a clean-machine/manual GUI authoring trial.
 
+## 3a. A77 — source snapshot export slice (2026-10-12)
+
+Status: **IMPLEMENTED ON FEATURE BRANCH / CI AND MANUAL DOWNLOAD PENDING** (update only after evidence).
+
+The Export/Compiler authoring UI now offers **`Снимок Narrative Project JSON`**, an explicit human-readable snapshot of the current `narrative-project-projections-v1` envelope with the editable **authored, editor and runtime projections**. This is independent of successful gameplay compilation, so an incomplete draft can be saved for inspection. It does not invoke any authoring/runtime commands. In project recovery mode the download is disabled: the fallback must never be mistaken for the user's damaged original.
+
+**Scope warning:** this is **NOT** a self-contained project transfer or a restorable story package. The `hostStoryId` remains bound to its Twine host; the snapshot excludes its host Story/passages. There is currently **no user-facing source-snapshot import/restore path**. The full backup + cross-host round-trip in W6 is still open. The user must separately export their Twine Story if needed; do not promote A77 as completed backup/restore.
+
+Verification contracts introduced: projection-preserving JSON round-trip, no mutation during serialization, compile-blocked download, and recovery disabled state. The remaining proof is a real download/file inspection on an independent authoring install.
+
 ## 4. First reproducible audit — author workflow trial
 
 Test on a **separate/replaceable Story or a backed-up copy**; never overwrite the user's real production story to run this experiment. Record app version, SHA, platform, project/host IDs, time spent, UI steps, errors, and whether manual TS/JSON edits were necessary.

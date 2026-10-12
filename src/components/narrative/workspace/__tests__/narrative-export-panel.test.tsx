@@ -18,6 +18,7 @@ import {
 import {launchNarrativePlayerDevelopment} from '../../../../player/development-handoff';
 import {Story} from '../../../../store/stories';
 import {saveHtml, saveJson} from '../../../../util/save-file';
+import {serializeNarrativeSourceSnapshot} from '../../../../store/narrative-project/author-snapshot';
 import {NarrativeExportPanel} from '../narrative-export-panel';
 
 const mockExecute = jest.fn();
@@ -25,6 +26,7 @@ const mockReplaceProjectFromStarter = jest.fn();
 const mockPublishNarrativeProject = jest.fn();
 const mockPublishNarrativeProof = jest.fn();
 let mockProject = createProject();
+let mockRecovery: {backupKeys: string[]} | undefined;
 let mockHostStory = hostStory();
 
 jest.mock('../../../../store/narrative-project', () => ({
@@ -32,7 +34,7 @@ jest.mock('../../../../store/narrative-project', () => ({
 		project: mockProject,
 		execute: mockExecute,
 		replaceProjectFromStarter: mockReplaceProjectFromStarter,
-		recovery: undefined
+		recovery: mockRecovery
 	})
 }));
 
@@ -122,6 +124,7 @@ function setPublishResultForCurrentProject() {
 describe('<NarrativeExportPanel>', () => {
 	beforeEach(() => {
 		mockProject = createProject();
+		mockRecovery = undefined;
 		mockHostStory = hostStory();
 		mockExecute.mockClear();
 		mockReplaceProjectFromStarter.mockReset();
@@ -237,6 +240,48 @@ describe('<NarrativeExportPanel>', () => {
 		);
 		expect(mockExecute).not.toHaveBeenCalled();
 		 expect(mockPublishNarrativeProject).not.toHaveBeenCalled();
+	});
+
+
+	test('downloads editable Narrative Project projections even when runtime compilation is blocked', () => {
+		mockProject.storyNodes = [{
+			id: 'draft-broken',
+			kind: 'dialogue',
+			title: 'Незаконченный диалог',
+			participantIds: ['missing-character'],
+			activationState: 'available'
+		}];
+		const original = JSON.stringify(mockProject);
+		render(<NarrativeExportPanel />);
+
+		expect(screen.getByText('Экспорт заблокирован')).toBeInTheDocument();
+		fireEvent.click(
+			screen.getByRole('button', {name: 'Снимок Narrative Project JSON'})
+		);
+
+		expect(saveJsonMock).toHaveBeenCalledWith(
+			serializeNarrativeSourceSnapshot(mockProject),
+			'Canonical Export Story.narrative-source.json'
+		);
+		expect(screen.getByRole('status')).toHaveTextContent(
+			'Файл подготовлен: Canonical Export Story.narrative-source.json'
+		);
+		expect(screen.getByText(/НЕ включает host Twine Story\/passages/))
+			.toBeInTheDocument();
+		expect(mockExecute).not.toHaveBeenCalled();
+		expect(JSON.stringify(mockProject)).toBe(original);
+	});
+
+	test('never exports a blank fallback as the original source during recovery', () => {
+		mockRecovery = {backupKeys: ['recovery:damaged']};
+		render(<NarrativeExportPanel />);
+
+		const snapshot = screen.getByRole('button', {
+			name: 'Снимок Narrative Project JSON'
+		});
+		expect(snapshot).toBeDisabled();
+		fireEvent.click(snapshot);
+		expect(saveJsonMock).not.toHaveBeenCalled();
 	});
 
 	test('downloads canonical runtime artifact JSON directly', () => {
