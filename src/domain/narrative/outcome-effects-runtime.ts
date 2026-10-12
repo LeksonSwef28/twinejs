@@ -138,6 +138,16 @@ export function applyNarrativeOutcomeEffects(
 	for (const effect of outcome.effects ?? []) {
 		switch (effect.type) {
 			case 'character-learns-claim': {
+				// Deferred knowledge is scheduled at the project Outcome boundary.
+				// This pure runtime applicator must never grant it immediately.
+				if (effect.delayDays !== undefined) {
+					traces.push({
+						effectId: effect.id,
+						type: effect.type,
+						summary: `Отложено на ${effect.delayDays} игровых дней; знание сейчас не изменено.`
+					});
+					break;
+				}
 				const knowledge = applyNarrativeOutcomeKnowledgeEffects(
 					move,
 					{...outcome, effects: [effect]},
