@@ -300,7 +300,8 @@ export function applyNarrativeOutcomeKnowledgeEffects(
 	const traces: NarrativeKnowledgeEffectTrace[] = [];
 
 	for (const effect of outcome.effects ?? []) {
-		if (effect.type !== 'character-learns-claim') {
+		if (effect.type !== 'character-learns-claim' || effect.delayDays !== undefined) {
+			// The caller must explicitly remove delayDays at canonical due time.
 			continue;
 		}
 
