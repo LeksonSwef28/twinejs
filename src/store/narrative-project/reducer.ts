@@ -3,6 +3,7 @@ import {
 	validateAuthoredItemPlacementTarget
 } from '../../application/narrative/authored-item-placement';
 import {NarrativeProjectCommand} from '../../application/narrative/commands';
+import {inspectStoryNodeRemoval} from '../../application/narrative/story-node-removal';
 import {
 	clampDay,
 	clampMinuteOfDay,
@@ -584,6 +585,11 @@ export function applyNarrativeProjectCommand(
 			});
 		}
 		case 'story/removeNode':
+			// The reducer is the authoritative guard: other UI surfaces or scripts
+			// must not bypass the preflight by dispatching this command directly.
+			if (inspectStoryNodeRemoval(project, command.id).status !== 'ready') {
+				return project;
+			}
 			return touched({
 				...project,
 				storyNodes: project.storyNodes.filter(node => node.id !== command.id),
