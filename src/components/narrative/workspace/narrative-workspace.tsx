@@ -55,6 +55,8 @@ const NarrativeWorkspaceSession: React.FC = () => {
 	const [projectLibraryOpen, setProjectLibraryOpen] = React.useState(false);
 	const [exportOpen, setExportOpen] = React.useState(false);
 	const [splitView, setSplitView] = React.useState(false);
+	const [inspectedDependencyMoveId, setInspectedDependencyMoveId] =
+		React.useState<string>();
 	const {navigate} = useAuthoringNavigation({splitView});
 	const [simulationDebugOpen, setSimulationDebugOpen] = React.useState(false);
 	const [previewFromHereRequest, setPreviewFromHereRequest] =
@@ -387,7 +389,7 @@ const NarrativeWorkspaceSession: React.FC = () => {
 							<strong>Story</strong>
 							<small>authoring</small>
 						</div>
-						<StoryWorkspace navigate={navigate} />
+						<StoryWorkspace navigate={navigate} onInspectMove={setInspectedDependencyMoveId} />
 					</div>
 					<div className="narrative-workspace__split-pane is-world-time">
 						<div className="narrative-workspace__split-pane-heading">
@@ -413,7 +415,7 @@ const NarrativeWorkspaceSession: React.FC = () => {
 					<StoryMetadataPanel />
 					<StoryBrainPanel />
 					<NarrativeMovePanel />
-					<MoveConditionsPanel />
+					<MoveConditionsPanel preferredMoveId={inspectedDependencyMoveId} />
 					<OutcomeEffectsPanel />
 					<MemorySaliencePanel />
 					<InteractionTemplatePanel />
