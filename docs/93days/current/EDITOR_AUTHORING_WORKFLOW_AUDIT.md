@@ -111,6 +111,18 @@ Only typed Story connections receive direct unlink controls. For Moves, the pref
 
 **Still open:** non-Story dependency navigation/refactoring, complete W3 human author trial, full rename impact and dependency coverage review. A80 does not claim exhaustive reference detection or a general refactor wizard.
 
+## 3e. A81 — usability-grounded W3/W1 small-slice experiment (2026-10-12)
+
+Status: **FEATURE BRANCH IMPLEMENTATION / CI AND HUMAN TASK EVIDENCE PENDING**.
+
+See [EDITOR_USABILITY_RESEARCH_A81.md](EDITOR_USABILITY_RESEARCH_A81.md) for external research (NIST task effectiveness/time/errors, NN/g error prevention and progressive disclosure, VS Code exact-reference navigation), design choices, risks and acceptance criteria.
+
+- **W3 exact Move dependency**: the blocked Story node inspector can request a particular Move by canonical ID in the existing Move Conditions editor, not simply switch to the owning Story node. Stale Move selection must not silently fall back to another action. Simulation Playhead is unchanged.
+- **W3 canonical metadata**: the character/location/fact/claim/item-definition metadata editor now shows *indexed* known references before editing, explicitly labels them partial, and keeps identity-based rename (ID stable, Undo supported). It does **not** add destructive entity deletion (not currently a canonical authoring command) or pretend to certify complete dependency coverage.
+- **W1 UI-only authoring trial**: a new automated test starts from an empty Narrative Project and uses actual forms to add a character, draft Story node, Move and guard, then checks save/reopen. This is an authored UI path, **not** a TypeScript-populated production story fixture. It does not establish literary quality, full character relationships, portable host-Story export or human usability.
+
+**Manual pending:** non-programmer task walkthrough, time/steps/error log, navigation back/peek feedback, and no-code authored case extended to relationships, knowledge provenance and export. Do not mark W1 or W3 human gates passed from the tests alone.
+
 ## 4. First reproducible audit — author workflow trial
 
 Test on a **separate/replaceable Story or a backed-up copy**; never overwrite the user's real production story to run this experiment. Record app version, SHA, platform, project/host IDs, time spent, UI steps, errors, and whether manual TS/JSON edits were necessary.
