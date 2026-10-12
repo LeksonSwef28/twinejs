@@ -12,6 +12,8 @@ import {
 	useAuthoringSessionFocus
 } from '../authoring-session-focus';
 import {StoryWorkspace} from '../story-workspace';
+import {MoveConditionsPanel} from '../move-conditions-panel';
+import {createDefaultNarrativeOutcome} from '../../../../domain/narrative/interaction';
 import {useAuthoringNavigation} from '../use-authoring-navigation';
 
 function workspaceProject() {
@@ -76,6 +78,7 @@ const WorkspaceSession: React.FC = () => {
 	const {project, undo} = useNarrativeProject();
 	const {focus} = useAuthoringSessionFocus();
 	const [splitView, setSplitView] = React.useState(false);
+	const [preferredMove, setPreferredMove] = React.useState<string>();
 	const {navigate} = useAuthoringNavigation({splitView});
 
 	return (
@@ -124,7 +127,8 @@ const WorkspaceSession: React.FC = () => {
 				undo-authored
 			</button>
 
-			<StoryWorkspace navigate={navigate} />
+			<StoryWorkspace navigate={navigate} onInspectMove={setPreferredMove} />
+			<MoveConditionsPanel preferredMoveId={preferredMove} />
 		</>
 	);
 };
@@ -135,7 +139,7 @@ const WorkspaceFocusBoundary: React.FC = () => (
 	</AuthoringSessionFocusProvider>
 );
 
-function renderWorkspace(options?: {connected?: boolean}) {
+function renderWorkspace(options?: {connected?: boolean; dependentMoves?: boolean}) {
 	const hostStoryId = 'story-a67-workspace-context';
 	const projectName = 'A67 workspace context integration';
 	const project = workspaceProject();
@@ -153,6 +157,37 @@ function renderWorkspace(options?: {connected?: boolean}) {
 			targetNodeId: 'followup',
 			kind: 'flow',
 			mode: 'reference'
+		});
+	}
+	if (options?.dependentMoves) {
+		project.storyNodes.push({
+			id: 'followup',
+			kind: 'dialogue',
+			title: 'Реакция на разговор',
+			participantIds: [],
+			activationState: 'draft'
+		});
+		project.narrativeMoves.push({
+			id: 'meeting-move',
+			storyNodeId: 'meeting',
+			kind: 'inform',
+			label: 'Начать разговор',
+			targetCharacterIds: [],
+			guards: [],
+			resolution: {type: 'automatic', outcomeId: 'meeting-move:outcome:continue'},
+			outcomes: [createDefaultNarrativeOutcome('meeting-move')]
+		}, {
+			id: 'followup-guarded',
+			storyNodeId: 'followup',
+			kind: 'ask',
+			label: 'Спросить о разговоре',
+			targetCharacterIds: [],
+			guards: [{
+				id: 'guard-meeting',
+				condition: {type: 'story-node-state', storyNodeId: 'meeting', state: 'completed'}
+			}],
+			resolution: {type: 'automatic', outcomeId: 'followup-guarded:outcome:continue'},
+			outcomes: [createDefaultNarrativeOutcome('followup-guarded')]
 		});
 	}
 	createLocalStorageNarrativeProjectRepository(
@@ -295,6 +330,23 @@ describe('A67 workspace context integration', () => {
 		expect(screen.getByTestId('focus')).toHaveTextContent('story-node:meeting');
 		fireEvent.click(screen.getByText('undo-authored'));
 		expect(screen.getByRole('button', {name: 'Удалить блок'})).toBeDisabled();
+	});
+
+	test('selects the exact dependent Move guard rather than its Story or the first Move', async () => {
+		const {container} = renderWorkspace({dependentMoves: true});
+		await waitFor(() => expect(storyCanvasButtons(container)).toHaveLength(2));
+		fireEvent.click(storyCanvasButtons(container)[0]);
+		const before = screen.getByTestId('simulation').textContent;
+		const target = screen.getAllByRole('button', {
+			name: 'Открыть условия этого действия'
+		});
+		expect(target).toHaveLength(2);
+		fireEvent.click(target[1]);
+		await waitFor(() => expect(
+			screen.getByLabelText('Narrative Move для условий')
+		).toHaveValue('followup-guarded'));
+		expect(screen.getByText('Персонаж знает Claim')).toBeInTheDocument();
+		expect(screen.getByTestId('simulation')).toHaveTextContent(before ?? '');
 	});
 
 	test('Split View navigation moves the destination viewport without switching the canonical workspace', async () => {
