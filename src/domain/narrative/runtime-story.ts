@@ -31,9 +31,28 @@ export interface NarrativeStoryWorkOccurrence {
 	elapsedMinutes: number;
 }
 
+/**
+ * Append-only delayed Claim ledger. The source is an actual Outcome occurrence,
+ * never authoring time. One 'scheduled' is completed by 'applied' or 'expired'.
+ */
+export interface NarrativeDeferredClaimOccurrence {
+	id: EntityId;
+	type: 'deferred-claim';
+	result: 'scheduled' | 'applied' | 'expired';
+	storyNodeId: EntityId;
+	moveId: EntityId;
+	outcomeId: EntityId;
+	effectId: EntityId;
+	causeOccurrenceId: EntityId;
+	dueMoment: NarrativeRuntimeMoment;
+	moment: NarrativeRuntimeMoment;
+	reason?: 'past-project-end' | 'missing-definition';
+}
+
 export type NarrativeRuntimeOccurrence =
 	| NarrativeMoveOutcomeOccurrence
-	| NarrativeStoryWorkOccurrence;
+	| NarrativeStoryWorkOccurrence
+	| NarrativeDeferredClaimOccurrence;
 
 function runtimeMomentIsValid(value: unknown): value is NarrativeRuntimeMoment {
 	if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -82,6 +101,22 @@ export function narrativeRuntimeOccurrenceIsValid(
 			typeof candidate.outcomeId === 'string' &&
 			Array.isArray(candidate.effectIds) &&
 			candidate.effectIds.every(effectId => typeof effectId === 'string')
+		);
+	}
+	if (candidate.type === 'deferred-claim') {
+		const deferred = candidate as Partial<NarrativeDeferredClaimOccurrence>;
+		return (
+			(deferred.result === 'scheduled' ||
+				deferred.result === 'applied' ||
+				deferred.result === 'expired') &&
+			typeof deferred.moveId === 'string' &&
+			typeof deferred.outcomeId === 'string' &&
+			typeof deferred.effectId === 'string' &&
+			typeof deferred.causeOccurrenceId === 'string' &&
+			runtimeMomentIsValid(deferred.dueMoment) &&
+			(deferred.reason === undefined ||
+				deferred.reason === 'past-project-end' ||
+				deferred.reason === 'missing-definition')
 		);
 	}
 	if (candidate.type === 'story-work') {

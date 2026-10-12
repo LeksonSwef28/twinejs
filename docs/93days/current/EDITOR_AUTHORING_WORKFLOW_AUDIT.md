@@ -137,6 +137,14 @@ Status: **FEATURE BRANCH / exact-head CI and human author trial pending**.
 
 See [RELATIVE_STORY_FOLLOWUP_A83.md](RELATIVE_STORY_FOLLOWUP_A83.md). Existing Story Metadata now provides a guarded authoring shortcut to calculate a follow-up Story's day/time from an exact source Story placement plus N full days. It does not overwrite existing target placement or silently clamp past day 93. UI previews whether any authored source Move Outcome explicitly unlocks this Story, while clearly stating that such an unlock still occurs upon Outcome resolution, not on the calculated day. Scheduling true future knowledge/relationship effects and execution of arbitrary Story due work remain **open**.
 
+## 3h. A84 — true delayed Claim effects scoped v1 (2026-10-12)
+
+Status: **FEATURE BRANCH / exact-head CI and human walkthrough pending**.
+
+See [DEFERRED_CLAIM_OUTCOME_A84.md](DEFERRED_CLAIM_OUTCOME_A84.md). A84 introduces optional positive whole-day offsets for **Claim knowledge effects only**. The countdown starts on the actual resolved Move Outcome, with a scheduled entry in the existing append-only runtime occurrence ledger; canonical time stepping settles the event exactly once. Runtime and Player snapshots retain scheduled/completed provenance, and an event scheduled past day 93 is explicitly expired. No second scheduler/clock is introduced.
+
+Other Outcome effects, cancellation/rescheduling, generic NPC autonomous delivery, author-visible pending-event list and measured human writer usability remain out of scope.
+
 ## 4. First reproducible audit — author workflow trial
 
 Test on a **separate/replaceable Story or a backed-up copy**; never overwrite the user's real production story to run this experiment. Record app version, SHA, platform, project/host IDs, time spent, UI steps, errors, and whether manual TS/JSON edits were necessary.

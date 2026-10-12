@@ -14,6 +14,7 @@ import {
 	InjuryEffectTrace
 } from '../../domain/narrative/injury';
 import {NarrativeProject} from '../../domain/narrative/project';
+import {settleDueDeferredClaims} from './deferred-claim';
 import {
 	advanceActiveStoryExecutions,
 	StoryExecutionCompletionTrace
@@ -112,18 +113,19 @@ export function advanceNarrativeProjectSimulation(
 		step.trace.to
 	);
 
+	const advancedProject: NarrativeProject = {
+		...project,
+		injuriesByCharacter: injuryAdvance.states,
+		activeStoryExecutions: storyExecutionAdvance.activeExecutions,
+		runtimeOccurrences: storyExecutionAdvance.runtimeOccurrences,
+		storyNodeStateOverrides: storyExecutionAdvance.storyNodeStateOverrides,
+		simulation: {
+			...step.state,
+			bodyByCharacter: bodyAdvance.states
+		}
+	};
 	return {
-		project: {
-			...project,
-			injuriesByCharacter: injuryAdvance.states,
-			activeStoryExecutions: storyExecutionAdvance.activeExecutions,
-			runtimeOccurrences: storyExecutionAdvance.runtimeOccurrences,
-			storyNodeStateOverrides: storyExecutionAdvance.storyNodeStateOverrides,
-			simulation: {
-				...step.state,
-				bodyByCharacter: bodyAdvance.states
-			}
-		},
+		project: settleDueDeferredClaims(advancedProject, step.trace.to),
 		dueWork: step.dueWork,
 		trace: step.trace,
 		bodyTraces: bodyAdvance.traces,

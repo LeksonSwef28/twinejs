@@ -62,6 +62,7 @@ export const OutcomeEffectsPanel: React.FC = () => {
 	const [knowledgeAttitude, setKnowledgeAttitude] =
 		React.useState<KnowledgeAttitude>('believes');
 	const [knowledgeConfidence, setKnowledgeConfidence] = React.useState(0.75);
+	const [knowledgeDelayDays, setKnowledgeDelayDays] = React.useState(0);
 	const [knowledgeSource, setKnowledgeSource] =
 		React.useState<KnowledgeSourceMode>('authored');
 	const [knowledgeSourceTargetIndex, setKnowledgeSourceTargetIndex] =
@@ -134,7 +135,10 @@ export const OutcomeEffectsPanel: React.FC = () => {
 						!knowledgeSourceMedium.trim()) ||
 					!Number.isFinite(knowledgeConfidence) ||
 					knowledgeConfidence < 0 ||
-					knowledgeConfidence > 1
+					knowledgeConfidence > 1 ||
+					!Number.isSafeInteger(knowledgeDelayDays) ||
+					knowledgeDelayDays < 0 ||
+					knowledgeDelayDays >= project.template.dayCount
 				) {
 					return;
 				}
@@ -151,6 +155,7 @@ export const OutcomeEffectsPanel: React.FC = () => {
 							: {type: 'communicated-claim'},
 					attitude: knowledgeAttitude,
 					confidence: knowledgeConfidence,
+					...(knowledgeDelayDays > 0 ? {delayDays: knowledgeDelayDays} : {}),
 					source:
 						knowledgeSource === 'move-target'
 							? {
@@ -271,7 +276,11 @@ export const OutcomeEffectsPanel: React.FC = () => {
 		}
 
 		execute({type: 'move/addEffect', moveId: move.id, outcomeId: outcome.id, effect});
-		setMessage('Эффект добавлен к выбранному Outcome. Он сработает только при разрешении этого исхода.');
+		setMessage(
+			knowledgeDelayDays > 0 && effect.type === 'character-learns-claim'
+				? 'Claim будет получен через указанное число игровых дней после фактического Outcome; до этого он не меняет знания.'
+				: 'Эффект добавлен к выбранному Outcome. Он сработает только при разрешении этого исхода.'
+		);
 	}
 
 	return (
@@ -433,6 +442,23 @@ export const OutcomeEffectsPanel: React.FC = () => {
 								))}
 							</select>
 						)}
+						<label>
+							Получение Claim через N игровых дней
+							<input
+								aria-label="Задержка knowledge effect в днях"
+								type="number"
+								min={0}
+								max={project.template.dayCount - 1}
+								step={1}
+								value={knowledgeDelayDays}
+								onChange={event => setKnowledgeDelayDays(Number(event.target.value))}
+							/>
+							<small>
+								0 — сразу при разрешении Outcome; N — через N суток
+								после фактического выбора. Если до конца проекта времени
+								не хватит, событие будет записано как несостоявшееся.
+							</small>
+						</label>
 						{knowledgeSource === 'mediated' && (
 							<>
 								<input

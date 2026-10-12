@@ -1,4 +1,5 @@
 import {NarrativeProject} from '../../domain/narrative/project';
+import {nextPendingDeferredClaimMinute} from './deferred-claim';
 import {
 	scheduledStoryWork,
 	simulationKernelAbsoluteMinute,
@@ -65,7 +66,12 @@ function nextScheduledAbsoluteMinute(
 			next = absolute;
 		}
 	}
-	return next;
+	const nextDeferred = nextPendingDeferredClaimMinute(
+		project, currentAbsoluteMinute, targetAbsoluteMinute
+	);
+	return nextDeferred !== undefined && (next === undefined || nextDeferred < next)
+		? nextDeferred
+		: next;
 }
 
 /**
