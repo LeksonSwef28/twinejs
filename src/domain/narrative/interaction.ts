@@ -106,6 +106,8 @@ export interface NarrativeKnowledgeEffectDefinition {
 	attitude: KnowledgeAttitude;
 	confidence: number;
 	source: NarrativeKnowledgeEffectSourceDefinition;
+	/** Optional whole-day delay after actual Outcome resolution. Undefined = immediate. */
+	delayDays?: number;
 }
 
 export interface NarrativeRelationshipEffectDefinition {
@@ -350,6 +352,12 @@ function narrativeEffectIsStructurallyValid(effect: NarrativeEffectDefinition) {
 
 	switch (effect.type) {
 		case 'character-learns-claim':
+			if (
+				effect.delayDays !== undefined &&
+				(!Number.isSafeInteger(effect.delayDays) || effect.delayDays < 1)
+			) {
+				return false;
+			}
 			if (!knowledgeConfidenceIsValid(effect.confidence)) {
 				return false;
 			}
