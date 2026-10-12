@@ -116,9 +116,9 @@ export function advanceNarrativeProjectSimulation(
 	const advancedProject: NarrativeProject = {
 		...project,
 		injuriesByCharacter: injuryAdvance.states,
-			activeStoryExecutions: storyExecutionAdvance.activeExecutions,
-			runtimeOccurrences: storyExecutionAdvance.runtimeOccurrences,
-			storyNodeStateOverrides: storyExecutionAdvance.storyNodeStateOverrides,
+		activeStoryExecutions: storyExecutionAdvance.activeExecutions,
+		runtimeOccurrences: storyExecutionAdvance.runtimeOccurrences,
+		storyNodeStateOverrides: storyExecutionAdvance.storyNodeStateOverrides,
 		simulation: {
 			...step.state,
 			bodyByCharacter: bodyAdvance.states
