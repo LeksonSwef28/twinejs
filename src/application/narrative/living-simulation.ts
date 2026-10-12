@@ -12,6 +12,7 @@ import {
 } from '../../domain/narrative/interaction-runtime';
 import {ItemInstance, ItemPlacement} from '../../domain/narrative/items';
 import {applyNarrativeOutcomeEffects} from '../../domain/narrative/outcome-effects-runtime';
+import {recordDeferredOutcomeClaims} from './deferred-claim';
 import {NarrativeProject} from '../../domain/narrative/project';
 import {
 	evaluateReactionCandidateSet,
@@ -335,6 +336,7 @@ export function applyNarrativeProjectOutcome(
 		}
 	);
 	next = {...next, runtimeOccurrences: occurrenceWrite.history};
+	next = recordDeferredOutcomeClaims(next, move, outcome, occurrenceWrite.occurrence);
 	return {
 		project: next,
 		trace: {
