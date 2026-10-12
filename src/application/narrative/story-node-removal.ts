@@ -63,8 +63,14 @@ export function inspectStoryNodeRemoval(
 		});
 	};
 
+	const storyTitle = (id: unknown) => {
+		if (typeof id !== 'string') {
+			return String(id ?? '');
+		}
+		return project.storyNodes.find(node => node.id === id)?.title ?? id;
+	};
 	fromCollection('story-connection', project.storyConnections, connection =>
-		`Связь ${connection.sourceNodeId} → ${connection.targetNodeId}`);
+		`Связь «${storyTitle(connection.sourceNodeId)}» → «${storyTitle(connection.targetNodeId)}»`);
 	fromCollection('move', project.narrativeMoves, move =>
 		`Действие «${String(move.label ?? move.id ?? '')}»`);
 	fromCollection('reaction-set', project.reactionCandidateSets, set =>
