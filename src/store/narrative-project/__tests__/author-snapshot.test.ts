@@ -61,7 +61,8 @@ describe('author source checkpoint (W6)', () => {
 		saved.characters = [{
 			id: 'character-a',
 			name: 'Анна',
-			cognitionTier: 'full'
+			cognitionTier: 'full',
+			defaultBehaviorProfileId: 'routine-none'
 		}];
 		saved.storyNodes = [{
 			id: 'scene-a',
