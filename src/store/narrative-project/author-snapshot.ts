@@ -10,7 +10,9 @@ import {projectNarrativePersistence} from './persistence-projection';
  * import/restore workflow yet. Never describe it as a portable full-story
  * backup or as a game save.
  */
-export function serializeNarrativeSourceSnapshot(project: NarrativeProject): string {
+export function serializeNarrativeSourceSnapshot(
+	project: NarrativeProject
+): string {
 	return JSON.stringify(projectNarrativePersistence(project), null, 2);
 }
 
