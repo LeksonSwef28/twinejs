@@ -46,6 +46,12 @@ Non-negotiable boundaries:
 - No second handwritten gameplay engine or duplicated Passage-authored gameplay graph.
 - Runtime and save changes require evidence; content/tooling gaps do not justify runtime rewrites by themselves.
 
+## 2a. Authoring-environment product clarification (2026-10-12)
+
+The current development objective is to make the **narrative authoring environment** safe and comfortable for creating large nonlinear stories — not to treat the editor as incidental infrastructure or to count completed game days as the only measure of progress. The 93-day game is the demanding production case that validates the environment.
+
+Independent feedback from writers, UI/UX reviewers, engineers and non-technical readers is recorded and source-checked in [EDITOR_AUTHORING_WORKFLOW_AUDIT.md](docs/93days/current/EDITOR_AUTHORING_WORKFLOW_AUDIT.md). The first audit focuses on a non-programmer's end-to-end workflow, author-data recoverability/round-trip, and dependency impact for safe refactoring. It is a **static source audit in progress**, not a GUI acceptance PASS or approval for speculative new systems. Keep A67/A68 human Player acceptance separate.
+
 ## 3. Where we actually are
 
 A53-A66 established the canonical Player, vertical slice, social provenance loop,
@@ -191,6 +197,7 @@ In brief:
 - `docs/93days/current/CONTEXT_SOURCES.md` — source precedence and recovered source decisions.
 - `docs/93days/current/PRODUCT_PRINCIPLES.md` — compact fixed/working/seed product principles recovered from current concept sources.
 - `docs/93days/current/SYSTEM_STATUS.md` — implementation-backed system plus QA/distribution status audit.
+- `docs/93days/current/EDITOR_AUTHORING_WORKFLOW_AUDIT.md` — 2026-10-12 editor-first decision record, code-backed static audit and reproducible author workflow trial.
 - `docs/93days/current/A67_FIRST_WEEK_PLAN.md` — engineering-complete first-week gate record; human UX closure remains pending.
 - `docs/93days/current/A68_CONTENT_CYCLE_PLAN.md` — active A68 cycle record: C1 engineering pass / human UX pending; C2 not selected.
 - `docs/93days/current/A68_C1_ACCEPTANCE_CONTRACT.md` — implemented C1 acceptance contract for travel, provenance, continuity, cross-place consequence, save and authoring.
