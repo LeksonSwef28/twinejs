@@ -21,7 +21,7 @@ export function narrativeSourceSnapshotFilename(
 ): string {
 	const title = project.name
 		.trim()
-		.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '-')
+		.replace(/[\\/:*?"<>|]/g, '-')
 		.replace(/[. ]+$/g, '')
 		.slice(0, 70)
 		.trim();
