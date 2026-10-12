@@ -1,5 +1,6 @@
 import * as React from 'react';
 import {CognitionTier} from '../../../domain/narrative/entities';
+import {projectBackReferences} from '../../../application/narrative/project-search';
 import {ClaimTruthStance} from '../../../domain/narrative/knowledge';
 import {useNarrativeProject} from '../../../store/narrative-project';
 
@@ -42,6 +43,11 @@ export const CanonicalEntityPanel: React.FC = () => {
 	const selectedId = entityId && options.some(option => option.id === entityId)
 		? entityId
 		: options[0]?.id ?? '';
+
+	const indexedReferences = React.useMemo(
+		() => selectedId ? projectBackReferences(project, {kind, id: selectedId}) : [],
+		[project, kind, selectedId]
+	);
 
 	React.useEffect(() => {
 		if (!selectedId) {
@@ -182,6 +188,27 @@ export const CanonicalEntityPanel: React.FC = () => {
 							<input aria-label="Теги canonical entity" value={tags} onChange={event => setTags(event.target.value)} />
 						</label>
 					)}
+					<details>
+						<summary>
+							Где используется: {indexedReferences.length} найдено в поисковом индексе
+						</summary>
+						<p>
+							Это частичный список известных ссылок, а не полный аудит
+							зависимостей. При изменении названия внутренний ID не меняется.
+						</p>
+						{indexedReferences.length > 0 ? (
+							<ul>
+								{indexedReferences.slice(0, 20).map(reference => (
+									<li key={reference.key}>{reference.title}</li>
+								))}
+							</ul>
+						) : (
+							<p>Индекс не нашёл ссылок. Это не подтверждает, что их нет.</p>
+						)}
+						{indexedReferences.length > 20 && (
+							<small>Показаны первые 20. Остальные доступны через Project Search.</small>
+						)}
+					</details>
 					<button type="submit">Сохранить metadata</button>
 				</form>
 			)}
