@@ -1,5 +1,9 @@
 import {NarrativeProject} from '../../domain/narrative/project';
-import {NarrativeMoveDefinition, NarrativeOutcomeDefinition} from '../../domain/narrative/interaction';
+import {
+	NarrativeKnowledgeEffectDefinition,
+	NarrativeMoveDefinition,
+	NarrativeOutcomeDefinition
+} from '../../domain/narrative/interaction';
 import {
 	NarrativeDeferredClaimOccurrence,
 	NarrativeMoveOutcomeOccurrence
@@ -21,9 +25,10 @@ export function recordDeferredOutcomeClaims(
 	outcome: NarrativeOutcomeDefinition,
 	cause: NarrativeMoveOutcomeOccurrence
 ): NarrativeProject {
-	const delayed = outcome.effects.filter(effect =>
-		effect.type === 'character-learns-claim' &&
-		effect.delayDays !== undefined
+	const delayed = outcome.effects.filter(
+		(effect): effect is NarrativeKnowledgeEffectDefinition =>
+			effect.type === 'character-learns-claim' &&
+			effect.delayDays !== undefined
 	);
 	if (delayed.length === 0) {
 		return project;
