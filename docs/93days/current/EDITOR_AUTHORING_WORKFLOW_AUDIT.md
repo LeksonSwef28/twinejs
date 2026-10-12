@@ -131,6 +131,12 @@ See [W1_COMPLEX_AUTHOR_TRIAL_A82.md](W1_COMPLEX_AUTHOR_TRIAL_A82.md). The automa
 
 Important: this does **not** implement or prove a day-delayed effect, complete human-readable Story text authoring, a full Twine host Story round trip, a shipped runtime player test for the authored vignette, or a real writer UX test.
 
+## 3g. A83 — relative Story calendar planning, NOT deferred effects (2026-10-12)
+
+Status: **FEATURE BRANCH / exact-head CI and human author trial pending**.
+
+See [RELATIVE_STORY_FOLLOWUP_A83.md](RELATIVE_STORY_FOLLOWUP_A83.md). Existing Story Metadata now provides a guarded authoring shortcut to calculate a follow-up Story's day/time from an exact source Story placement plus N full days. It does not overwrite existing target placement or silently clamp past day 93. UI previews whether any authored source Move Outcome explicitly unlocks this Story, while clearly stating that such an unlock still occurs upon Outcome resolution, not on the calculated day. Scheduling true future knowledge/relationship effects and execution of arbitrary Story due work remain **open**.
+
 ## 4. First reproducible audit — author workflow trial
 
 Test on a **separate/replaceable Story or a backed-up copy**; never overwrite the user's real production story to run this experiment. Record app version, SHA, platform, project/host IDs, time spent, UI steps, errors, and whether manual TS/JSON edits were necessary.
