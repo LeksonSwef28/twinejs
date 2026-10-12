@@ -71,6 +71,7 @@ export type NarrativeProjectCommand =
 			position: CanvasPoint;
 	  }
 	| {type: 'story/removeNode'; id: string}
+	| {type: 'story/disconnect'; id: string}
 	| {type: 'story/updateNodeTitle'; id: string; title: string}
 	| {type: 'story/setPlacement'; id: string; placement?: StoryPlacement}
 	| {
