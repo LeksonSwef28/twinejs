@@ -3,6 +3,7 @@ import {
 	canvasNodeRepresentsAuthorFocus,
 	resolveAuthorFocus
 } from '../../../application/narrative/author-focus';
+import {inspectStoryNodeRemoval} from '../../../application/narrative/story-node-removal';
 import {
 	authoredItemPlacementEquals,
 	ResolvedAuthoredItemPlacement,
@@ -194,6 +195,9 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 		!inspectedItem && resolvedFocus && 'storyNode' in resolvedFocus
 			? resolvedFocus.storyNode
 			: undefined;
+	const storyDeletionInspection = inspectedStoryNode
+		? inspectStoryNodeRemoval(project, inspectedStoryNode.id)
+		: undefined;
 	const inspectedItemDefinition = inspectedItem
 		? itemDefinitionsById.get(inspectedItem.definitionId)
 		: undefined;
@@ -1021,6 +1025,27 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 								 причинной логике Story и Continuity.
 							</small>
 						</div>
+						<section aria-label="Проверка удаления сюжетного блока">
+							{storyDeletionInspection?.status === 'blocked' ? (
+								<>
+									<p>
+										Удаление заблокировано: найдено зависимостей —{' '}
+										{storyDeletionInspection.references.length}. Сначала измените
+										или удалите их отдельно. Автоматическая очистка связей
+										и условий не выполняется.
+									</p>
+									<ul>
+										{storyDeletionInspection.references.map(reference => (
+											<li key={`${reference.kind}:${reference.id}`}>
+												{reference.label}
+											</li>
+										))}
+									</ul>
+								</>
+							) : (
+								<p>Внешних зависимостей не найдено. Удаление доступно; отмена — через Undo.</p>
+							)}
+						</section>
 						<div className="narrative-workspace__inspection-actions">
 							<button
 								type="button"
@@ -1043,7 +1068,11 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 							</button>
 							<button
 								type="button"
+								disabled={storyDeletionInspection?.status !== 'ready'}
 								onClick={() => {
+									if (storyDeletionInspection?.status !== 'ready') {
+										return;
+									}
 									execute({
 										type: 'story/removeNode',
 										id: inspectedStoryNode.id
