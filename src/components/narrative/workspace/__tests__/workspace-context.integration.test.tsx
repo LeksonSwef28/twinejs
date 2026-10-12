@@ -269,6 +269,34 @@ describe('A67 workspace context integration', () => {
 		expect(storyCanvasButtons(container)).toHaveLength(2);
 	});
 
+	test('linked Story dependency opens the other block without editing simulation', async () => {
+		const {container} = renderWorkspace({connected: true});
+		await waitFor(() => expect(storyCanvasButtons(container)).toHaveLength(2));
+		fireEvent.click(storyCanvasButtons(container)[0]);
+		const before = screen.getByTestId('simulation').textContent;
+		fireEvent.click(screen.getByRole('button', {name: 'Перейти к связанному блоку'}));
+		expect(screen.getByRole('heading', {level: 2, name: 'Разговор после встречи'}))
+			.toBeInTheDocument();
+		expect(screen.getByTestId('focus')).toHaveTextContent('story-node:followup');
+		expect(screen.getByTestId('simulation')).toHaveTextContent(before ?? '');
+	});
+
+	test('linked edge removal requires two deliberate clicks and retains both Story nodes', async () => {
+		const {container} = renderWorkspace({connected: true});
+		await waitFor(() => expect(storyCanvasButtons(container)).toHaveLength(2));
+		fireEvent.click(storyCanvasButtons(container)[0]);
+		const remove = screen.getByRole('button', {name: 'Отвязать эту связь'});
+		fireEvent.click(remove);
+		expect(screen.getByRole('button', {name: 'Удалить блок'})).toBeDisabled();
+		fireEvent.click(screen.getByRole('button', {name: 'Подтвердить удаление этой связи'}));
+		expect(screen.getByRole('button', {name: 'Удалить блок'})).toBeEnabled();
+		expect(screen.getByRole('heading', {level: 2, name: 'Встреча'}))
+			.toBeInTheDocument();
+		expect(screen.getByTestId('focus')).toHaveTextContent('story-node:meeting');
+		fireEvent.click(screen.getByText('undo-authored'));
+		expect(screen.getByRole('button', {name: 'Удалить блок'})).toBeDisabled();
+	});
+
 	test('Split View navigation moves the destination viewport without switching the canonical workspace', async () => {
 		const {container} = renderWorkspace();
 		await waitFor(() => expect(storyCanvasButtons(container)).toHaveLength(2));

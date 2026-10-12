@@ -101,6 +101,16 @@ The Story inspector checks canonical dependencies before allowing deletion of a 
 
 Verification: unit tests for isolated deletion, Story connections, other/owned Move dependencies, runtime overrides and missing-node no-op; UI integration checks that blocked deletion explains at least the linked Story to the author. Manual author trial W3 and detailed per-reference navigation remain open.
 
+## 3d. A80 — actionable Story dependency references (2026-10-12)
+
+Status: **IMPLEMENTED ON FEATURE BRANCH / CI AND HUMAN UI WALKTHROUGH PENDING**.
+
+The A79 Story removal preflight now includes **navigation to the linked Story node** where a canonical destination exists. Story connections also have a deliberate **two-step unlink** action in the inspector. `story/disconnect` removes exactly one selected Story connection, never its endpoint nodes, authored Moves or runtime state; in-session Undo restores the edge. The pending confirmation is cleared when inspected Story focus changes; no unlink occurs on the first click. Navigation reuses existing authoring focus/viewport plans and does not advance simulation time.
+
+Only typed Story connections receive direct unlink controls. For Moves, the preflight may navigate to a different owning Story, but does not silently rewrite Move guards or delete the Move. Other dependency types retain an explanatory blocker until a dedicated safe edit workflow is proven.
+
+**Still open:** non-Story dependency navigation/refactoring, complete W3 human author trial, full rename impact and dependency coverage review. A80 does not claim exhaustive reference detection or a general refactor wizard.
+
 ## 4. First reproducible audit — author workflow trial
 
 Test on a **separate/replaceable Story or a backed-up copy**; never overwrite the user's real production story to run this experiment. Record app version, SHA, platform, project/host IDs, time spent, UI steps, errors, and whether manual TS/JSON edits were necessary.

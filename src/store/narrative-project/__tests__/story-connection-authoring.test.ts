@@ -66,6 +66,40 @@ describe('Story connection authoring', () => {
 		expect(undone.present.storyConnections[0].mode).toBe('reference');
 	});
 
+	test('disconnects only the selected edge, preserves nodes and supports undo', () => {
+		let state = fixture();
+		for (const id of ['edge-one', 'edge-two']) {
+			state = narrativeProjectAuthoringReducer(state, {
+				type: 'execute',
+				command: {
+					type: 'story/connect',
+					id,
+					sourceNodeId: 'source',
+					targetNodeId: 'target',
+					kind: 'flow',
+					mode: 'reference'
+				}
+			});
+		}
+		const originalNodes = state.present.storyNodes;
+		state = narrativeProjectAuthoringReducer(state, {
+			type: 'execute',
+			command: {type: 'story/disconnect', id: 'edge-one'}
+		});
+		expect(state.present.storyNodes).toEqual(originalNodes);
+		expect(state.present.storyConnections.map(edge => edge.id)).toEqual(['edge-two']);
+		state = narrativeProjectAuthoringReducer(state, {type: 'undo'});
+		expect(state.present.storyConnections.map(edge => edge.id)).toEqual([
+			'edge-one', 'edge-two'
+		]);
+
+		const noChange = narrativeProjectAuthoringReducer(state, {
+			type: 'execute',
+			command: {type: 'story/disconnect', id: 'unknown'}
+		});
+		expect(noChange).toBe(state);
+	});
+
 	test('refuses executable mode for semantic edges', () => {
 		let state = fixture();
 		state = narrativeProjectAuthoringReducer(state, {
