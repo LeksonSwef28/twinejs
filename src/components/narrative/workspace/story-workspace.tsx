@@ -42,6 +42,8 @@ const edgeModeLabels: Record<StoryEdgeMode, string> = {
 
 export interface StoryWorkspaceProps {
 	navigate: AuthoringNavigationActions['navigate'];
+	/** Select the exact offending Move in the existing conditions inspector. */
+	onInspectMove?: (moveId: string) => void;
 }
 
 interface DragState {
@@ -135,7 +137,7 @@ function authoredItemPlacementSummary(
 	}
 }
 
-export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
+export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate, onInspectMove}) => {
 	const {project, execute, createId} = useNarrativeProject();
 	const {focus, setFocus} = useAuthoringSessionFocus();
 	const [characterName, setCharacterName] = React.useState('');
@@ -1060,6 +1062,14 @@ export const StoryWorkspace: React.FC<StoryWorkspaceProps> = ({navigate}) => {
 															Перейти к связанному блоку
 														</button>
 													)}
+												{reference.kind === 'move' && onInspectMove && (
+													<button
+														type="button"
+														onClick={() => onInspectMove(reference.id)}
+													>
+														Открыть условия этого действия
+													</button>
+												)}
 												{reference.kind === 'story-connection' && (
 													<button
 														type="button"

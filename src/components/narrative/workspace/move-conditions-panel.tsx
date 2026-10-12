@@ -22,13 +22,29 @@ const conditionLabels: Record<ConditionType, string> = {
 	'characters-share-location': 'Персонажи находятся в одной локации'
 };
 
-export const MoveConditionsPanel: React.FC = () => {
+export interface MoveConditionsPanelProps {
+	/** Exact canonical dependency Move, not a Story-level approximation. */
+	preferredMoveId?: string;
+}
+
+export const MoveConditionsPanel: React.FC<MoveConditionsPanelProps> = ({
+	preferredMoveId
+}) => {
 	const {project, execute, createId} = useNarrativeProject();
+	const panelRef = React.useRef<HTMLElement>(null);
 	const [moveId, setMoveId] = React.useState('');
-	const selectedMoveId =
-		moveId && project.narrativeMoves.some(move => move.id === moveId)
-			? moveId
-			: project.narrativeMoves[0]?.id ?? '';
+	React.useEffect(() => {
+		if (!preferredMoveId) {
+			return;
+		}
+		setMoveId(preferredMoveId);
+		if (project.narrativeMoves.some(move => move.id === preferredMoveId)) {
+			panelRef.current?.scrollIntoView?.({block: 'nearest'});
+		}
+	}, [preferredMoveId, project.projectId]);
+	const selectedMoveId = moveId
+		? project.narrativeMoves.some(move => move.id === moveId) ? moveId : ''
+		: project.narrativeMoves[0]?.id ?? '';
 	const move = project.narrativeMoves.find(candidate => candidate.id === selectedMoveId);
 	const [conditionType, setConditionType] =
 		React.useState<ConditionType>('character-knows-claim');
@@ -139,7 +155,7 @@ export const MoveConditionsPanel: React.FC = () => {
 	}
 
 	return (
-		<section className="narrative-workspace__move-editor" aria-label="Move Conditions">
+		<section ref={panelRef} className="narrative-workspace__move-editor" aria-label="Move Conditions">
 			<h2>Move Conditions</h2>
 			<p>
 				Полный authoring Guards и condition resolver. Условия только описывают доступность
@@ -149,6 +165,11 @@ export const MoveConditionsPanel: React.FC = () => {
 				<small>Сначала создай Narrative Move.</small>
 			) : (
 				<>
+					{moveId && !selectedMoveId && (
+						<p role="status">
+							Выбранное действие больше не существует. Выберите другое действие.
+						</p>
+					)}
 					<select
 						aria-label="Narrative Move для условий"
 						value={selectedMoveId}
