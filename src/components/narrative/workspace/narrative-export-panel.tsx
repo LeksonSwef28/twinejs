@@ -468,8 +468,10 @@ export const NarrativeExportPanel: React.FC = () => {
 				<small>
 					Снимок редактируемых Narrative Project данных (authored/editor/runtime),
 					 не игровой Runtime artifact. Доступен даже при блокировках компиляции.
-					 НЕ включает host Twine Story/passages и пока не поддерживает импорт
-					 или автоматическое восстановление. Для полного переноса сохраните
+					 НЕ включает host Twine Story/passages. Ниже доступна только
+					 проверяемая загрузка в пустой Narrative Project той же Story;
+					 полное переносимое восстановление не поддерживается.
+					 Для полного переноса сохраните
 					 отдельно исходную Twine Story.
 				</small>
 			</div>

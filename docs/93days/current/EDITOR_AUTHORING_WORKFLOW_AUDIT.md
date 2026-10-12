@@ -123,6 +123,14 @@ See [EDITOR_USABILITY_RESEARCH_A81.md](EDITOR_USABILITY_RESEARCH_A81.md) for ext
 
 **Manual pending:** non-programmer task walkthrough, time/steps/error log, navigation back/peek feedback, and no-code authored case extended to relationships, knowledge provenance and export. Do not mark W1 or W3 human gates passed from the tests alone.
 
+## 3f. A82 — complex author-only W1 trial (2026-10-12)
+
+Status: **FEATURE BRANCH / exact-head CI + human verification pending**.
+
+See [W1_COMPLEX_AUTHOR_TRIAL_A82.md](W1_COMPLEX_AUTHOR_TRIAL_A82.md). The automated UI-only trial authors two characters, two Story nodes, one fact/Claim, two independently sourced knowledge seeds (observed versus forum-mediated), a communicated-Claim Move, a relationship Outcome Effect, and an outcome-dependent next-Story unlock, then checks save/reopen and source snapshot projection. The export help text is corrected to describe the already implemented *restricted same-host restore* rather than claim all imports are unsupported.
+
+Important: this does **not** implement or prove a day-delayed effect, complete human-readable Story text authoring, a full Twine host Story round trip, a shipped runtime player test for the authored vignette, or a real writer UX test.
+
 ## 4. First reproducible audit — author workflow trial
 
 Test on a **separate/replaceable Story or a backed-up copy**; never overwrite the user's real production story to run this experiment. Record app version, SHA, platform, project/host IDs, time spent, UI steps, errors, and whether manual TS/JSON edits were necessary.
