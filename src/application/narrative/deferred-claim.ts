@@ -108,28 +108,47 @@ export function settleDueDeferredClaims(
 		const move = project.narrativeMoves.find(item => item.id === pending.moveId);
 		const outcome = move?.outcomes.find(item => item.id === pending.outcomeId);
 		const effect = outcome?.effects.find(item => item.id === pending.effectId);
-		const applicable = move?.storyNodeId === pending.storyNodeId &&
+		const cause = project.runtimeOccurrences.find(occurrence =>
+			occurrence.type === 'move-outcome' &&
+			occurrence.id === pending.causeOccurrenceId
+		);
+		const applicable =
+			cause?.type === 'move-outcome' &&
+			cause.storyNodeId === pending.storyNodeId &&
+			cause.moveId === pending.moveId &&
+			cause.outcomeId === pending.outcomeId &&
+			cause.effectIds.includes(pending.effectId) &&
+			move?.storyNodeId === pending.storyNodeId &&
 			effect?.type === 'character-learns-claim' &&
-			effect.delayDays !== undefined;
+			effect.delayDays !== undefined &&
+			cause.moment.day + effect.delayDays === pending.dueMoment.day &&
+			cause.moment.minuteOfDay === pending.dueMoment.minuteOfDay;
+		let appliedSuccessfully = false;
 		if (applicable && move && outcome && effect) {
-			const applied = applyNarrativeOutcomeKnowledgeEffects(
-				move,
-				{...outcome, effects: [{...effect, delayDays: undefined}]},
-				state,
-				{
-					moment: pending.dueMoment,
-					sourceEventId: move.storyNodeId
-				}
-			);
-			state = applied.characterKnowledge;
+			try {
+				const applied = applyNarrativeOutcomeKnowledgeEffects(
+					move,
+					{...outcome, effects: [{...effect, delayDays: undefined}]},
+					state,
+					{
+						moment: pending.dueMoment,
+						sourceEventId: move.storyNodeId
+					}
+				);
+				state = applied.characterKnowledge;
+				appliedSuccessfully = true;
+			} catch {
+				// Stale/corrupt references cannot crash canonical time advancement
+				// or produce a partial Claim update. The expired event is auditable.
+			}
 		}
-		const result = applicable ? 'applied' : 'expired';
+		const result = appliedSuccessfully ? 'applied' : 'expired';
 		finished.push({
 			...pending,
 			id: `${deferredRecordId(pending.causeOccurrenceId, pending.effectId)}:${result}`,
 			result,
 			moment: {...pending.dueMoment},
-			...(applicable ? {reason: undefined} : {reason: 'missing-definition' as const})
+			...(appliedSuccessfully ? {reason: undefined} : {reason: 'missing-definition' as const})
 		});
 	}
 	if (finished.length === 0) {
