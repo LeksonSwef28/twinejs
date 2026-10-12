@@ -206,6 +206,12 @@ function cloneOccurrenceHistory(value: unknown): NarrativeRuntimeOccurrence[] {
 					effectIds: [...occurrence.effectIds],
 					moment: {...occurrence.moment}
 			  }
+			: occurrence.type === 'deferred-claim'
+				? {
+						...occurrence,
+						dueMoment: {...occurrence.dueMoment},
+						moment: {...occurrence.moment}
+					  }
 			: {
 					...occurrence,
 					scheduledMoment: {...occurrence.scheduledMoment},
