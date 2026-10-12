@@ -135,14 +135,31 @@ const WorkspaceFocusBoundary: React.FC = () => (
 	</AuthoringSessionFocusProvider>
 );
 
-function renderWorkspace() {
+function renderWorkspace(options?: {connected?: boolean}) {
 	const hostStoryId = 'story-a67-workspace-context';
 	const projectName = 'A67 workspace context integration';
+	const project = workspaceProject();
+	if (options?.connected) {
+		project.storyNodes.push({
+			id: 'followup',
+			kind: 'dialogue',
+			title: 'Разговор после встречи',
+			participantIds: [],
+			activationState: 'draft'
+		});
+		project.storyConnections.push({
+			id: 'link-followup',
+			sourceNodeId: 'meeting',
+			targetNodeId: 'followup',
+			kind: 'flow',
+			mode: 'reference'
+		});
+	}
 	createLocalStorageNarrativeProjectRepository(
 		hostStoryId,
 		projectName,
 		ninetyThreeDaysTemplate
-	).save(workspaceProject());
+	).save(project);
 
 	return render(
 		<NarrativeProjectProvider
@@ -235,6 +252,21 @@ describe('A67 workspace context integration', () => {
 		fireEvent.click(screen.getByText('undo-authored'));
 		await waitFor(() => expect(storyCanvasButtons(container)).toHaveLength(2));
 		expect(screen.getByTestId('focus')).toHaveTextContent('none');
+	});
+
+	test('inspector explains and disables deletion of a Story node with linked followup', async () => {
+		const {container} = renderWorkspace({connected: true});
+		await waitFor(() => expect(storyCanvasButtons(container)).toHaveLength(2));
+		fireEvent.click(storyCanvasButtons(container)[0]);
+		expect(screen.getByRole('heading', {level: 2, name: 'Встреча'}))
+			.toBeInTheDocument();
+		expect(screen.getByRole('button', {name: 'Удалить блок'})).toBeDisabled();
+		expect(screen.getByRole('region', {name: 'Проверка удаления сюжетного блока'}))
+			.toHaveTextContent('Разговор после встречи');
+		expect(screen.getByRole('region', {name: 'Проверка удаления сюжетного блока'}))
+			.toHaveTextContent('Удаление заблокировано');
+		fireEvent.click(screen.getByRole('button', {name: 'Удалить блок'}));
+		expect(storyCanvasButtons(container)).toHaveLength(2);
 	});
 
 	test('Split View navigation moves the destination viewport without switching the canonical workspace', async () => {
