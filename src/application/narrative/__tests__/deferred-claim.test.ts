@@ -160,4 +160,81 @@ describe('A84 canonical deferred Claim Outcome', () => {
 			expect(narrativeMoveIsStructurallyValid(project.narrativeMoves[0])).toBe(false);
 		}
 	});
+
+	test('pending deliveries expire instead of silently following edited recipient, source, Move bindings or Claim meaning', () => {
+		const changes: Array<(project: ReturnType<typeof fixture>) => void> = [
+			project => {
+				const effect = project.narrativeMoves[0].outcomes[0].effects[0];
+				if (effect.type === 'character-learns-claim') {
+					effect.recipient = {type: 'character', characterId: 'ira'};
+				}
+			},
+			project => {
+				const effect = project.narrativeMoves[0].outcomes[0].effects[0];
+				if (effect.type === 'character-learns-claim') {
+					effect.source = {type: 'authored'};
+				}
+			},
+			project => {
+				project.narrativeMoves[0].targetCharacterIds = ['ira'];
+			},
+			project => {
+				project.claims[0].text = 'Совсем другое утверждение';
+			}
+		];
+		for (const change of changes) {
+			const scheduled = resolveAndApplyNarrativeProjectMove(fixture(), 'talk').project;
+			change(scheduled);
+			const due = advanceNarrativeProjectSimulation(scheduled, 2880).project;
+			expect(due.simulation.characterKnowledge).toHaveLength(0);
+			expect(pendingDeferredClaims(due)).toHaveLength(0);
+			expect(due.runtimeOccurrences).toEqual(expect.arrayContaining([
+				expect.objectContaining({
+					type: 'deferred-claim', result: 'expired', reason: 'changed-definition'
+				})
+			]));
+		}
+	});
+
+	test('missing canonical recipient, Claim or owning Story never creates orphan knowledge', () => {
+		const changes: Array<(project: ReturnType<typeof fixture>) => void> = [
+			project => { project.characters = project.characters.filter(character => character.id !== 'misha'); },
+			project => { project.claims = []; },
+			project => { project.storyNodes = []; }
+		];
+		for (const change of changes) {
+			const scheduled = resolveAndApplyNarrativeProjectMove(fixture(), 'talk').project;
+			change(scheduled);
+			const due = advanceNarrativeProjectSimulation(scheduled, 2880).project;
+			expect(due.simulation.characterKnowledge).toHaveLength(0);
+			expect(pendingDeferredClaims(due)).toHaveLength(0);
+			expect(due.runtimeOccurrences).toEqual(expect.arrayContaining([
+				expect.objectContaining({
+					type: 'deferred-claim', result: 'expired', reason: 'missing-reference'
+				})
+			]));
+		}
+	});
+
+	test('older pending journal entries without verifiable semantics fail closed', () => {
+		const scheduled = resolveAndApplyNarrativeProjectMove(fixture(), 'talk').project;
+		expect(pendingDeferredClaims(scheduled)[0].definitionSignature).toBeTruthy();
+		const legacy = {
+			...scheduled,
+			runtimeOccurrences: scheduled.runtimeOccurrences.map(event =>
+				event.type === 'deferred-claim'
+					? {...event, definitionSignature: undefined}
+					: event
+			)
+		};
+		const due = advanceNarrativeProjectSimulation(legacy, 2880).project;
+		expect(due.simulation.characterKnowledge).toHaveLength(0);
+		expect(pendingDeferredClaims(due)).toHaveLength(0);
+		expect(due.runtimeOccurrences).toEqual(expect.arrayContaining([
+			expect.objectContaining({
+				type: 'deferred-claim', result: 'expired', reason: 'unverifiable-definition'
+			})
+		]));
+	});
+
 });
