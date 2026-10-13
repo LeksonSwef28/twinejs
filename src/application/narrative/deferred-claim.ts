@@ -194,10 +194,12 @@ export function settleDueDeferredClaims(
 			cause.moment.day + effect.delayDays === pending.dueMoment.day &&
 			cause.moment.minuteOfDay === pending.dueMoment.minuteOfDay;
 		const referencesPresent = Boolean(
-			applicable && move && effect && deferredReferencesExist(project, move, effect)
+			applicable && move && effect?.type === 'character-learns-claim' &&
+			deferredReferencesExist(project, move, effect)
 		);
 		const contractMatches = Boolean(
-			applicable && move && effect && pending.definitionSignature &&
+			applicable && move && effect?.type === 'character-learns-claim' &&
+			pending.definitionSignature &&
 			pending.definitionSignature === deferredEffectSignature(project, move, effect)
 		);
 		let appliedSuccessfully = false;
