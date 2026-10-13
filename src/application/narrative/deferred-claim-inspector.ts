@@ -125,9 +125,9 @@ export function createDeferredClaimInspectorSnapshot(
 			entry.recipientName = recipientId ? characters.get(recipientId) : undefined;
 			entry.claimText = claimId ? claims.get(claimId)?.text : undefined;
 			entry.sourceLabel = sourceId
-				? \`Со слов: \${characters.get(sourceId) ?? sourceId}\`
+				? `Со слов: ${characters.get(sourceId) ?? sourceId}`
 				: source.type === 'mediated'
-					? \`Через \${source.medium}\${source.attribution ? \` · \${source.attribution}\` : ''}\`
+					? `Через ${source.medium}${source.attribution ? ` · ${source.attribution}` : ''}`
 					: source.type === 'authored' ? 'Авторская настройка'
 						: source.type === 'observed' ? 'Личное наблюдение'
 							: source.type === 'inferred' ? 'Собственный вывод' : undefined;
