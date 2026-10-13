@@ -16,6 +16,7 @@ import {
 	SimulationStepTrace
 } from '../../../domain/narrative/simulation-kernel';
 import {useNarrativeProject} from '../../../store/narrative-project';
+import {DeferredClaimInspectorPanel} from './deferred-claim-inspector-panel';
 import {PreviewLaboratoryPanel} from './preview-laboratory-panel';
 import './simulation-debug-panel.css';
 
@@ -227,6 +228,8 @@ export const SimulationDebugPanel: React.FC<SimulationDebugPanelProps> = ({
 						))}
 					</ul>
 				</section>
+
+				<DeferredClaimInspectorPanel project={project} />
 
 				<section className="simulation-debug__card">
 					<h3>Active executions</h3>
