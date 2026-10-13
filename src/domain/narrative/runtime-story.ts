@@ -46,7 +46,14 @@ export interface NarrativeDeferredClaimOccurrence {
 	causeOccurrenceId: EntityId;
 	dueMoment: NarrativeRuntimeMoment;
 	moment: NarrativeRuntimeMoment;
-	reason?: 'past-project-end' | 'missing-definition';
+	/** Immutable semantic contract captured at scheduling; absent in legacy A84 saves. */
+	definitionSignature?: string;
+	reason?:
+		| 'past-project-end'
+		| 'missing-definition'
+		| 'changed-definition'
+		| 'missing-reference'
+		| 'unverifiable-definition';
 }
 
 export type NarrativeRuntimeOccurrence =
@@ -114,9 +121,15 @@ export function narrativeRuntimeOccurrenceIsValid(
 			typeof deferred.effectId === 'string' &&
 			typeof deferred.causeOccurrenceId === 'string' &&
 			runtimeMomentIsValid(deferred.dueMoment) &&
+			(deferred.definitionSignature === undefined ||
+				(typeof deferred.definitionSignature === 'string' &&
+					deferred.definitionSignature.length > 0)) &&
 			(deferred.reason === undefined ||
 				deferred.reason === 'past-project-end' ||
-				deferred.reason === 'missing-definition')
+				deferred.reason === 'missing-definition' ||
+				deferred.reason === 'changed-definition' ||
+				deferred.reason === 'missing-reference' ||
+				deferred.reason === 'unverifiable-definition')
 		);
 	}
 	if (candidate.type === 'story-work') {

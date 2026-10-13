@@ -18,6 +18,75 @@ function deferredRecordId(
 	return `${causeOccurrenceId}:deferred-claim:${effectId}`;
 }
 
+/**
+ * Snapshot the semantics of an effect at the real Outcome moment.
+ * Sorted keys make the comparison stable across save/restore and object key order.
+ * Only references relevant to delayed knowledge are included from the Move.
+ */
+function stableDefinitionValue(value: unknown): string {
+	if (Array.isArray(value)) {
+		return `[${value.map(stableDefinitionValue).join(',')}]`;
+	}
+	if (value !== null && typeof value === 'object') {
+		const parts = Object.entries(value as Record<string, unknown>)
+			.filter(([, entry]) => entry !== undefined)
+			.sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+			.map(([key, entry]) => `${JSON.stringify(key)}:${stableDefinitionValue(entry)}`);
+		return `{${parts.join(',')}}`;
+	}
+	return JSON.stringify(value) ?? 'null';
+}
+
+function deferredClaimId(
+	move: NarrativeMoveDefinition,
+	effect: NarrativeKnowledgeEffectDefinition
+): string | undefined {
+	return effect.claim.type === 'claim'
+		? effect.claim.claimId
+		: move.communicatedClaimId;
+}
+
+function deferredEffectSignature(
+	project: NarrativeProject,
+	move: NarrativeMoveDefinition,
+	effect: NarrativeKnowledgeEffectDefinition
+): string {
+	const claimId = deferredClaimId(move, effect);
+	return stableDefinitionValue({
+		move: {
+			storyNodeId: move.storyNodeId,
+			actorCharacterId: move.actorCharacterId,
+			targetCharacterIds: move.targetCharacterIds,
+			communicatedClaimId: move.communicatedClaimId
+		},
+		effect,
+		claimDefinition: project.claims.find(claim => claim.id === claimId) ?? null
+	});
+}
+
+function deferredReferencesExist(
+	project: NarrativeProject,
+	move: NarrativeMoveDefinition,
+	effect: NarrativeKnowledgeEffectDefinition
+): boolean {
+	const recipientId = effect.recipient.type === 'character'
+		? effect.recipient.characterId
+		: move.targetCharacterIds[effect.recipient.targetIndex];
+	const claimId = deferredClaimId(move, effect);
+	const sourceId = effect.source.type === 'move-actor'
+		? move.actorCharacterId
+		: effect.source.type === 'move-target'
+			? move.targetCharacterIds[effect.source.targetIndex]
+			: undefined;
+	return Boolean(
+		project.storyNodes.some(node => node.id === move.storyNodeId) &&
+		recipientId && project.characters.some(character => character.id === recipientId) &&
+		claimId && project.claims.some(claim => claim.id === claimId) &&
+		((effect.source.type !== 'move-actor' && effect.source.type !== 'move-target') ||
+			(sourceId && project.characters.some(character => character.id === sourceId)))
+	);
+}
+
 /** A real resolved Outcome schedules a Claim; authoring and Preview navigation never do. */
 export function recordDeferredOutcomeClaims(
 	project: NarrativeProject,
@@ -50,6 +119,7 @@ export function recordDeferredOutcomeClaims(
 			causeOccurrenceId: cause.id,
 			dueMoment,
 			moment: {...cause.moment},
+			definitionSignature: deferredEffectSignature(project, move, effect),
 			...(outside ? {reason: 'past-project-end' as const} : {})
 		};
 	});
@@ -123,8 +193,17 @@ export function settleDueDeferredClaims(
 			effect.delayDays !== undefined &&
 			cause.moment.day + effect.delayDays === pending.dueMoment.day &&
 			cause.moment.minuteOfDay === pending.dueMoment.minuteOfDay;
+		const referencesPresent = Boolean(
+			applicable && move && effect?.type === 'character-learns-claim' &&
+			deferredReferencesExist(project, move, effect)
+		);
+		const contractMatches = Boolean(
+			applicable && move && effect?.type === 'character-learns-claim' &&
+			pending.definitionSignature &&
+			pending.definitionSignature === deferredEffectSignature(project, move, effect)
+		);
 		let appliedSuccessfully = false;
-		if (applicable && move && outcome && effect) {
+		if (applicable && referencesPresent && contractMatches && move && outcome && effect) {
 			try {
 				const applied = applyNarrativeOutcomeKnowledgeEffects(
 					move,
@@ -143,12 +222,21 @@ export function settleDueDeferredClaims(
 			}
 		}
 		const result = appliedSuccessfully ? 'applied' : 'expired';
+		const reason = !applicable
+			? 'missing-definition' as const
+			: !referencesPresent
+				? 'missing-reference' as const
+				: !pending.definitionSignature
+					? 'unverifiable-definition' as const
+					: !contractMatches
+						? 'changed-definition' as const
+						: 'missing-definition' as const;
 		finished.push({
 			...pending,
 			id: `${deferredRecordId(pending.causeOccurrenceId, pending.effectId)}:${result}`,
 			result,
 			moment: {...pending.dueMoment},
-			...(appliedSuccessfully ? {reason: undefined} : {reason: 'missing-definition' as const})
+			...(appliedSuccessfully ? {reason: undefined} : {reason})
 		});
 	}
 	if (finished.length === 0) {
