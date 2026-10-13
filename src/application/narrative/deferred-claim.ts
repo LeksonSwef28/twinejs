@@ -46,7 +46,7 @@ function deferredClaimId(
 		: move.communicatedClaimId;
 }
 
-function deferredEffectSignature(
+export function deferredEffectSignature(
 	project: NarrativeProject,
 	move: NarrativeMoveDefinition,
 	effect: NarrativeKnowledgeEffectDefinition
