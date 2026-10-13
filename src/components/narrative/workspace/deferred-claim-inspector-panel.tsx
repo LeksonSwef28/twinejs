@@ -11,7 +11,7 @@ export interface DeferredClaimInspectorPanelProps {
 }
 
 function momentLabel(moment: {day: number; minuteOfDay: number}) {
-	return ``День ${moment.day} · ${formatMinuteOfDay(moment.minuteOfDay)}``;
+	return `День ${moment.day} · ${formatMinuteOfDay(moment.minuteOfDay)}`;
 }
 
 function expiryLabel(reason: DeferredClaimInspectorEntry['reason']) {
@@ -37,7 +37,7 @@ function EventRow({event}: {event: DeferredClaimInspectorEntry}) {
 		<li>
 			<strong>
 				{verified && event.recipientName && event.claimText
-					? ``${event.recipientName} · «${event.claimText}»``
+					? `${event.recipientName} · «${event.claimText}»`
 					: 'Исходные получатель и Claim не подтверждены'}
 			</strong>
 			<div>Срок: {momentLabel(event.dueMoment)} · {event.status === 'scheduled'
